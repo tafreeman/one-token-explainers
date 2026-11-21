@@ -265,7 +265,16 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}
 .obs-engine.tile{border-radius:0 0 10px 10px;box-shadow:none;outline:none}
 #thread{z-index:5}
 @media(max-width:819px){.stage.has-tile{height:auto;max-height:none;grid-template-rows:minmax(220px,36svh) 136px}}
-.obs-engine{transition:opacity .3s,visibility 0s linear .3s}.obs-engine.on{transition-delay:0s}.obs-engine:not(.on){pointer-events:none}</style>
+.obs-engine{transition:opacity .3s,visibility 0s linear .3s}.obs-engine.on{transition-delay:0s}.obs-engine:not(.on){pointer-events:none}
+/* Narration (Jade, eleven_v4): button + captions. */
+.narr-cap{position:fixed;z-index:60;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(44rem,calc(100vw - 32px));padding:8px 14px;border-radius:6px;background:rgba(14,18,24,.86);color:#f4f1e8;font:500 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.narr-cap[hidden],#narrTour[hidden],#narrRun[hidden]{display:none!important}
+.narr-dur{opacity:.7;font-variant-numeric:tabular-nums}
+
+.studio-bar .narr-btn{display:flex;align-items:center;gap:6px;font:500 13px var(--sans);color:#35475a;background:none;border:1px solid #aeb2aa;border-radius:999px;padding:5px 11px;cursor:pointer}
+.studio-bar .narr-btn[aria-pressed="true"]{background:#273342;color:#fff;border-color:#273342}
+.studio-bar .narr-btn:focus-visible{outline:2px solid #35475a;outline-offset:2px}
+</style>
 </head><body>
 
 <div id="bg" aria-hidden="true"><div class="g-dots"></div><div class="g-lines"></div><div class="g-major"></div></div>
@@ -298,7 +307,11 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}
 </nav>
 
 <main>
-  <div class="wrap"><nav class="studio-bar" aria-label="Model navigation"><b><svg viewBox="0 0 30 30" aria-hidden="true" fill="none" stroke-width="1.5"><path stroke="#9e732b" d="m3 9 12-6 12 6-12 6z"/><path stroke="#376879" d="m3 14 12 6 12-6M3 19l12 6 12-6"/></svg>LLM Systems Observatory</b><a href="tour-v4.html">Guided tour ↗</a><a href="#ch4" data-nav="4">Model tower &#8599;</a></nav></div>
+  <div class="wrap"><nav class="studio-bar" aria-label="Model navigation"><b><svg viewBox="0 0 30 30" aria-hidden="true" fill="none" stroke-width="1.5"><path stroke="#9e732b" d="m3 9 12-6 12 6-12 6z"/><path stroke="#376879" d="m3 14 12 6 12-6M3 19l12 6 12-6"/></svg>LLM Systems Observatory</b><a href="tour-v4.html">Guided tour ↗</a><button class="narr-btn" id="narrRun" type="button" aria-pressed="false" hidden><span class="narr-lbl">Narrated run</span> <span class="narr-dur"></span></button><div class="narr-cap" id="narrCap" aria-live="polite" hidden></div>
+<a href="#ch4" data-nav="4">Model tower &#8599;</a></nav>
+<!-- Inline copy of assets/narration/manifest.json so narration also works from file://. Regenerate when the manifest changes. -->
+<script type="application/json" id="narration-manifest">{"version":1,"voice":"tfvhQIydLdGEZP6h00c5","voiceName":"Jade","model":"eleven_v4","totalDuration":384.88,"clips":[{"id":"00-intro","title":"Intro","src":"./assets/narration/00-intro.mp3","dur":14.08,"stop":null,"cues":[{"t":0.0,"s":"Follow one token through a frontier model."},{"t":3.04,"s":"The token is \"sat\", with its leading space, in the sentence: the cat sat on the mat."},{"t":9.72,"s":"The model is DeepSeek V4 Pro, whose design is published."}]},{"id":"01-sources","title":"Sources from everywhere","src":"./assets/narration/01-sources.mp3","dur":13.84,"stop":0,"cues":[{"t":0.0,"s":"Chapter one: data and tokens."},{"t":2.47,"s":"Web pages, code, books, math and synthetic reasoning traces are pooled into a single stream, thirty-three trillion tokens of it."}]},{"id":"02-dedupe","title":"Duplicates out, quality in","src":"./assets/narration/02-dedupe.mp3","dur":11.44,"stop":1,"cues":[{"t":0.0,"s":"Copies are hashed and removed, so nothing is learned twice."},{"t":4.37,"s":"Filters drop low-quality text and personal data, and the mix is rebalanced so no source dominates."}]},{"id":"03-bpe","title":"Byte-pair encoding cuts the sentence","src":"./assets/narration/03-bpe.mp3","dur":13.52,"stop":2,"cues":[{"t":0.0,"s":"The tokenizer cuts text into pieces from a fixed vocabulary."},{"t":4.54,"s":"Common words become one token, and the leading space travels with the word."},{"t":9.67,"s":"So our token is \"sat\", space included."}]},{"id":"04-ids","title":"Every token becomes an ID","src":"./assets/narration/04-ids.mp3","dur":15.44,"stop":3,"cues":[{"t":0.0,"s":"Rare words split into several pieces, each an integer ID, from a vocabulary of one hundred twenty-nine thousand, two hundred and eighty."},{"t":10.16,"s":"Images take another road: their patches become vectors, not IDs."}]},{"id":"05-streams","title":"Streams rise through the tower","src":"./assets/narration/05-streams.mp3","dur":10.8,"stop":4,"cues":[{"t":0.0,"s":"Chapter two: pretraining."},{"t":1.3,"s":"Batches of sequences flow up through every layer at once, and a causal mask makes sure no position can peek at the future."}]},{"id":"06-loss","title":"Score the guess, send gradients down","src":"./assets/narration/06-loss.mp3","dur":13.2,"stop":5,"cues":[{"t":0.0,"s":"After \"the cat\", the model spreads probability over the whole vocabulary."},{"t":5.36,"s":"The loss measures how surprised it was by \"sat\"."},{"t":9.11,"s":"Gradients flow back down, and every weight takes a small step."}]},{"id":"07-racks","title":"Sharded across racks, trained in FP8","src":"./assets/narration/07-racks.mp3","dur":14.0,"stop":6,"cues":[{"t":0.0,"s":"The one point six trillion parameter model is split across racks of accelerators, using several kinds of parallelism at once."},{"t":8.27,"s":"It trains in eight-bit precision, and the released model stores its experts in four bits."}]},{"id":"08-context","title":"Then, a million-token memory","src":"./assets/narration/08-context.mp3","dur":13.12,"stop":7,"cues":[{"t":0.0,"s":"Then the memory stretches."},{"t":2.47,"s":"Pretraining lengthens the context in stages, from four thousand tokens to sixteen thousand, then sixty-four thousand, and finally one million."}]},{"id":"09-specialists","title":"First, specialist SFT and RL","src":"./assets/narration/09-specialists.mp3","dur":12.88,"stop":8,"cues":[{"t":0.0,"s":"Chapter three: post-training."},{"t":2.83,"s":"First, separate specialists for math, code, agents and instructions are trained on worked examples, and then with reinforcement learning."}]},{"id":"10-attempts","title":"Draw a group of attempts","src":"./assets/narration/10-attempts.mp3","dur":9.84,"stop":9,"cues":[{"t":0.0,"s":"For a prompt with a checkable answer, the policy, which is the same tower, samples a group of attempts."},{"t":6.38,"s":"The group of eight in the drawing is illustrative."}]},{"id":"11-grade","title":"Grade against the group","src":"./assets/narration/11-grade.mp3","dur":10.88,"stop":10,"cues":[{"t":0.0,"s":"Verifiers grade code and math, and rubrics grade open-ended answers."},{"t":4.64,"s":"Each score is compared with the group's average, so no separate value model is needed."}]},{"id":"12-distill","title":"Distill specialists into one model","src":"./assets/narration/12-distill.mp3","dur":10.96,"stop":11,"cues":[{"t":0.0,"s":"Winning attempts are reinforced, with a penalty that keeps each specialist close to where it started."},{"t":6.6,"s":"Then distillation merges all the specialists into one model."}]},{"id":"13-embed","title":"An ID becomes a vector","src":"./assets/narration/13-embed.mp3","dur":14.16,"stop":12,"cues":[{"t":0.0,"s":"Chapter four: inside the model."},{"t":2.3,"s":"The token ID picks one row of the embedding table, a lookup, not a calculation."},{"t":8.3,"s":"Out comes a vector of seven thousand, one hundred and sixty-eight numbers."}]},{"id":"14-attention","title":"Normalize, then look back","src":"./assets/narration/14-attention.mp3","dur":9.68,"stop":13,"cues":[{"t":0.0,"s":"A normalized copy of the vector goes into attention."},{"t":3.56,"s":"\"Sat\" can score every earlier token, while a causal mask hides the ones that come later."}]},{"id":"15-compressed","title":"Hybrid compressed attention","src":"./assets/narration/15-compressed.mp3","dur":12.32,"stop":14,"cues":[{"t":0.0,"s":"To reach a million tokens, attention compresses its memory."},{"t":4.48,"s":"Some layers read a sparse selection of compressed blocks plus a recent window."},{"t":9.61,"s":"Others read heavily compressed summaries."}]},{"id":"16-mhc","title":"Merge via hyper-connections","src":"./assets/narration/16-mhc.mp3","dur":11.36,"stop":15,"cues":[{"t":0.0,"s":"Attention's output is added back to the residual stream, which here runs as four parallel lanes, mixed by learned connections that keep the signal stable through the depth of the tower."}]},{"id":"17-router","title":"The router picks 6 of 384","src":"./assets/narration/17-router.mp3","dur":14.8,"stop":16,"cues":[{"t":0.0,"s":"A router scores three hundred and eighty-four experts and keeps the top six, while one shared expert always runs."},{"t":7.91,"s":"That is why only forty-nine billion of the one point six trillion parameters work on each token."}]},{"id":"18-layers","title":"Sixty-one distinct layers","src":"./assets/narration/18-layers.mp3","dur":11.28,"stop":17,"cues":[{"t":0.0,"s":"The block repeats sixty-one times, each layer with its own weights: a stack, not a loop."},{"t":6.04,"s":"The first three layers route tokens by hash instead of a learned router."}]},{"id":"19-vocab","title":"Score the whole vocabulary","src":"./assets/narration/19-vocab.mp3","dur":10.88,"stop":18,"cues":[{"t":0.0,"s":"At the top, a final norm and the output head turn the vector into one score for every token in the vocabulary."},{"t":7.73,"s":"A second head guesses one token further ahead."}]},{"id":"20-training","title":"Training: loss up top, gradients down","src":"./assets/narration/20-training.mp3","dur":12.32,"stop":19,"cues":[{"t":0.0,"s":"In training, the top score is compared with the real next token, \"on\"."},{"t":5.21,"s":"The loss flows back down as gradients."},{"t":8.06,"s":"There is no K V cache, because the whole sequence runs at once."}]},{"id":"21-inference","title":"Inference: the same tower, frozen","src":"./assets/narration/21-inference.mp3","dur":12.0,"stop":20,"cues":[{"t":0.0,"s":"In serving, the same tower is frozen, and the pass only goes up."},{"t":4.35,"s":"Each attention layer writes its compressed memory into the K V cache, and the top output goes to a sampler."}]},{"id":"22-gate","title":"Through the gate","src":"./assets/narration/22-gate.mp3","dur":11.68,"stop":21,"cues":[{"t":0.0,"s":"Chapter five: serving your request."},{"t":2.45,"s":"The gateway checks your key, your rate limits and your reasoning setting, screens for abuse, and routes you to a warm replica."}]},{"id":"23-batching","title":"Disaggregated and continuously batched","src":"./assets/narration/23-batching.mp3","dur":11.44,"stop":22,"cues":[{"t":0.0,"s":"Modern engines split the work."},{"t":2.37,"s":"One pool of accelerators reads prompts and another writes replies, and requests join the batch at every step instead of waiting their turn."}]},{"id":"24-prefill","title":"Prefill: read it all at once","src":"./assets/narration/24-prefill.mp3","dur":11.2,"stop":23,"cues":[{"t":0.0,"s":"Prefill reads your whole prompt in one parallel pass."},{"t":3.96,"s":"It is compute-bound, it fills the K V cache, \"sat\" included, and it sets the time to the first token."}]},{"id":"25-decode","title":"Decode: one token per tick","src":"./assets/narration/25-decode.mp3","dur":14.24,"stop":24,"cues":[{"t":0.0,"s":"Decode writes one token per step: first hidden reasoning, then the reply."},{"t":5.17,"s":"Each step streams the weights and the cache through memory, so it is memory-bound."},{"t":11.5,"s":"Drafting a few tokens ahead speeds it up."}]},{"id":"26-sample","title":"Sample, check, stream","src":"./assets/narration/26-sample.mp3","dur":11.52,"stop":25,"cues":[{"t":0.0,"s":"The sampler picks the next token, and keeps tool calls in valid JSON."},{"t":5.01,"s":"Text is decoded into a buffer, checked by output guardrails, and only then streamed to you."}]},{"id":"27-toolcall","title":"The model stops with a tool call","src":"./assets/narration/27-toolcall.mp3","dur":10.64,"stop":26,"cues":[{"t":0.0,"s":"Chapter six: the tool loop."},{"t":1.34,"s":"Instead of more text, the model can stop with a tool call, a name and its arguments, and hand control back to your app."}]},{"id":"28-runtool","title":"Your app or an MCP server runs it","src":"./assets/narration/28-runtool.mp3","dur":11.36,"stop":27,"cues":[{"t":0.0,"s":"Your app, or an M C P server, runs the tool and keeps the result."},{"t":5.44,"s":"Treat that result as untrusted input: it is where prompt injection usually arrives."}]},{"id":"29-newrequest","title":"A brand-new request","src":"./assets/narration/29-newrequest.mp3","dur":8.96,"stop":28,"cues":[{"t":0.0,"s":"The API remembers nothing between calls, so your app sends the whole conversation again, with the tool call and its result appended."}]},{"id":"30-prefixcache","title":"Prefix cache: prefill only what's new","src":"./assets/narration/30-prefixcache.mp3","dur":11.92,"stop":29,"cues":[{"t":0.0,"s":"The server recognizes the unchanged prefix, \"sat\" included, and reuses its cached memory."},{"t":6.39,"s":"Only the new tokens are read, and decoding continues to the final answer."}]},{"id":"31-outro","title":"Outro","src":"./assets/narration/31-outro.mp3","dur":9.12,"stop":null,"cues":[{"t":0.0,"s":"Thirty stops, one token."},{"t":1.17,"s":"From a page of training text to the answer on your screen, it is the same tower, used two ways."}]}]}</script>
+</div>
   <header class="hero wrap" id="intro">
     <div class="hero-grid">
       <div>
@@ -1480,6 +1493,61 @@ bridges.forEach(b => { try { b.api.render(0, 0, 0); } catch (e) { console.error(
 if (SHOT) { addEventListener('load', () => { jumpShot(SHOT); needLayout = false; kick(); }); jumpShot(SHOT); }
 kick();
 })();
+
+/* ---------- narration engine (shared by tour and story) ---------- */
+function makeNarrator(o){
+  const N={clips:null,byStop:new Map(),intro:null,outro:null,cur:null,audio:null,on:false,paused:false,internal:false};
+  const btn=o.btn,cap=o.cap;
+  async function load(){
+    if(N.clips)return N.clips;let d=null;
+    if(location.protocol!=='file:'){try{const r=await fetch('./assets/narration/manifest.json',{cache:'no-cache'});if(r.ok)d=await r.json()}catch(_){d=null}}
+    if(!d){const el=document.getElementById('narration-manifest');if(el){try{d=JSON.parse(el.textContent)}catch(_){d=null}}}
+    if(!d||!Array.isArray(d.clips)||!d.clips.length)return null;
+    N.clips=d.clips;d.clips.forEach(c=>{if(c.stop==null){if(!N.intro)N.intro=c;else N.outro=c}else N.byStop.set(c.stop,c)});
+    const s=Math.round(d.totalDuration||0),m=Math.floor(s/60),r=s%60;
+    btn.querySelector('.narr-dur').textContent=m+':'+String(r).padStart(2,'0');
+    btn.setAttribute('aria-label',o.label+' with sound, '+m+' min '+r+' s');btn.hidden=false;return N.clips;
+  }
+  function setBtn(){btn.setAttribute('aria-pressed',N.on?'true':'false');btn.querySelector('.narr-lbl').textContent=N.on?'Pause':N.paused?'Resume':o.label}
+  function caption(c,t){if(!c||!c.cues||!c.cues.length){cap.hidden=true;return}let s=c.cues[0].s;for(const q of c.cues)if(t>=q.t)s=q.s;if(cap.textContent!==s)cap.textContent=s;cap.hidden=false}
+  function drop(){const a=N.audio;if(a){a.onended=null;a.onerror=null;a.ontimeupdate=null;a.pause()}N.audio=null}
+  function finish(){N.on=false;N.paused=false;drop();N.cur=null;cap.hidden=true;setBtn();if(o.onFinish)o.onFinish()}
+  function pause(){if(!N.on)return;N.on=false;N.paused=true;if(N.audio)N.audio.pause();setBtn()}
+  function play(c){
+    drop();N.cur=c;if(!c){finish();return}
+    const a=new Audio(c.src);a.preload='auto';N.audio=a;
+    a.ontimeupdate=()=>caption(c,a.currentTime);a.onended=next;a.onerror=next;caption(c,0);
+    const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==='NotAllowedError')pause();else next()});
+    const nx=c===N.intro?N.byStop.get(0):c===N.outro?null:(N.byStop.get(c.stop+1)||N.outro);if(nx){const pre=new Audio();pre.preload='auto';pre.src=nx.src}
+  }
+  function go(n){N.internal=true;try{o.goStop(n)}finally{N.internal=false}play(N.byStop.get(n))}
+  function next(){
+    if(!N.on)return;const c=N.cur;
+    if(c===N.intro){go(0);return}
+    if(!c||c===N.outro){finish();return}
+    if(c.stop>=29){if(N.outro){if(o.onOutro)o.onOutro();play(N.outro)}else finish();return}
+    go(c.stop+1);
+  }
+  async function toggle(){
+    if(N.on){pause();return}
+    if(N.paused&&N.audio){N.on=true;N.paused=false;setBtn();const p=N.audio.play();if(p&&p.catch)p.catch(()=>pause());return}
+    if(!await load())return;
+    N.on=true;N.paused=false;setBtn();
+    const s=o.getStop();if(s==null&&o.onStart)o.onStart();play(s==null?N.intro:N.byStop.get(s));
+  }
+  btn.addEventListener('click',toggle);load();
+  return{followStop(n){if(N.on&&!N.internal){const c=N.byStop.get(n);if(c)play(c)}},interrupt(){if(N.on&&!N.internal)pause()}};
+}
+
+const narrRM=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||new URLSearchParams(location.search).get('rm')==='1';
+const narrSteps=()=>[...document.querySelectorAll('section[id^="ch"] .step')];
+const narrTo=el=>{if(el)el.scrollIntoView({block:'center',behavior:narrRM()?'instant':'smooth'})};
+const narr=makeNarrator({btn:document.getElementById('narrRun'),cap:document.getElementById('narrCap'),label:'Narrated run',
+  goStop:n=>narrTo(narrSteps()[n]),getStop:()=>null,
+  onStart:()=>{const h=document.getElementById('intro');if(h)h.scrollIntoView({block:'start',behavior:narrRM()?'instant':'smooth'})},
+  onOutro:()=>{const o=document.getElementById('outro');if(o)o.scrollIntoView({block:'start',behavior:narrRM()?'instant':'smooth'})}});
+['wheel','touchmove'].forEach(ev=>addEventListener(ev,()=>narr.interrupt(),{passive:true}));
+addEventListener('keydown',e=>{if(/^(Arrow|Page|Home|End| )/.test(e.key))narr.interrupt()});
 </script>
 
 </body></html>

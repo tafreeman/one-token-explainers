@@ -17,6 +17,14 @@
 - The acceptance and frame-time tables below describe the 2026-11-19 build.
 - If you viewed the old build, hard-refresh with Ctrl+F5, because the browser may serve the cached `obs-core.html` inside the iframe.
 
+## Narration
+
+- **Voice and files:** the ElevenLabs voice Jade, on `eleven_v4`. There are 32 clips (an intro, one per stop, an outro), 6 min 25 s in total, in `assets/narration/`.
+- **Script and captions:** the script is `narration-script.md`. `assets/narration/manifest.json` lists each clip with its duration, its stop and its captions. Captions are timed by each sentence's share of the clip, snapped to the pauses that `ffmpeg silencedetect` finds.
+- **Tour:** "Narrated tour" in the header plays the intro, then each stop, moving the tour along as each clip ends. Choosing a stop yourself jumps the narration to that stop. Escape or Explore pauses it.
+- **Story:** "Narrated run" in the top bar plays the intro, then scrolls to each step card as its clip starts. Scrolling or arrow keys pause it.
+- **Opening from disk:** both pages fetch the manifest over HTTP. Each page also carries an inline copy (`<script id="narration-manifest">`) so narration still works from `file://`. Regenerate that copy if the manifest changes.
+
 ## Run locally
 
 Serve the repository over HTTP: the story and tour embed `obs-core.html` in an iframe and load their assets with `fetch`, which browsers block on `file://`. From the repository root:
