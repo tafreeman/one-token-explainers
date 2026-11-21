@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+
+# Local tooling and OS noise
+node_modules/
+.venv/
+__pycache__/
+*.zip
+_backup_*/
+.DS_Store
+Thumbs.db

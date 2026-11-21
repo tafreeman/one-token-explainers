@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>One Token, End to End</title>
+<meta name="description" content="Follow one token through a frontier LLM: twelve stages on one line, from training data to the streamed reply, drawn as simple 3D figures.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,300..700&family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F7F4; --paper-2:#EFEFEA; --rule:#D5D5CE; --rule-2:#B9B9B1;
+  --ink:#0E0E0E; --ink-2:#3B3B37; --ink-3:#64645D;
+  --token:#FF4A1C; --token-ink:#C2310B;
+  --display:"Roboto Flex","Roboto","Helvetica Neue",Arial,sans-serif;
+  --mono:"Martian Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gutter:clamp(16px,3.2vw,48px);
+  --rail:68px;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{background:var(--paper);scroll-behavior:smooth;scrollbar-color:var(--ink) var(--paper);scrollbar-width:thin}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);font-size:17px;line-height:1.6;font-optical-sizing:auto;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;caret-color:var(--ink);padding-bottom:var(--rail)}
+::selection{background:var(--ink);color:var(--paper)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--paper)}
+::-webkit-scrollbar-thumb{background:var(--ink);border:3px solid var(--paper);border-radius:6px}
+a{color:inherit;text-decoration-thickness:1px;text-underline-offset:.22em;text-decoration-color:var(--rule-2)}
+a:hover{text-decoration-color:var(--ink)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:2px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.skip{position:absolute;left:var(--gutter);top:-60px;z-index:50;background:var(--ink);color:var(--paper);padding:10px 14px;font:600 12px/1 var(--mono);text-decoration:none}
+.skip:focus{top:12px}
+code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
+.tab{font-variant-numeric:tabular-nums}
+
+/* ---------- masthead ---------- */
+.mast{display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding:16px var(--gutter);border-bottom:1px solid var(--rule);font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.09em;text-transform:uppercase}
+.mast b{font-weight:600}
+.mast nav{display:flex;gap:22px}
+.mast nav a{text-decoration:none;color:var(--ink-3)}
+.mast nav a:hover{color:var(--ink)}
+
+/* ---------- hero ---------- */
+.hero{min-height:calc(100svh - var(--rail) - 46px);display:flex;flex-direction:column}
+.hero-top{flex:none;display:grid;grid-template-columns:minmax(0,4fr) minmax(0,6.2fr) minmax(0,2.2fr);gap:clamp(20px,2.4vw,40px);padding:clamp(20px,3vh,40px) var(--gutter) clamp(16px,2.4vh,28px);align-items:end}
+.hero-copy{align-self:end;max-width:30rem}
+.hero h1{margin:0 0 .5em;font-size:clamp(1.9rem,2.6vw,2.75rem);line-height:1.04;letter-spacing:-.025em;font-variation-settings:"wdth" 82,"wght" 760,"opsz" 72;text-wrap:balance}
+.standfirst{margin:0 0 1.1em;color:var(--ink-2);font-size:1.06rem;line-height:1.55;max-width:34ch}
+.note{margin:0 0 1.4em;color:var(--ink-3);font-size:.9rem;line-height:1.5;max-width:40ch}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px}
+.btn{appearance:none;display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 18px 0 16px;border:1px solid var(--ink);border-radius:2px;background:var(--ink);color:var(--paper);font:600 12px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background .2s var(--ease-out),color .2s var(--ease-out)}
+.btn:hover{background:#262622}
+.btn[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
+.btn svg{width:12px;height:12px;flex:none}
+.btn .i-stop{display:none}
+.btn[aria-pressed="true"] .i-play{display:none}
+.btn[aria-pressed="true"] .i-stop{display:block}
+.link{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:var(--ink)}
+.link svg{width:12px;height:12px}
+.btn[hidden]{display:none}
+.btn-quiet{background:var(--paper);color:var(--ink)}
+.btn-quiet:hover{background:var(--paper-2)}
+.btn .dur{font-weight:500;color:var(--ink-3);letter-spacing:.04em}
+.caption{position:absolute;left:50%;bottom:clamp(12px,2.6vh,24px);z-index:2;translate:-50% 0;width:max-content;max-width:min(42rem,calc(100% - 32px));margin:0;padding:7px 12px 8px;background:color-mix(in srgb,var(--paper) 94%,transparent);border:1px solid var(--rule);border-radius:2px;font-size:17px;line-height:1.4;color:var(--ink);text-align:center;text-wrap:balance;pointer-events:none;opacity:0;transition:opacity .2s var(--ease-out)}
+.caption.on{opacity:1}
+.caption.top{top:clamp(12px,2.6vh,24px);bottom:auto}
+.stage .caption{left:auto;right:16px;translate:none;max-width:min(26rem,calc(46% - 16px));text-align:left}
+.glyph-box{container-type:inline-size;align-self:end;min-width:0}
+.glyph{--wdth:151;--wght:220;display:flex;align-items:baseline;margin:0;font-size:min(22rem,23cqi);line-height:.8;letter-spacing:calc((var(--wght) - 220) * .00006em - .03em);font-variation-settings:"wdth" var(--wdth),"wght" var(--wght),"opsz" 144;white-space:nowrap;color:var(--ink);user-select:none}
+.glyph .sp{display:inline-block;flex:none;width:.24em;height:.11em;margin:0 .05em 0 0;border:.032em solid var(--token);border-top:0}
+.glyph-metric{display:flex;justify-content:space-between;margin-top:14px;padding-top:8px;border-top:1px solid var(--rule);font:500 11px/1.3 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.readout{margin:0;font:500 11px/1.25 var(--mono);font-variation-settings:"wdth" 87.5;min-width:0}
+.readout div{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:7px 0;border-top:1px solid var(--rule);align-items:baseline}
+.readout div:last-child{border-bottom:1px solid var(--rule)}
+.readout dt{letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.readout dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.readout dd.tok{color:var(--token-ink);font-weight:600}
+.hero-gl{position:relative;flex:1 1 auto;min-height:clamp(240px,34vh,420px);border-top:1px solid var(--rule)}
+.hero-gl canvas,.stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.gl-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.ov{position:absolute;left:0;top:0;transform:translate(-9999px,0);pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;font:500 11px/1.15 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;translate:-50% 0}
+.ov b{font-weight:600;color:var(--ink)}
+.ov:hover,.ov.on{color:var(--ink)}
+.ov.on b{color:var(--token-ink)}
+.lb{position:absolute;left:0;top:0;transform:translate(-9999px,0);opacity:0;transition:opacity .25s var(--ease-out);font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;color:var(--ink);white-space:nowrap;padding:2px 5px 2px 11px;background:color-mix(in srgb,var(--paper) 84%,transparent);translate:0 -50%}
+.lb::before{content:"";position:absolute;left:0;top:50%;width:7px;height:1px;background:var(--ink)}
+.lb.on{opacity:1}
+.lb.tok{color:var(--token-ink);font-weight:600;padding:2px 6px;translate:-50% 0;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--token);border-radius:2px}
+.lb.tok::before{display:none}
+.lb.ovn{translate:-50% 0;padding:0 2px;background:none;color:var(--ink);font-size:12px;font-weight:600;letter-spacing:.04em}
+.lb.ovn::before{display:none}
+
+/* ---------- story ---------- */
+.story{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);border-top:1px solid var(--ink)}
+.stations{grid-column:1;grid-row:1;padding:0 clamp(20px,3vw,48px) 0 var(--gutter);min-width:0}
+.stage{grid-column:2;grid-row:1;position:relative;min-width:0}
+.stage-sticky{position:sticky;top:0;height:calc(100svh - var(--rail));border-left:1px solid var(--rule);overflow:hidden}
+.stage-hud{position:absolute;left:14px;top:14px;width:min(268px,44%);padding:8px 10px 10px;background:color-mix(in srgb,var(--paper) 90%,transparent);border:1px solid var(--rule);border-radius:2px;pointer-events:none}
+.hud-glyph{--wdth:151;--wght:220;display:flex;align-items:baseline;margin:0 0 12px;font-size:44px;line-height:.85;letter-spacing:calc((var(--wght) - 220) * .00007em - .02em);font-variation-settings:"wdth" var(--wdth),"wght" var(--wght),"opsz" 144}
+.hud-glyph .sp{display:inline-block;width:.24em;height:.11em;margin-right:.05em;border:.05em solid var(--token);border-top:0}
+.no-gl .stage-sticky::after{content:"The 3D view needs WebGL. The text tells the whole story.";position:absolute;left:20px;bottom:24px;font:500 11px/1.4 var(--mono);color:var(--ink-3)}
+
+.key{margin:clamp(40px,7vh,72px) 0 0;padding:18px 0 4px;border-top:1px solid var(--rule)}
+.key h2{margin:0 0 12px;font:600 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.09em;text-transform:uppercase}
+.key dl{display:grid;grid-template-columns:44px 1fr;gap:9px 14px;margin:0;font-size:.92rem;line-height:1.4;color:var(--ink-2)}
+.key dt{display:flex;align-items:center}
+.key dd{margin:0}
+.sw{display:block;width:36px;height:12px}
+
+.station{padding:clamp(72px,14vh,140px) 0 clamp(40px,8vh,80px)}
+.st-title{display:flex;align-items:flex-end;gap:16px;margin:0 0 22px}
+.st-num{flex:none;font-size:clamp(3.6rem,6vw,5.6rem);line-height:.78;letter-spacing:-.04em;font-variation-settings:"wdth" 25,"wght" 160,"opsz" 144;color:var(--ink);font-variant-numeric:tabular-nums}
+.station h2{margin:0;font-size:clamp(2.1rem,3.4vw,3.5rem);line-height:.98;letter-spacing:-.01em;font-variation-settings:"wdth" 64,"wght" 830,"opsz" 120;text-wrap:balance}
+.lead{margin:0 0 clamp(28px,5vh,48px);font-size:1.16rem;line-height:1.52;color:var(--ink-2);max-width:40rem}
+.step{min-height:44vh;padding:22px 0 40px;border-top:1px solid var(--rule);max-width:40rem;color:var(--ink-3);transition:color .35s var(--ease-out)}
+.step.on{color:var(--ink)}
+.step h3{margin:0 0 .5em;font-size:1.28rem;line-height:1.2;letter-spacing:-.01em;font-variation-settings:"wdth" 92,"wght" 680,"opsz" 32}
+.step h3 .sn{font:500 .7em/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.04em;margin-right:.7em;vertical-align:.12em;font-variant-numeric:tabular-nums}
+.step p{margin:0 0 1em;max-width:62ch}
+.eq{margin:0 0 1.1em;padding:12px 14px;background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:inherit}
+.spec{margin:6px 0 0;font-size:12px}
+.spec div{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.95fr);gap:12px;padding:8px 0;border-top:1px solid var(--rule);align-items:baseline}
+.spec div:last-child{border-bottom:1px solid var(--rule)}
+.spec dt{font:500 11px/1.35 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase}
+.spec dd{margin:0;font:500 12px/1.35 var(--mono);font-variation-settings:"wdth" 87.5;font-variant-numeric:tabular-nums}
+.spec dd.src{font:400 12.5px/1.35 var(--display);text-align:right}
+.spec dd.unk::before{content:"";display:inline-block;width:8px;height:8px;margin-right:7px;border:1px solid currentColor;vertical-align:0}
+.rep{font-weight:700;color:var(--token-ink)}
+.effort{margin:6px 0 18px;padding:0;border:0}
+.effort legend{padding:0;margin:0 0 8px;font:500 11px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase}
+.seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--ink);border-radius:3px}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.seg span{display:block;padding:8px 12px;border-radius:2px;font:500 12px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.03em;transition:background .2s,color .2s}
+.seg label:hover span{background:var(--paper-2)}
+.seg input:checked+span{background:var(--ink);color:var(--paper)}
+.seg input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
+.effort-out{display:block;margin-top:8px;font:500 12px/1.45 var(--mono);font-variation-settings:"wdth" 87.5;color:var(--ink-3)}
+
+.finale{padding:clamp(80px,14vh,140px) 0 clamp(60px,10vh,100px)}
+.finale h2{margin:0 0 18px;font-size:clamp(2.6rem,5vw,4.8rem);line-height:.95;letter-spacing:-.01em;font-variation-settings:"wdth" 64,"wght" 830,"opsz" 144}
+.finale .lead{margin-bottom:26px}
+.recap{list-style:none;margin:36px 0 0;padding:0;counter-reset:r}
+.recap li{display:grid;grid-template-columns:2.4rem 8.2rem 1fr;gap:12px;padding:11px 0;border-top:1px solid var(--rule);align-items:baseline;font-size:.95rem;line-height:1.45}
+.recap li:last-child{border-bottom:1px solid var(--rule)}
+.recap .n{font:500 11px/1 var(--mono);font-variation-settings:"wdth" 87.5;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.recap a{font-weight:640;text-decoration:none}
+.recap a:hover{text-decoration:underline}
+.recap span{color:var(--ink-2)}
+
+.sources{padding:clamp(56px,9vh,96px) var(--gutter) clamp(56px,9vh,96px);border-top:1px solid var(--ink);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:32px}
+.sources h2{margin:0;font-size:clamp(1.8rem,2.6vw,2.6rem);line-height:1;letter-spacing:-.025em;font-variation-settings:"wdth" 64,"wght" 830,"opsz" 96}
+.sources p{color:var(--ink-2);max-width:38ch;margin:16px 0 0;font-size:.95rem}
+.sources ol{margin:0;padding:0;list-style:none;columns:2;column-gap:32px;font-size:.88rem;line-height:1.45}
+.sources li{break-inside:avoid;padding:9px 0;border-top:1px solid var(--rule)}
+.sources li b{display:block;font:500 11px/1.3 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+
+/* ---------- rail ---------- */
+.rail{position:fixed;left:0;right:0;bottom:0;height:var(--rail);z-index:30;display:grid;grid-template-columns:auto minmax(0,1fr) 15.5rem;align-items:start;gap:22px;padding:0 var(--gutter);background:var(--paper);border-top:1px solid var(--ink)}
+.rail-k{padding-top:17px;font:600 11px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.09em;text-transform:uppercase}
+.rail-track{--p:0;position:relative;height:100%}
+.rail-track::before{content:"";position:absolute;left:0;top:21px;height:2px;width:calc(var(--p) * 100%);background:var(--ink)}
+.rail-track::after{content:"";position:absolute;right:0;top:21px;height:0;width:calc((1 - var(--p)) * 100%);border-top:1px dashed var(--rule-2)}
+#axis{position:absolute;left:-8px;right:-8px;top:7px;width:calc(100% + 16px);height:30px;margin:0;padding:0;background:transparent;-webkit-appearance:none;appearance:none;z-index:2;cursor:grab}
+#axis:active{cursor:grabbing}
+#axis::-webkit-slider-runnable-track{height:30px;background:transparent;border:0}
+#axis::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:7px;background:var(--token);border:0;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.28)}
+#axis::-moz-range-track{height:30px;background:transparent;border:0}
+#axis::-moz-range-thumb{width:16px;height:16px;background:var(--token);border:0;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.28)}
+#axis:focus-visible{outline:none}
+#axis:focus-visible::-webkit-slider-thumb{outline:2px solid var(--ink);outline-offset:3px}
+#axis:focus-visible::-moz-range-thumb{outline:2px solid var(--ink);outline-offset:3px}
+.ticks{position:absolute;left:0;right:0;top:16px;margin:0;padding:0;list-style:none;pointer-events:none}
+.ticks li{position:absolute;left:var(--x);top:0}
+.ticks li::before{content:"";position:absolute;left:0;top:0;width:1px;height:11px;background:var(--rule-2)}
+.ticks li.done::before{background:var(--ink)}
+.ticks a{position:absolute;top:22px;left:0;translate:-50% 0;pointer-events:auto;display:flex;gap:6px;align-items:baseline;white-space:nowrap;text-decoration:none;color:var(--ink-3);font:500 11px/1 var(--mono);font-variation-settings:"wdth" 80;letter-spacing:.05em;text-transform:uppercase}
+.ticks a b{font-weight:600}
+.ticks li.done a{color:var(--ink)}
+.ticks li.cur a{color:var(--token-ink)}
+.ticks a:hover{color:var(--ink)}
+.ticks a span{display:none}
+.ticks li.cur{z-index:2}
+.ticks li.cur a{background:var(--paper);padding:0 6px}
+.ticks li.cur a span,.ticks a:hover span{display:inline}
+.rail-out{padding-top:15px;font:600 11px/1.25 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.06em;text-transform:uppercase;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- responsive ---------- */
+@media (max-width:1240px){
+  .ticks a span{display:none}
+}
+@media (max-width:1100px){
+  .hero-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .glyph-box{grid-column:1/-1;grid-row:1}
+  .hero-copy{grid-column:1;grid-row:2}
+  .readout-box{grid-column:2;grid-row:2;align-self:end}
+}
+@media (max-width:900px){
+  :root{--rail:60px}
+  .story{grid-template-columns:minmax(0,1fr)}
+  .stage{grid-column:1;grid-row:1;position:sticky;top:0;z-index:5;height:40svh;background:var(--paper);border-bottom:1px solid var(--rule)}
+  .stage-sticky{position:relative;height:100%;border-left:0}
+  .stations{grid-column:1;grid-row:2;padding:0 var(--gutter)}
+  .stage-hud{left:var(--gutter);top:10px;width:auto;padding:4px 8px;border:0}
+  .hud-glyph{font-size:30px;margin-bottom:6px}
+  .stage-hud .readout{display:none}
+  .stage .caption{left:50%;right:auto;translate:-50% 0;max-width:calc(100% - 32px);text-align:center}
+  .step{min-height:48vh}
+  .sources{grid-template-columns:minmax(0,1fr)}
+  .rail{grid-template-columns:minmax(0,1fr);gap:0}
+  .rail-k,.rail-out{display:none}
+  .ticks a{display:none}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .mast nav{display:none}
+  .hero-top{grid-template-columns:minmax(0,1fr)}
+  .hero-copy,.readout-box{grid-column:1;grid-row:auto}
+  .readout-box{display:none}
+  .glyph-metric{display:none}
+  .hero .note{display:none}
+  .hero-top{padding-top:14px;gap:14px}
+  .hero h1{font-size:1.75rem}
+  .standfirst{margin-bottom:.9em}
+  .hero-gl{min-height:clamp(190px,28svh,240px)}
+  .sources ol{columns:1}
+  .spec div{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .spec dd.src{grid-column:1/-1;text-align:left}
+  .recap li{grid-template-columns:2rem 1fr}
+  .recap li span{grid-column:2}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important}
+}
+
+#storyCanvas{cursor:grab;touch-action:pan-y}
+#storyCanvas.grabbing{cursor:grabbing}
+.orbit-hint{position:absolute;right:14px;bottom:14px;z-index:2;padding:3px 7px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--rule);border-radius:2px;font:500 10px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);pointer-events:none;opacity:.85;transition:opacity .3s var(--ease-out)}
+.orbit-hint.off{opacity:0}
+.seg{flex-wrap:wrap}
+@media (max-width:900px){
+  .orbit-hint{right:var(--gutter);bottom:8px}
+}
+/* Safe-area and overflow guards for notched phones (ported from one-token-end-to-end-fixed). */
+main{overflow-x:clip}
+.rail{height:calc(var(--rail) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
+@media (max-width:900px){
+  .station,.finale{scroll-margin-top:42svh}
+}
+@media (max-width:640px){
+  .caption{font-size:14px;padding:5px 10px}
+  .seg{max-width:100%}
+  .seg span{padding:7px 9px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#s-1">Skip to stage 1</a>
+
+<header class="mast">
+  <b>One Token, End to End</b>
+  <nav aria-label="Page"><a href="#s-1">Stages</a><a href="#line">The whole line</a><a href="#sources">Sources</a></nav>
+</header>
+
+<main>
+<section class="hero" aria-labelledby="h-hero">
+  <div class="hero-top">
+    <div class="hero-copy">
+      <h1 id="h-hero">Follow one token through a frontier&nbsp;LLM.</h1>
+      <p class="standfirst">“&nbsp;Paris” starts as a word in the training data and ends as a word on your screen. In between it crosses twelve stages on one line: how Claude Fable&nbsp;5.2 is made, and how it answers you.</p>
+      <p class="note">Anthropic doesn’t publish the model’s internals. Where the drawing needs them, it uses DeepSeek‑V4‑Pro’s published design and marks the figure <span class="rep">*</span><span class="vh"> as representative</span>.</p>
+      <div class="actions">
+        <button class="btn" id="runHero" type="button" aria-pressed="false">
+          <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z" fill="currentColor"/></svg>
+          <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
+          <span>Run end to end</span>
+        </button>
+        <button class="btn btn-quiet" id="narrHero" type="button" aria-pressed="false" hidden>
+          <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 4.3h2.1l2.9-2.5v8.4L3.3 7.7H1.2z" fill="currentColor"/><path d="M8 3.9a2.9 2.9 0 0 1 0 4.2M9.5 2.4a5 5 0 0 1 0 7.2" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+          <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
+          <span>Narrated run</span><small class="dur"></small>
+        </button>
+        <a class="link" href="#s-1">Read stage by stage
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v9M2 6.5 6 10.5 10 6.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="glyph-box" aria-hidden="true">
+      <p class="glyph" id="heroGlyph"><i class="sp"></i>Paris</p>
+      <div class="glyph-metric"><span>token “ Paris” · one piece, leading space included</span><span class="tab" id="heroAxes">wdth 151 · wght 220</span></div>
+    </div>
+    <div class="readout-box">
+      <dl class="readout" id="heroReadout">
+        <div><dt>Token</dt><dd class="tok">“&nbsp;Paris”</dd></div>
+        <div><dt>ID</dt><dd>12842 (illustrative)</dd></div>
+        <div><dt>Stage</dt><dd data-k="stage">00 / 12</dd></div>
+        <div><dt>Station</dt><dd data-k="name">Start</dd></div>
+        <div><dt>Form</dt><dd data-k="form">text</dd></div>
+        <div><dt>Axis</dt><dd data-k="axis">0.000</dd></div>
+      </dl>
+    </div>
+  </div>
+  <div class="hero-gl" id="heroGL">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <div class="gl-labels" id="heroLabels"></div>
+    <p class="caption" id="capHero"></p>
+  </div>
+</section>
+
+<div class="story" id="story">
+  <div class="stage" id="stage" aria-hidden="true">
+    <div class="stage-sticky">
+      <canvas id="storyCanvas"></canvas>
+      <div class="gl-labels" id="storyLabels"></div>
+      <p class="caption" id="capStory"></p>
+      <div class="stage-hud">
+        <p class="hud-glyph" id="hudGlyph"><i class="sp"></i>Paris</p>
+        <dl class="readout" id="storyReadout">
+          <div><dt>Stage</dt><dd data-k="stage">00 / 12</dd></div>
+          <div><dt>Station</dt><dd data-k="name">Start</dd></div>
+          <div><dt>Form</dt><dd data-k="form">text</dd></div>
+          <div><dt>Layer</dt><dd data-k="layer">—</dd></div>
+        </dl>
+      </div>
+      <span class="orbit-hint" id="orbitHint" aria-hidden="true">Drag to inspect</span>
+    </div>
+  </div>
+
+  <div class="stations">
+    <aside class="key" aria-labelledby="h-key">
+      <h2 id="h-key">How to read the drawing</h2>
+      <dl>
+        <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><rect x="12" y="0" width="12" height="12" rx="1.5" fill="#FF4A1C"/></svg></dt><dd>The token “&nbsp;Paris”. Nothing else is this colour.</dd>
+        <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><path d="M0 6h36" stroke="#0E0E0E" stroke-width="2"/></svg></dt><dd>Solid: travelled, or real.</dd>
+        <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><path d="M0 6h36" stroke="#0E0E0E" stroke-width="1.4" stroke-dasharray="5 4"/></svg></dt><dd>Dashed: ahead, hidden, masked, or not yet verified.</dd>
+        <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><path d="M0 3.5h36M0 8.5h36" stroke="#0E0E0E" stroke-width="1.4"/></svg></dt><dd>Doubled: cached and reused.</dd>
+        <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><rect x="2" y="1" width="10" height="10" fill="#0E0E0E"/><rect x="22.5" y="1.5" width="9" height="9" fill="none" stroke="#0E0E0E"/></svg></dt><dd>Filled: selected or passed. Open: not selected.</dd>
+        <dt><span class="rep" style="font:700 15px/1 var(--mono);padding-left:14px">*</span></dt><dd>Representative: DeepSeek‑V4‑Pro’s published value, not Claude’s.</dd>
+      </dl>
+    </aside>
+
+    <!-- 01 CORPUS -->
+    <section class="station" id="s-1" data-i="0" aria-labelledby="h-1">
+      <div class="st-title"><span class="st-num" aria-hidden="true">01</span><h2 id="h-1">Read almost everything.</h2></div>
+      <p class="lead">Pretraining starts as a stream of documents. Somewhere in it is a page that says “…the Eiffel Tower is in Paris.” Its “&nbsp;Paris” is our token.</p>
+      <article class="step">
+        <h3><span class="sn">1.1</span>Pool the sources</h3>
+        <p>Crawled web pages, code, books, papers, math and many languages are pooled into one stream. Anthropic’s recent system cards describe the mix as public web data, licensed data, data from users who opted in, and data generated internally. They don’t publish proportions or totals.</p>
+        <dl class="spec">
+          <div><dt>Pretraining tokens</dt><dd>33T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Claude’s data volume</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">1.2</span>Remove duplicates</h3>
+        <p>Near-duplicate documents are found with MinHash signatures and dropped, so the model isn’t trained on the same text hundreds of times. Deduplication cuts memorised output and wasted compute.</p>
+        <pre class="eq"><code>sig  = minhash(shingles(doc))
+keep = not lsh_index.has_near_duplicate(sig)</code></pre>
+        <dl class="spec">
+          <div><dt>Method</dt><dd>MinHash + LSH</dd><dd class="src">Lee et al., 2021</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">1.3</span>Filter and mix</h3>
+        <p>Classifiers drop spam, boilerplate, low-quality text and personal data. What’s left is reweighted so code, math and careful prose count for more than raw web text.</p>
+        <dl class="spec">
+          <div><dt>Mixture weights</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 02 TOKENS -->
+    <section class="station" id="s-2" data-i="1" aria-labelledby="h-2">
+      <div class="st-title"><span class="st-num" aria-hidden="true">02</span><h2 id="h-2">Cut into tokens.</h2></div>
+      <p class="lead">The model never sees letters. A byte-level tokenizer cuts text into pieces from a fixed vocabulary, and each piece becomes an integer ID.</p>
+      <article class="step">
+        <h3><span class="sn">2.1</span>Byte-pair encoding</h3>
+        <p>BPE starts from raw bytes and repeatedly merges the most frequent adjacent pair. Frequent words end up as one piece with their leading space attached, so “&nbsp;Paris” is one token, not five letters.</p>
+        <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
+# [382, 304, 12842, 13]   illustrative IDs</code></pre>
+        <dl class="spec">
+          <div><dt>Algorithm</dt><dd>Byte-level BPE</dd><dd class="src">Sennrich et al., 2016</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">2.2</span>A fixed vocabulary</h3>
+        <p>Every ID points at one row of a table the model learns. A bigger vocabulary means shorter sequences but a bigger table.</p>
+        <dl class="spec">
+          <div><dt>Vocabulary</dt><dd>129,280<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Fable 5.2 tokenizer</dt><dd>Introduced with Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Tokens vs. older Claude</dt><dd>≈ 30% more than before Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">2.3</span>Images take another road</h3>
+        <p>Claude also reads images. A vision encoder cuts an image into patches and turns each patch into a vector. Those vectors sit in the same sequence as the text, but they’re vectors, not IDs.</p>
+        <dl class="spec">
+          <div><dt>Image input</dt><dd>Supported</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 03 PRETRAIN -->
+    <section class="station" id="s-3" data-i="2" aria-labelledby="h-3">
+      <div class="st-title"><span class="st-num" aria-hidden="true">03</span><h2 id="h-3">Predict the next one.</h2></div>
+      <p class="lead">Pretraining is one objective repeated trillions of times: given everything so far, put probability on the next token. The tower of layers you’ll meet again in stage 7 is built here.</p>
+      <article class="step">
+        <h3><span class="sn">3.1</span>Forward, in parallel</h3>
+        <p>A batch of sequences flows up the tower at once. A causal mask lets position <i>n</i> see only positions ≤ <i>n</i>, so every position in every sequence is its own prediction problem.</p>
+        <dl class="spec">
+          <div><dt>Total parameters</dt><dd>1.6T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Active per token</dt><dd>49B<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Claude’s size</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">3.2</span>Score the guess</h3>
+        <p>After “…the Eiffel Tower is in”, the loss is the negative log of the probability given to “&nbsp;Paris”. A multi-token-prediction head also predicts the token after that, which adds training signal at every position.</p>
+        <pre class="eq"><code>loss = cross_entropy(logits[:, :-1], ids[:, 1:]) + λ · mtp_loss</code></pre>
+        <dl class="spec">
+          <div><dt>MTP depth</dt><dd>1 extra token<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">3.3</span>Adjust every weight</h3>
+        <p>Gradients flow back down the same layers and the optimizer moves every weight a little. DeepSeek‑V4 uses Muon for most matrices and AdamW for embeddings, the output head and norms, with FP8 matrix math and FP4 expert weights.</p>
+        <dl class="spec">
+          <div><dt>Optimizer</dt><dd>Muon + AdamW<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Precision</dt><dd>FP8; FP4 experts<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">3.4</span>Stretch the context</h3>
+        <p>Most training runs at a shorter context. Then the rotary position frequencies are rescaled (YaRN, ×16) and training continues on long documents, so attention can reach a million positions.</p>
+        <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
+        <dl class="spec">
+          <div><dt>Context, representative</dt><dd>65,536 → 1,048,576<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Fable 5.2 context</dt><dd>1M tokens</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 04 POST-TRAIN -->
+    <section class="station" id="s-4" data-i="3" aria-labelledby="h-4">
+      <div class="st-title"><span class="st-num" aria-hidden="true">04</span><h2 id="h-4">Learn what good looks like.</h2></div>
+      <p class="lead">A pretrained model only continues text. Post-training turns the same tower into an assistant that follows instructions, uses tools and reasons toward answers it can check.</p>
+      <article class="step">
+        <h3><span class="sn">4.1</span>Imitate</h3>
+        <p>Supervised fine-tuning trains on curated demonstrations: conversations, tool calls, worked solutions. It uses the pretraining loss on much better data.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">4.2</span>Try, grade, reinforce</h3>
+        <p>For a prompt with a checkable answer, the policy samples a group of attempts. Verifiers grade them: the tests pass, the final answer matches. Each score is compared with the group’s mean, so no separate value model is needed. Rewarding correct answers is also how a model learns to think before it answers.</p>
+        <pre class="eq"><code>A_i = (r_i − mean(r)) / std(r)
+θ  ← θ + η · ∇ Σ_i A_i · log π_θ(attempt_i)</code></pre>
+        <dl class="spec">
+          <div><dt>Method</dt><dd>GRPO</dd><dd class="src">Shao et al., 2024</dd></div>
+          <div><dt>Group of 8 in the drawing</dt><dd>Illustrative</dd><dd class="src">—</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">4.3</span>Principles as feedback</h3>
+        <p>Anthropic’s Constitutional AI writes down a set of principles. The model critiques and compares responses against them, and that AI feedback trains a preference model used alongside human feedback.</p>
+        <dl class="spec">
+          <div><dt>Method</dt><dd>Constitutional AI (RLAIF)</dd><dd class="src">Bai et al., 2022</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">4.4</span>Stay near the anchor</h3>
+        <p>A KL penalty to the frozen starting model keeps the policy from drifting into reward hacks. DeepSeek‑V4 trains separate domain experts this way, then distils them into one model on-policy.</p>
+        <dl class="spec">
+          <div><dt>Recipe, representative</dt><dd>SFT → GRPO per domain → distillation<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Claude’s recipe</dt><dd class="unk">Not published in detail</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 05 RELEASE -->
+    <section class="station" id="s-5" data-i="4" aria-labelledby="h-5">
+      <div class="st-title"><span class="st-num" aria-hidden="true">05</span><h2 id="h-5">Pass the gate.</h2></div>
+      <p class="lead">Before a frontier model ships, it is tested for what it can do and for what it could be misused to do. After this gate the weights are frozen.</p>
+      <article class="step">
+        <h3><span class="sn">5.1</span>Evaluate</h3>
+        <p>Capability suites, agentic tasks and dangerous-capability evaluations (cyber, biology, autonomy) run on the final checkpoint. Anthropic publishes the results in a system card.</p>
+        <dl class="spec">
+          <div><dt>Framework</dt><dd>Responsible Scaling Policy</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">5.2</span>Red-team, then set safeguards</h3>
+        <p>Internal and external red teams hunt for jailbreaks and misuse. Under the Responsible Scaling Policy, higher capability requires stronger safeguards before deployment.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">5.3</span>Ship with classifiers</h3>
+        <p>Deployed models run with safety classifiers beside them. On Fable 5.2 a classifier can end a reply with <code>stop_reason: "refusal"</code> and a <code>stop_details</code> category, such as cyber.</p>
+        <pre class="eq"><code>if (resp.stop_reason === "refusal")
+  handle(resp.stop_details.category)</code></pre>
+        <dl class="spec">
+          <div><dt>Refusal signal</dt><dd>HTTP 200 · "refusal"</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 06 REQUEST -->
+    <section class="station" id="s-6" data-i="5" aria-labelledby="h-6">
+      <div class="st-title"><span class="st-num" aria-hidden="true">06</span><h2 id="h-6">Your request arrives.</h2></div>
+      <p class="lead">Months later you ask “What’s the weather in Paris right now?” with a <code>get_weather</code> tool attached. The API is stateless: every call carries the whole conversation.</p>
+      <article class="step">
+        <h3><span class="sn">6.1</span>One call</h3>
+        <pre class="eq"><code>POST /v1/messages
+{ "model": "claude-fable-5-2",
+  "max_tokens": 64000, "stream": true,
+  "tools": [ get_weather ],
+  "system": "…",
+  "messages": [{ "role": "user",
+    "content": "What’s the weather in Paris right now?" }] }</code></pre>
+        <dl class="spec">
+          <div><dt>Request body</dt><dd>Abridged</dd><dd class="src">Illustrative</dd></div>
+          <div><dt>Price</dt><dd>$8 in · $40 out / MTok</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Max output</dt><dd>128K tokens</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">6.2</span>Rendered in a fixed order</h3>
+        <p>Tools, then system, then messages are rendered through the chat template into one token sequence. The order matters: prompt caching matches the longest identical prefix, so stable content goes first.</p>
+        <dl class="spec">
+          <div><dt>Render order</dt><dd>tools → system → messages</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">6.3</span>The same tokenizer</h3>
+        <p>The prompt is cut by the tokenizer used in training, so “&nbsp;Paris” gets the same ID it had in stage 2.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">6.4</span>Check the prefix cache</h3>
+        <p>If an identical prefix was processed recently, its keys and values are reused and only the rest is computed. On a first call nothing is cached.</p>
+        <fieldset class="effort">
+          <legend>Prefix cache mode, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
+            <label><input type="radio" name="cacheMode6" data-sync="cache" value="hit" checked><span>Cache Hit · $0.20</span></label>
+            <label><input type="radio" name="cacheMode6" data-sync="cache" value="miss"><span>Cache Miss · $8.00</span></label>
+          </div>
+          <output class="effort-out" data-out="cache">Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix</output>
+        </fieldset>
+        <dl class="spec">
+          <div><dt>Cache read</dt><dd>$0.20 / MTok</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Minimum prefix</dt><dd>512–4,096 tokens, by model</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 07 FORWARD PASS -->
+    <section class="station" id="s-7" data-i="6" aria-labelledby="h-7">
+      <div class="st-title"><span class="st-num" aria-hidden="true">07</span><h2 id="h-7">One pass up the tower.</h2></div>
+      <p class="lead">This is the engine. The token’s vector rides a residual stream up 61 layers; each layer reads from the stream and writes back to it. Anthropic doesn’t publish Claude’s internals, so this stage uses DeepSeek‑V4‑Pro’s published design as a representative frontier architecture.</p>
+      <article class="step">
+        <h3><span class="sn">7.1</span>Look up a vector</h3>
+        <p>The ID selects one row of the embedding table: a lookup, not a multiplication. Out comes a vector of 7,168 numbers, the start of the residual stream.</p>
+        <pre class="eq"><code>h = E[12842]        # float[7168]</code></pre>
+        <dl class="spec">
+          <div><dt>Hidden size</dt><dd>7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Embedding table</dt><dd>129,280 × 7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">7.2</span>Attend, sparsely</h3>
+        <p>RMSNorm rescales a copy of the vector, then attention scores earlier positions, never later ones. To reach a million tokens, older context is compressed into blocks; a lightweight indexer picks the top-k blocks to read, plus a sliding window over the most recent tokens. Positions are encoded by rotating part of each query and key (RoPE).</p>
+        <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
+out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
+        <fieldset class="effort">
+          <legend>Attention &amp; KV mode, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
+            <label><input type="radio" name="kvMode7" data-sync="kv" value="sparse" checked><span>Sparse k=1,024</span></label>
+            <label><input type="radio" name="kvMode7" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
+          </div>
+          <output class="effort-out" data-out="kv">Sparse k=1,024 + 128-token window, with heavily compressed layers: ≈ 10% of V3.2’s KV memory at 1M*</output>
+        </fieldset>
+        <dl class="spec">
+          <div><dt>Query heads</dt><dd>128<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Top-k entries</dt><dd>1,024<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Sliding window</dt><dd>128 tokens<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>KV cache at 1M</dt><dd>≈ 10% of V3.2’s<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">7.3</span>Route to 6 of 384 experts</h3>
+        <p>A router scores 384 expert networks and keeps the top 6, and one shared expert always runs. Their outputs are weighted and summed. That’s why only 49B of the 1.6T parameters touch this token.</p>
+        <pre class="eq"><code>out = shared(x) + Σ_{j ∈ top6(router(x))} g_j · expert_j(x)</code></pre>
+        <dl class="spec">
+          <div><dt>Experts</dt><dd>384 routed + 1 shared<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Active per token</dt><dd>6 routed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>First layers</dt><dd>Hash routing<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
+        <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. DeepSeek‑V4 widens the stream into several parallel lanes mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections).</p>
+        <pre class="eq"><code>for layer in layers:
+    h = h + layer.attn(rmsnorm(h))
+    h = h + layer.moe(rmsnorm(h))</code></pre>
+        <dl class="spec">
+          <div><dt>Layers</dt><dd>61<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">7.5</span>Score the vocabulary</h3>
+        <p>A final RMSNorm and the LM head turn the vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
+        <pre class="eq"><code>p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
+        <dl class="spec">
+          <div><dt>After “ Paris”</dt><dd>“ right” 0.31</dd><dd class="src">Illustrative</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 08 PREFILL -->
+    <section class="station" id="s-8" data-i="7" aria-labelledby="h-8">
+      <div class="st-title"><span class="st-num" aria-hidden="true">08</span><h2 id="h-8">Read the whole prompt at once.</h2></div>
+      <p class="lead">Serving runs the frozen tower in two phases. Prefill pushes every prompt token up the tower in one parallel pass.</p>
+      <article class="step">
+        <h3><span class="sn">8.1</span>Parallel and compute-bound</h3>
+        <p>All prompt tokens go up together, as in training, but nothing is learned and nothing flows back. Large matrix multiplies keep the accelerators busy, and prompt length sets the time to the first token.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">8.2</span>Fill the KV cache</h3>
+        <p>Each layer stores keys and values for every position so they never have to be recomputed. With compressed attention, a block of tokens shares one entry; DeepSeek‑V4 keeps the positional dimensions in BF16 and the rest in FP8.</p>
+        <fieldset class="effort">
+          <legend>Attention &amp; KV mode, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
+            <label><input type="radio" name="kvMode8" data-sync="kv" value="sparse" checked><span>Sparse k=1,024</span></label>
+            <label><input type="radio" name="kvMode8" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
+          </div>
+          <output class="effort-out" data-out="kv">Sparse k=1,024 + 128-token window, with heavily compressed layers: ≈ 10% of V3.2’s KV memory at 1M*</output>
+        </fieldset>
+        <dl class="spec">
+          <div><dt>KV storage</dt><dd>FP8 + BF16 RoPE dims<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">8.3</span>Batched with strangers</h3>
+        <p>A scheduler re-forms the batch at every iteration. Your prefill joins other users’ decode steps whenever cache memory is free, and finished requests leave without waiting for the rest.</p>
+        <dl class="spec">
+          <div><dt>Batching</dt><dd>Continuous</dd><dd class="src">Yu et al., OSDI 2022</dd></div>
+          <div><dt>Cache memory</dt><dd>Paged blocks</dd><dd class="src">Kwon et al., SOSP 2023</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 09 THINK -->
+    <section class="station" id="s-9" data-i="8" aria-labelledby="h-9">
+      <div class="st-title"><span class="st-num" aria-hidden="true">09</span><h2 id="h-9">Think before answering.</h2></div>
+      <p class="lead">On Fable 5.2, thinking is always on. The model writes reasoning tokens through the same decode loop before it writes its answer.</p>
+      <article class="step">
+        <h3><span class="sn">9.1</span>Effort sets the depth</h3>
+        <p>You don’t set a token budget. You set effort, from low to max, and the model decides how much to think. For Fable 5.2, Anthropic suggests starting at high.</p>
+        <fieldset class="effort">
+          <legend>Effort, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Effort">
+            <label><input type="radio" name="effort" value="low"><span>low</span></label>
+            <label><input type="radio" name="effort" value="medium"><span>medium</span></label>
+            <label><input type="radio" name="effort" value="high" checked><span>high</span></label>
+            <label><input type="radio" name="effort" value="xhigh"><span>xhigh</span></label>
+            <label><input type="radio" name="effort" value="max"><span>max</span></label>
+          </div>
+          <output class="effort-out" id="effortOut">16 thinking tokens in the drawing (illustrative; real runs use far more)</output>
+        </fieldset>
+        <dl class="spec">
+          <div><dt>Effort levels</dt><dd>low → max</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>budget_tokens</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">9.2</span>Never returned raw</h3>
+        <p>The raw chain of thought never leaves the server. The response carries thinking blocks that are empty by default (<code>display: "omitted"</code>) or hold a summary (<code>"summarized"</code>). Thinking is billed the same either way.</p>
+        <pre class="eq"><code>thinking: { type: "adaptive", display: "summarized" }</code></pre>
+      </article>
+      <article class="step">
+        <h3><span class="sn">9.3</span>Reasoning picks the tool</h3>
+        <p>Here the model works out that it can’t know today’s weather and should call <code>get_weather</code>. Every reasoning step attends over the KV cache, “&nbsp;Paris” included.</p>
+      </article>
+    </section>
+
+    <!-- 10 DECODE -->
+    <section class="station" id="s-10" data-i="9" aria-labelledby="h-10">
+      <div class="st-title"><span class="st-num" aria-hidden="true">10</span><h2 id="h-10">One token per step.</h2></div>
+      <p class="lead">After prefill, generation is a loop: one pass up the tower for each new token, every pass reading the whole KV cache.</p>
+      <article class="step">
+        <h3><span class="sn">10.1</span>Memory-bound</h3>
+        <p>Each step streams the active weights and the cache through memory to produce a single token. That’s why decode speed is measured in tokens per second, and why sparse experts and compressed caches matter so much.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">10.2</span>Sample</h3>
+        <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: requests that set <code>temperature</code>, <code>top_p</code> or <code>top_k</code> to non-default values are rejected.</p>
+        <dl class="spec">
+          <div><dt>Sampling parameters</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">10.3</span>Draft, then verify</h3>
+        <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. An accepted draft gives two tokens for one pass. Anthropic doesn’t publish how Claude is served.</p>
+        <dl class="spec">
+          <div><dt>Technique</dt><dd>Speculative decoding</dd><dd class="src">Leviathan et al., 2023</dd></div>
+        </dl>
+      </article>
+      <article class="step">
+        <h3><span class="sn">10.4</span>“Paris”, again</h3>
+        <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. Inside JSON the word has no leading space, so it’s a different token ID from “&nbsp;Paris”; attention copies it from the prompt anyway. The cache grows by one entry per token.</p>
+        <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
+  "input": { "city": "Paris" } }</code></pre>
+      </article>
+    </section>
+
+    <!-- 11 STREAM -->
+    <section class="station" id="s-11" data-i="10" aria-labelledby="h-11">
+      <div class="st-title"><span class="st-num" aria-hidden="true">11</span><h2 id="h-11">Stream it out.</h2></div>
+      <p class="lead">Token IDs are decoded back into text and sent to your app as server-sent events while generation is still running.</p>
+      <article class="step">
+        <h3><span class="sn">11.1</span>Detokenize</h3>
+        <p>IDs map back to bytes. A partial UTF-8 sequence waits in a buffer until it forms a whole character, so a multi-byte character never arrives split.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">11.2</span>Stream</h3>
+        <p>Text and tool input arrive as <code>content_block_delta</code> events over SSE. A single response can run to 128K output tokens.</p>
+        <pre class="eq"><code>event: content_block_delta
+data: {"delta": {"type": "input_json_delta",
+        "partial_json": "{\"city\": \"Par"}}</code></pre>
+      </article>
+      <article class="step">
+        <h3><span class="sn">11.3</span>Stop, with a reason</h3>
+        <p>Generation ends with a stop reason, such as <code>end_turn</code>, <code>max_tokens</code>, <code>refusal</code>, <code>pause_turn</code> when a server-tool loop hits its limit, or, here, <code>tool_use</code>.</p>
+        <dl class="spec">
+          <div><dt>Stop reason</dt><dd>"tool_use"</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- 12 TOOL LOOP -->
+    <section class="station" id="s-12" data-i="11" aria-labelledby="h-12">
+      <div class="st-title"><span class="st-num" aria-hidden="true">12</span><h2 id="h-12">Call a tool. Continue.</h2></div>
+      <p class="lead">The model can’t check the weather itself. It stops, your code does the work, and the conversation goes back in.</p>
+      <article class="step">
+        <h3><span class="sn">12.1</span>Your code runs the tool</h3>
+        <p>Claude doesn’t execute <code>get_weather</code>; your app does, then appends a <code>tool_result</code>. Treat that result as untrusted input. Server tools such as web search and code execution run on Anthropic’s side instead.</p>
+        <pre class="eq"><code>{ "type": "tool_result", "tool_use_id": "toolu_…",
+  "content": "{\"temp_c\": 18, \"conditions\": \"clear\"}" }   # illustrative</code></pre>
+      </article>
+      <article class="step">
+        <h3><span class="sn">12.2</span>A new request, a warm prefix</h3>
+        <p>Because the API is stateless, the whole conversation is sent again. The unchanged prefix hits the prompt cache, so only the tool result has to be prefilled.</p>
+        <fieldset class="effort">
+          <legend>Prefix cache mode, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
+            <label><input type="radio" name="cacheMode12" data-sync="cache" value="hit" checked><span>Cache Hit · $0.20</span></label>
+            <label><input type="radio" name="cacheMode12" data-sync="cache" value="miss"><span>Cache Miss · $8.00</span></label>
+          </div>
+          <output class="effort-out" data-out="cache">Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix</output>
+        </fieldset>
+      </article>
+      <article class="step">
+        <h3><span class="sn">12.3</span>The answer</h3>
+        <p>Decoding resumes: “It’s 18&nbsp;°C and clear in Paris right now.” (illustrative). The reply ends with <code>stop_reason: "end_turn"</code>, and “&nbsp;Paris” reaches your screen.</p>
+      </article>
+      <article class="step">
+        <h3><span class="sn">12.4</span>Long sessions</h3>
+        <p>When a long agent session nears the context limit, server-side compaction (beta) summarizes earlier turns so the loop can keep going.</p>
+        <dl class="spec">
+          <div><dt>Compaction trigger</dt><dd>150K tokens (default)</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- FINALE -->
+    <section class="finale" id="line" aria-labelledby="h-line">
+      <h2 id="h-line">The whole line.</h2>
+      <p class="lead">Twelve stages, one token. Run it again, or jump to any stage.</p>
+      <div class="actions">
+        <button class="btn" id="runStory" type="button" aria-pressed="false">
+          <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z" fill="currentColor"/></svg>
+          <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
+          <span>Run end to end</span>
+        </button>
+        <button class="btn btn-quiet" id="narrStory" type="button" aria-pressed="false" hidden>
+          <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 4.3h2.1l2.9-2.5v8.4L3.3 7.7H1.2z" fill="currentColor"/><path d="M8 3.9a2.9 2.9 0 0 1 0 4.2M9.5 2.4a5 5 0 0 1 0 7.2" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+          <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
+          <span>Narrated run</span><small class="dur"></small>
+        </button>
+      </div>
+      <ol class="recap">
+        <li><span class="n">01</span><a href="#s-1">Corpus</a><span>Documents pooled, deduplicated, filtered and mixed.</span></li>
+        <li><span class="n">02</span><a href="#s-2">Tokens</a><span>Byte-level BPE turns “&nbsp;Paris” into one ID.</span></li>
+        <li><span class="n">03</span><a href="#s-3">Pretrain</a><span>Next-token prediction builds the tower.</span></li>
+        <li><span class="n">04</span><a href="#s-4">Post-train</a><span>Demonstrations, graded attempts, written principles.</span></li>
+        <li><span class="n">05</span><a href="#s-5">Release</a><span>Evaluations, red-teaming, classifiers. Weights frozen.</span></li>
+        <li><span class="n">06</span><a href="#s-6">Request</a><span>Tools, system, messages. Same tokenizer. Cache check.</span></li>
+        <li><span class="n">07</span><a href="#s-7">Forward pass</a><span>Embed, attend sparsely, route to 6 of 384 experts, ×61, score.</span></li>
+        <li><span class="n">08</span><a href="#s-8">Prefill</a><span>The whole prompt in parallel; the KV cache fills.</span></li>
+        <li><span class="n">09</span><a href="#s-9">Think</a><span>Adaptive reasoning, never returned raw.</span></li>
+        <li><span class="n">10</span><a href="#s-10">Decode</a><span>One token per pass. Sample, draft, verify.</span></li>
+        <li><span class="n">11</span><a href="#s-11">Stream</a><span>Detokenize, server-sent events, a stop reason.</span></li>
+        <li><span class="n">12</span><a href="#s-12">Tool loop</a><span>Your code runs the tool; the prefix is cached; the answer streams.</span></li>
+      </ol>
+    </section>
+  </div>
+</div>
+
+<section class="sources" id="sources" aria-labelledby="h-src">
+  <div>
+    <h2 id="h-src">Sources</h2>
+    <p>Token IDs, probabilities, the request body, the weather result and thinking-token counts are illustrative. Figures marked <span class="rep">*</span> are DeepSeek‑V4‑Pro’s published values, used as a representative frontier design; Anthropic doesn’t publish Claude’s architecture. Claude facts reflect Anthropic’s API documentation as of 21 November 2026.</p>
+  </div>
+  <ol>
+    <li><b>Claude Fable 5.2</b><a href="https://platform.claude.com/docs">Anthropic, Claude API documentation</a>: models, adaptive thinking and effort, tool use, prompt caching, stop reasons, compaction.</li>
+    <li><b>Representative design</b><a href="https://arxiv.org/abs/2606.19348">DeepSeek‑V4: Towards Highly Efficient Million-Token Context Intelligence</a></li>
+    <li><b>Representative design</b><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/config.json">DeepSeek‑V4‑Pro config.json</a></li>
+    <li><b>Safety</b><a href="https://www.anthropic.com/responsible-scaling-policy">Anthropic, Responsible Scaling Policy</a></li>
+    <li><b>Data and evaluations</b><a href="https://www.anthropic.com/system-cards">Anthropic, model system cards</a>: training-data description and pre-deployment evaluations.</li>
+    <li><b>Post-training</b><a href="https://arxiv.org/abs/2212.08073">Bai et al., Constitutional AI, 2022</a></li>
+    <li><b>Post-training</b><a href="https://arxiv.org/abs/2402.03300">Shao et al., DeepSeekMath (GRPO), 2024</a></li>
+    <li><b>Data</b><a href="https://arxiv.org/abs/2107.06499">Lee et al., Deduplicating Training Data, 2021</a></li>
+    <li><b>Tokens</b><a href="https://arxiv.org/abs/1508.07909">Sennrich et al., Subword Units (BPE), 2016</a></li>
+    <li><b>Architecture</b><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., Attention Is All You Need, 2017</a></li>
+    <li><b>Architecture</b><a href="https://arxiv.org/abs/2104.09864">Su et al., RoFormer (RoPE), 2021</a></li>
+    <li><b>Long context</b><a href="https://arxiv.org/abs/2309.00071">Peng et al., YaRN, 2023</a></li>
+    <li><b>Experts</b><a href="https://arxiv.org/abs/2401.06066">Dai et al., DeepSeekMoE, 2024</a></li>
+    <li><b>Multi-token prediction</b><a href="https://arxiv.org/abs/2412.19437">DeepSeek‑V3 Technical Report, 2024</a></li>
+    <li><b>Serving</b><a href="https://www.usenix.org/conference/osdi22/presentation/yu">Yu et al., Orca (continuous batching), OSDI 2022</a></li>
+    <li><b>Serving</b><a href="https://arxiv.org/abs/2309.06180">Kwon et al., PagedAttention, SOSP 2023</a></li>
+    <li><b>Serving</b><a href="https://arxiv.org/abs/2211.17192">Leviathan et al., Speculative Decoding, 2023</a></li>
+  </ol>
+</section>
+</main>
+
+<nav class="rail" aria-label="Journey axis">
+  <span class="rail-k" aria-hidden="true">Axis</span>
+  <div class="rail-track" id="railTrack">
+    <input id="axis" type="range" min="0" max="1200" step="1" value="0" aria-label="Token position along the twelve stages" aria-valuetext="Start, before stage 1">
+    <ol class="ticks" id="ticks"></ol>
+  </div>
+  <output class="rail-out" id="railOut" for="axis">Start · before 01</output>
+</nav>
+
+<!-- Inline copy of assets/narration/manifest.json so narration also works from file://. Regenerate when the manifest changes. -->
+<script type="application/json" id="narration-manifest">{"version":2,"voice":"TYKLc7ViOIGE13dSZYlK","model":"eleven_v4","totalDuration":278.017,"clips":[{"id":"00-intro","g0":0,"g1":0,"dur":23.359,"cues":[{"t":0,"s":"Follow one token through a frontier model."},{"t":3.04,"s":"The token is Paris, with its leading space."},{"t":6.48,"s":"It starts in the training data and ends on your screen, crossing twelve stages: how Claude Fable five point two is made, and how it answers you."},{"t":16.24,"s":"Where Anthropic doesn't publish the internals, the drawing uses DeepSeek V4 Pro's design, marked with an asterisk."}],"src":"./assets/narration/00-intro.mp3","status":"ready"},{"id":"01-corpus","g0":0,"g1":1,"dur":23.098,"cues":[{"t":0,"s":"Stage one: the corpus."},{"t":2.76,"s":"Web pages, code, books, papers and many languages are pooled into one stream."},{"t":9.28,"s":"Near-duplicates are dropped, classifiers filter out spam and personal data, and the mix is weighted toward code, math and careful prose."},{"t":18.88,"s":"Somewhere in it, a page says the Eiffel Tower is in Paris."}],"src":"./assets/narration/01-corpus.mp3","status":"ready"},{"id":"02-tokens","g0":1,"g1":2,"dur":22.706,"cues":[{"t":0,"s":"Stage two: tokens."},{"t":2.8,"s":"The model never sees letters."},{"t":5.48,"s":"Byte-pair encoding merges frequent pairs of bytes until common words become single pieces, leading space included."},{"t":13.44,"s":"So Paris is one token, one integer ID."},{"t":18.48,"s":"Images take another road, as patch vectors from a vision encoder."}],"src":"./assets/narration/02-tokens.mp3","status":"ready"},{"id":"03-pretrain","g0":2,"g1":3,"dur":21.112,"cues":[{"t":0,"s":"Stage three: pretraining."},{"t":2.88,"s":"One objective, repeated trillions of times: predict the next token."},{"t":8.76,"s":"Batches flow up the tower in parallel, the loss scores the probability given to Paris, and gradients nudge every weight."},{"t":17.04,"s":"Then the context is stretched toward a million positions."}],"src":"./assets/narration/03-pretrain.mp3","status":"ready"},{"id":"04-post-train","g0":3,"g1":4,"dur":21.112,"cues":[{"t":0,"s":"Stage four: post-training."},{"t":2.88,"s":"Fine-tuning on curated demonstrations teaches the model to follow instructions."},{"t":8.08,"s":"Then it samples a group of attempts, verifiers grade them, and the better-than-average attempts are reinforced."},{"t":15.173,"s":"Written principles add AI feedback, and a penalty keeps the policy close to where it started."}],"src":"./assets/narration/04-post-train.mp3","status":"ready"},{"id":"05-release","g0":4,"g1":5,"dur":20.956,"cues":[{"t":0,"s":"Stage five: release."},{"t":2.72,"s":"The final checkpoint is evaluated for what it can do, and for what it could be misused to do."},{"t":9.2,"s":"Red teams hunt for jailbreaks, safeguards scale with capability, and the results go in a system card."},{"t":16.4,"s":"Safety classifiers ship alongside."},{"t":18.907,"s":"The weights are now frozen."}],"src":"./assets/narration/05-release.mp3","status":"ready"},{"id":"06-request","g0":5,"g1":6,"dur":21.582,"cues":[{"t":0,"s":"Stage six: your request."},{"t":3.36,"s":"Months later, you ask for the weather in Paris, with a weather tool attached."},{"t":8.267,"s":"The API is stateless, so every call carries the whole conversation."},{"t":13.36,"s":"Tools, system and messages are rendered in a fixed order, cut by the same tokenizer, and checked against the prompt cache."}],"src":"./assets/narration/06-request.mp3","status":"ready"},{"id":"07-forward-pass","g0":6,"g1":7,"dur":25.344,"cues":[{"t":0,"s":"Stage seven: the forward pass."},{"t":3.2,"s":"This is the engine, drawn from DeepSeek V4 Pro's published design."},{"t":8.347,"s":"The ID picks one row of the embedding table."},{"t":11.867,"s":"Attention reads earlier positions sparsely."},{"t":14.72,"s":"A router sends the token to six of three hundred and eighty-four experts, plus a shared one."},{"t":20.64,"s":"That repeats sixty-one times, and the head scores the whole vocabulary."}],"src":"./assets/narration/07-forward-pass.mp3","status":"ready"},{"id":"08-prefill","g0":7,"g1":8,"dur":19.519,"cues":[{"t":0,"s":"Stage eight: prefill."},{"t":2.68,"s":"Serving runs the frozen tower in two phases."},{"t":6.16,"s":"Prefill pushes every prompt token up at once, in one parallel pass, and each layer caches its keys and values."},{"t":14.64,"s":"Your request shares the hardware with other users, batched continuously."}],"src":"./assets/narration/08-prefill.mp3","status":"ready"},{"id":"09-think","g0":8,"g1":9,"dur":20.459,"cues":[{"t":0,"s":"Stage nine: thinking."},{"t":2.64,"s":"On Fable five point two, thinking is always on."},{"t":6.8,"s":"You set an effort level, from low to max, and the model decides how much to think."},{"t":12.56,"s":"The raw reasoning never leaves the server."},{"t":15.6,"s":"Here, it works out that it can't know today's weather, and should call the tool."}],"src":"./assets/narration/09-think.mp3","status":"ready"},{"id":"10-decode","g0":9,"g1":10,"dur":18.709,"cues":[{"t":0,"s":"Stage ten: decode."},{"t":2.84,"s":"Now it's a loop: one pass up the tower for each new token, each pass reading the whole cache."},{"t":9.707,"s":"A cheap draft can propose the next token for the big model to verify."},{"t":14.107,"s":"The model writes a tool call: get weather, for the city of Paris."}],"src":"./assets/narration/10-decode.mp3","status":"ready"},{"id":"11-stream","g0":10,"g1":11,"dur":15.6,"cues":[{"t":0,"s":"Stage eleven: streaming."},{"t":2.76,"s":"Token IDs are decoded back into text and streamed to your app as server-sent events, while generation is still running."},{"t":10.533,"s":"The response ends with a stop reason."},{"t":13.333,"s":"Here, the reason is tool use."}],"src":"./assets/narration/11-stream.mp3","status":"ready"},{"id":"12-tool-loop","g0":11,"g1":12,"dur":18.709,"cues":[{"t":0,"s":"Stage twelve: the tool loop."},{"t":3.04,"s":"Claude can't check the weather itself, so your code runs the tool and appends the result."},{"t":8.747,"s":"The whole conversation goes back in, and the unchanged prefix hits the cache."},{"t":13.92,"s":"Decoding resumes, the reply ends, and Paris reaches your screen."}],"src":"./assets/narration/12-tool-loop.mp3","status":"ready"},{"id":"13-outro","g0":12,"g1":12,"dur":5.752,"cues":[{"t":0,"s":"Twelve stages, one token."},{"t":3.04,"s":"Scroll to any stage to read it in detail."}],"src":"./assets/narration/13-outro.mp3","status":"ready"}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const mq=matchMedia('(prefers-reduced-motion: reduce)');
+const forceRM=/[?&]rm=1/.test(location.search);
+let reduce=mq.matches||forceRM;
+if(mq.addEventListener) mq.addEventListener('change',e=>{reduce=e.matches||forceRM;});
+
+const STAGES=[
+  {name:'Corpus',       form:'word in a document',     ax:[151,220]},
+  {name:'Tokens',       form:'token · ID 12842',       ax:[56,520]},
+  {name:'Pretrain',     form:'training target',        ax:[100,900]},
+  {name:'Post-train',   form:'part of a graded attempt',ax:[118,700]},
+  {name:'Release',      form:'frozen into the weights',ax:[100,620]},
+  {name:'Request',      form:'token in your prompt',   ax:[132,420]},
+  {name:'Forward pass', form:'vector · float[7,168]',  ax:[25,1000]},
+  {name:'Prefill',      form:'entry in the KV cache',  ax:[78,880]},
+  {name:'Think',        form:'context for reasoning',  ax:[100,250]},
+  {name:'Decode',       form:'copied into a tool call',ax:[68,800]},
+  {name:'Stream',       form:'text on the wire',       ax:[151,480]},
+  {name:'Tool loop',    form:'argument, then answer',  ax:[100,720]}
+];
+const EFF={low:6,medium:11,high:16,xhigh:21,max:28};
+let EFFORT='high';
+let KV_MODE='sparse';
+let CACHE_MODE='hit';
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const ease=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
+const seg=(t,a,b)=>ease((t-a)/(b-a));
+const lin=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+const lerp=(a,b,u)=>a+(b-a)*u;
+const pad=n=>String(n).padStart(2,'0');
+
+/* ---------------- rail ticks ---------------- */
+const ticks=$('#ticks');
+STAGES.forEach((s,i)=>{const li=document.createElement('li');li.style.setProperty('--x',((i+0.5)/12*100).toFixed(3)+'%');li.innerHTML=`<a href="#s-${i+1}"><b>${pad(i+1)}</b><span>${s.name}</span></a>`;ticks.appendChild(li);});
+const tickLis=$$('li',ticks);
+
+/* ---------------- scroll model ---------------- */
+const stEls=$$('.station'), finaleEl=$('#line'), heroGLEl=$('#heroGL');
+const A0=0.06; let LAY=null;
+const STEP_10_4=9+A0+3*(1-A0)/4;
+const isNoSpaceParis=g=>g>=STEP_10_4&&g<11;
+function layout(){
+  const y0=scrollY;
+  LAY=stEls.map(el=>{const r=el.getBoundingClientRect(),top=r.top+y0,bottom=r.bottom+y0;const stepEls=$$('.step',el);const steps=stepEls.map(s=>s.getBoundingClientRect().top+y0);const n=steps.length,W=(1-A0)/n;const knots=[{y:top,t:0}];steps.forEach((y,k)=>knots.push({y,t:A0+W*k}));knots.push({y:bottom,t:1});return {el,top,bottom,stepEls,n,W,knots};});
+  const fr=finaleEl.getBoundingClientRect();LAY.finale={top:fr.top+y0,bottom:fr.bottom+y0};
+}
+const probeY=()=>scrollY+innerHeight*0.55;
+function gFromScroll(){
+  if(!LAY) return 0; const y=probeY();
+  if(y<LAY[0].top) return 0;
+  for(let i=0;i<LAY.length;i++){const s=LAY[i];if(y<s.bottom){const K=s.knots;for(let k=1;k<K.length;k++){if(y<=K[k].y){const a=K[k-1],b=K[k];return i+a.t+(b.t-a.t)*clamp((y-a.y)/Math.max(1,b.y-a.y),0,1);}}return i+1;}}
+  return 12;
+}
+function finaleF(){if(!LAY) return 0;const y=probeY();return clamp((y-LAY.finale.top)/Math.max(1,innerHeight*0.35),0,1);}
+function scrollForG(g){
+  if(!LAY) return 0; const g0=g; g=clamp(g,0,12); let y;
+  if(g>=12) y=LAY.finale.top+2+(Math.min(g0,13)-12)*Math.max(0,LAY.finale.bottom-LAY.finale.top-innerHeight*0.5);
+  else{const i=Math.floor(g),t=g-i,K=LAY[i].knots;y=K[K.length-1].y;for(let k=1;k<K.length;k++){if(t<=K[k].t){const a=K[k-1],b=K[k];y=a.y+(b.y-a.y)*((t-a.t)/Math.max(1e-6,b.t-a.t));break;}}}
+  return Math.max(0,y-innerHeight*0.55+1);
+}
+function stepLabelAt(g){
+  if(!LAY||g<=0.004||g>=11.996) return '';
+  const i=clamp(Math.floor(g),0,11), s=LAY[i], t=g-i;
+  if(!s) return '';
+  const k=clamp(Math.floor((t-A0)/s.W),0,s.n-1);
+  return `${i+1}.${k+1}`;
+}
+
+/* ---------------- readouts ---------------- */
+const heroReadout=$('#heroReadout'), storyReadout=$('#storyReadout'), heroGlyph=$('#heroGlyph'), hudGlyph=$('#hudGlyph'), heroAxes=$('#heroAxes');
+const axis=$('#axis'), railTrack=$('#railTrack'), railOut=$('#railOut');
+function axesAt(g){const u=clamp(g-0.5,0,11),i=Math.floor(u),f=u-i,a=STAGES[i].ax,b=STAGES[Math.min(11,i+1)].ax;return [lerp(a[0],b[0],ease(f)),lerp(a[1],b[1],ease(f))];}
+function setGlyph(el,g,out,syncSpace){
+  const [w,h]=axesAt(g);const ws=w.toFixed(1),hs=h.toFixed(0);
+  if(el._w!==ws||el._h!==hs){el.style.setProperty('--wdth',ws);el.style.setProperty('--wght',hs);el._w=ws;el._h=hs;if(out) out.textContent=`wdth ${Math.round(w)} · wght ${hs}`;}
+  if(syncSpace){const ns=isNoSpaceParis(g);if(el._ns!==ns){el._ns=ns;el.innerHTML=ns?'Paris':'<i class="sp"></i>Paris';if(GL) GL.remeasureHud();}}
+}
+function layerText(i,t){
+  if(i!==6) return '—';
+  if(t<0.21) return 'embedding';
+  if(t<0.44) return '11 / 61';
+  if(t<0.48) return Math.round(lerp(11,18,seg(t,0.44,0.48)))+' / 61';
+  if(t<=0.66) return '18 / 61';
+  if(t<0.82) return Math.round(lerp(18,61,(t-0.66)/0.16))+' / 61';
+  return 'LM head';
+}
+function setField(root,k,v){const el=root.querySelector(`[data-k="${k}"]`);if(el&&el.textContent!==v) el.textContent=v;}
+function readout(root,g){
+  const i=clamp(Math.floor(g),0,11),t=g-i,started=g>0.004,done=g>=11.996;
+  setField(root,'stage',started?`${pad(i+1)} / 12`:'00 / 12');
+  setField(root,'name',started?STAGES[i].name:'Start');
+  setField(root,'form',started?STAGES[i].form:'text');
+  setField(root,'axis',(g/12).toFixed(3));
+  setField(root,'layer',layerText(i,t));
+  if(done) setField(root,'form','on your screen');
+}
+let dragging=false;
+function setRail(g){
+  railTrack.style.setProperty('--p',(g/12).toFixed(4));
+  if(!dragging) axis.value=String(Math.round(g*100));
+  const i=clamp(Math.floor(g),0,11);
+  const sub=stepLabelAt(g);
+  const txt=g<=0.004?'Start · before 01':g>=11.996?'12 / 12 · Done':`${pad(i+1)} / 12 · ${STAGES[i].name}`;
+  const ariaTxt=sub?`${txt} · step ${sub}`:txt;
+  if(railOut.textContent!==txt) railOut.textContent=txt;
+  if(axis.getAttribute('aria-valuetext')!==ariaTxt) axis.setAttribute('aria-valuetext',ariaTxt);
+  tickLis.forEach((li,k)=>{const done=g>=k+1-0.001,cur=!done&&g>k+0.004;li.classList.toggle('done',done);li.classList.toggle('cur',cur);});
+}
+let curStep=null;
+function setSteps(g){
+  if(!LAY) return; let el=null; const i=Math.floor(g);
+  if(i>=0&&i<12){const s=LAY[i],t=g-i;const k=clamp(Math.floor((t-A0)/s.W),0,s.n-1);el=s.stepEls[k];}
+  if(el!==curStep){if(curStep) curStep.classList.remove('on');if(el) el.classList.add('on');curStep=el;}
+}
+
+/* ---------------- inline controls (Effort, KV Mode, Prefix Cache Mode) ---------------- */
+const effortOut=$('#effortOut');
+$$('input[name="effort"]').forEach(r=>r.addEventListener('change',()=>{
+  if(!r.checked) return;
+  EFFORT=r.value;
+  effortOut.textContent=`${EFF[EFFORT]} thinking tokens in the drawing (illustrative; real runs use far more)`;
+  if(GL) GL.invalidate(8);
+  request();
+}));
+
+const KV_COPY={
+  sparse:'Sparse k=1,024 + 128-token window, with heavily compressed layers: ≈ 10% of V3.2’s KV memory at 1M*',
+  dense:'Dense Full KV: every historical key/value slab attended & stored — 10× memory & bandwidth vs. sparse*'
+};
+$$('input[data-sync="kv"]').forEach(r=>r.addEventListener('change',()=>{
+  if(!r.checked) return;
+  KV_MODE=r.value;
+  $$('input[data-sync="kv"]').forEach(o=>{o.checked=(o.value===KV_MODE);});
+  $$('output[data-out="kv"]').forEach(o=>{o.textContent=KV_COPY[KV_MODE];});
+  if(GL){GL.invalidate(6);GL.invalidate(7);}
+  request();
+}));
+
+const CACHE_COPY={
+  hit:'Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix',
+  miss:'Cold prefix cache miss ($8.00 / MTok): single-outline slabs; full prefill animates across tools → system → messages'
+};
+$$('input[data-sync="cache"]').forEach(r=>r.addEventListener('change',()=>{
+  if(!r.checked) return;
+  CACHE_MODE=r.value;
+  $$('input[data-sync="cache"]').forEach(o=>{o.checked=(o.value===CACHE_MODE);});
+  $$('output[data-out="cache"]').forEach(o=>{o.textContent=CACHE_COPY[CACHE_MODE];});
+  if(GL){GL.invalidate(5);GL.invalidate(11);}
+  request();
+}));
+
+/* ---------------- externalized narration ----------------
+   Over HTTP the manifest is fetched from ./assets/narration/manifest.json.
+   On file:// (or if that fetch fails) it falls back to the inline copy in
+   <script id="narration-manifest">; keep that copy in sync with manifest.json.
+   Audio clips stream on demand (active clip + next clip preloaded only).
+   Missing clips are skipped; the silent run never depends on narration. */
+const narrHero=$('#narrHero'), narrStory=$('#narrStory'), capHero=$('#capHero'), capStory=$('#capStory');
+const NARR={
+  manifestUrl:'./assets/narration/manifest.json',
+  clips:null, k:-1, end:null, loading:false, loaded:false, paused:false,
+  async load(){
+    if(this.loaded||this.loading) return this.clips;
+    this.loading=true;
+    try{
+      let d=null;
+      if(location.protocol!=='file:'){
+        try{
+          const res=await fetch(this.manifestUrl,{cache:'no-cache'});
+          if(res.ok) d=await res.json();
+        }catch(_){d=null;}
+      }
+      if(!d){
+        const inline=document.getElementById('narration-manifest');
+        if(inline){try{d=JSON.parse(inline.textContent);}catch(_){d=null;}}
+      }
+      if(!d||!Array.isArray(d.clips)) return null;
+      const ready=d.clips.filter(c=>c&&c.src&&c.status!=='missing');
+      if(!ready.length) return null;
+      this.clips=ready;
+      this.loaded=true;
+      const s=Math.round(ready.reduce((n,c)=>n+(c.dur||0),0)), m=Math.floor(s/60), r=s%60;
+      [narrHero,narrStory].forEach(b=>{
+        b.hidden=false;
+        b.querySelector('.dur').textContent=`${m}:${String(r).padStart(2,'0')}`;
+        b.setAttribute('aria-label',`Narrated run with sound, ${m} min ${r} s`);
+      });
+      return this.clips;
+    }catch(err){
+      // Graceful fallback when manifest is absent or unreachable
+      return null;
+    }finally{
+      this.loading=false;
+    }
+  },
+  audio(c){
+    if(!c.a){
+      const a=new Audio();
+      a.preload='auto';
+      a.src=c.src;
+      c.a=a;
+    }
+    return c.a;
+  },
+  play(i,fromCurrent){
+    if(!this.clips||i<0||i>=this.clips.length){
+      this.k=-1;this.paused=false;
+      const e=this.end;this.end=null;
+      if(e) e();
+      return;
+    }
+    this.k=i;this.paused=false;
+    const c=this.clips[i], a=this.audio(c);
+    if(!fromCurrent){try{a.currentTime=0;}catch(_){}}
+    a.onended=()=>this.play(i+1,false);
+    a.onerror=()=>{
+      a.onended=null;a.onerror=null;
+      // Skip unreachable clip cleanly so partial narration sets still work
+      if(i+1<this.clips.length) this.play(i+1,false);
+      else{this.stop();pauseRun(true);}
+    };
+    const p=a.play();
+    if(p&&typeof p.catch==='function'){
+      p.catch(err=>{
+        console.warn('Narration clip unavailable:',c.id,err&&err.message);
+        if(i+1<this.clips.length&&err&&err.name!=='NotAllowedError') this.play(i+1,false);
+        else pauseRun(true);
+      });
+    }
+    if(i+1<this.clips.length) this.audio(this.clips[i+1]);
+  },
+  start(end){this.stop();this.end=end;this.play(0,false);},
+  pause(){
+    if(this.k<0||!this.clips) return;
+    const c=this.clips[this.k];
+    if(c&&c.a){c.a.pause();}
+    this.paused=true;
+  },
+  resume(end){
+    if(!this.clips) return;
+    if(end) this.end=end;
+    if(this.k>=0&&this.k<this.clips.length&&this.paused){
+      this.play(this.k,true);
+    }else{
+      this.play(0,false);
+    }
+  },
+  stop(){
+    this.end=null;this.k=-1;this.paused=false;
+    if(this.clips) this.clips.forEach(c=>{if(c.a){c.a.onended=null;c.a.onerror=null;c.a.pause();try{c.a.currentTime=0;}catch(_){}}});
+  },
+  now(){
+    const c=this.clips&&this.clips[this.k];if(!c) return null;
+    const a=c.a,d=a&&isFinite(a.duration)&&a.duration>0?a.duration:Math.max(0.01,c.dur||1),t=a?a.currentTime:0;
+    let s='';for(const q of (c.cues||[])){if(t+0.05>=q.t) s=q.s;else break;}
+    return {g:reduce?(c.g1>c.g0?c.g0+0.5:c.g0):lerp(c.g0,c.g1,clamp(t/d,0,1)),cap:s};
+  }
+};
+function setCap(el,text){if(el.textContent!==text) el.textContent=text;el.classList.toggle('on',!!text);if(!text) el.classList.remove('top');}
+const CAP_HOST={hero:['#heroGL','#heroLabels .lb.tok'],story:['.stage-sticky','#storyLabels .lb.tok']};
+const TOK_BODY=70, CAP_GAP=28;
+function placeCap(view){
+  const cap=view==='hero'?capHero:capStory;if(!cap.classList.contains('on')) return;
+  const host=$(CAP_HOST[view][0]),tok=$(CAP_HOST[view][1]);if(!host||!tok) return;
+  const h=host.getBoundingClientRect(),t=tok.getBoundingClientRect(),c=cap.getBoundingClientRect();
+  if(t.right<h.left||t.left>h.right||!(t.right>c.left&&t.left<c.right)) return;
+  const underBottom=t.bottom+TOK_BODY>h.bottom-c.height-CAP_GAP, underTop=t.top<h.top+c.height+CAP_GAP;
+  const top=cap.classList.contains('top');
+  if(!top&&underBottom&&!underTop) cap.classList.add('top');else if(top&&underTop&&!underBottom) cap.classList.remove('top');
+}
+if(document.readyState==='loading') addEventListener('DOMContentLoaded',()=>{NARR.load();});else NARR.load();
+
+/* ---------------- playback with true Pause / Resume ---------------- */
+const run={on:false,paused:false,view:null,narr:false,g:0,t0:0,dur:22000,hold:false,tEnd:0,sy:0};
+const runHero=$('#runHero'), runStory=$('#runStory');
+const BTNS=[[runHero,'hero',false],[runStory,'story',false],[narrHero,'hero',true],[narrStory,'story',true]];
+function setBtns(){
+  BTNS.forEach(([b,view,narr])=>{
+    const mine=run.view===view&&run.narr===narr;
+    const on=run.on&&mine;
+    const isPaused=run.paused&&mine&&run.g>0.004&&run.g<11.995;
+    b.setAttribute('aria-pressed',on?'true':'false');
+    b.querySelector('span').textContent=on?'Pause':isPaused?'Resume':narr?'Narrated run':(mine&&run.g>=11.995?'Run again':'Run end to end');
+  });
+}
+function startRun(view,narr){
+  if(run.narr) NARR.stop();
+  run.on=true;run.paused=false;run.view=view;run.narr=!!(narr&&NARR.clips);
+  run.g=0;run.t0=performance.now();run.hold=false;run.tEnd=0;run.sy=scrollY;
+  setCap(capHero,'');setCap(capStory,'');
+  if(run.narr) NARR.start(()=>{run.g=12;finishRun();});
+  setBtns();request();
+}
+function resumeRun(){
+  if(!run.paused||run.g>=11.995){startRun(run.view,run.narr);return;}
+  run.on=true;run.paused=false;run.hold=false;run.tEnd=0;run.sy=scrollY;
+  if(run.narr){
+    NARR.resume(()=>{run.g=12;finishRun();});
+  }else{
+    run.t0=performance.now()-(run.g/12)*run.dur;
+  }
+  setBtns();request();
+}
+function pauseRun(clearHold){
+  if(!run.on) return;
+  run.on=false;run.paused=true;run.hold=!clearHold;run.tEnd=performance.now();
+  if(run.narr) NARR.pause();
+  setCap(capHero,'');setCap(capStory,'');
+  setBtns();request();
+}
+function finishRun(){
+  run.on=false;run.paused=false;run.hold=true;run.tEnd=performance.now();
+  setCap(capHero,'');setCap(capStory,'');
+  setBtns();request();
+}
+function cancelRun(){
+  if(run.narr) NARR.stop();
+  run.on=false;run.paused=false;run.hold=false;run.tEnd=0;
+  setCap(capHero,'');setCap(capStory,'');
+  setBtns();request();
+}
+BTNS.forEach(([b,view,narr])=>b.addEventListener('click',()=>{
+  const mine=run.view===view&&run.narr===narr;
+  if(run.on&&mine) pauseRun(false);
+  else if(run.paused&&mine&&run.g>0.004&&run.g<11.995) resumeRun();
+  else startRun(view,narr);
+}));
+function handleUserInterrupt(){
+  if(!run.on) return;
+  if(run.view==='story') pauseRun(true);
+  else if(run.view==='hero'&&heroGLEl){
+    const hr=heroGLEl.getBoundingClientRect();
+    if(gFromScroll()>0.004||hr.bottom<80) pauseRun(true);
+  }
+}
+['wheel','touchstart'].forEach(ev=>addEventListener(ev,handleUserInterrupt,{passive:true}));
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&run.on) pauseRun(false);
+  if(run.on&&/^(Arrow|Page|Home|End| )/.test(e.key)){
+    if(run.view==='story') pauseRun(true);
+    else if(run.view==='hero'&&e.key!==' '){
+      setTimeout(handleUserInterrupt,0);
+    }
+  }
+});
+
+/* ---------------- axis input ---------------- */
+axis.addEventListener('input',()=>{
+  dragging=true;
+  if(run.on||run.paused||run.hold) cancelRun();
+  const g=Number(axis.value)/100;
+  window.scrollTo({top:scrollForG(g),behavior:'instant'});
+  gT=gS=g;
+  request();
+});
+const endDrag=()=>{dragging=false;request();};
+axis.addEventListener('change',endDrag);
+axis.addEventListener('pointerup',endDrag);
+axis.addEventListener('keyup',endDrag);
+axis.addEventListener('blur',endDrag);
+
+/* ---------------- loop ---------------- */
+let gT=0,gS=0,raf=0,lastT=0;
+function request(){if(!raf) raf=requestAnimationFrame(frame);}
+function onScroll(){
+  const gs=gFromScroll();
+  if(run.on&&run.view==='hero'&&heroGLEl){
+    const hr=heroGLEl.getBoundingClientRect();
+    if(gs>0.004||hr.bottom<80) pauseRun(true);
+  }
+  if(!run.on&&run.hold&&Math.abs(scrollY-(run.sy||0))>4) run.hold=false;
+  gT=gs;
+  request();
+}
+addEventListener('scroll',onScroll,{passive:true});
+addEventListener('resize',()=>{layout();onScroll();});
+let GL=null;
+function frame(now){
+  raf=0;const dt=lastT?Math.min(0.1,(now-lastT)/1000):0.016;lastT=now;let more=false;
+  if(reduce||dragging){gS=gT;}else{gS+=(gT-gS)*(1-Math.exp(-dt/0.12));if(Math.abs(gT-gS)<2e-4) gS=gT;else more=true;}
+  if(run.on){
+    if(run.narr){const n=NARR.now();if(n){run.g=n.g;setCap(run.view==='hero'?capHero:capStory,n.cap);}}
+    else{const el=now-run.t0;let p=reduce?Math.min(1,Math.floor(el/900)/12):el/run.dur;if(p>=1){p=1;run.g=12;finishRun();}else{run.g=p*12;}}
+    run.sy=scrollY;if(run.on) more=true;
+  }
+  let follow=0;
+  if(run.view==='hero'){
+    if(run.on) follow=reduce?1:Math.min(1,(now-run.t0)/1200);
+    else if(run.paused&&run.hold) follow=1;
+    else if(run.tEnd){const k=reduce?1:(now-run.tEnd)/1200;follow=k<1?1-k:0;if(k<1) more=true;}
+  }
+  const gHero=run.view==='hero'&&(run.on||run.hold)?run.g:0;
+  const storyRun=run.on&&run.view==='story';
+  const gStory=storyRun?run.g:gS;
+  const gHud=(run.on||run.hold)?run.g:gS;
+  setRail(gHud);setSteps(gS);
+  readout(heroReadout,gHero);setGlyph(heroGlyph,gHero,heroAxes,false);
+  readout(storyReadout,gStory);setGlyph(hudGlyph,gStory,null,true);
+  if(GL){
+    if(GL.stepOrbit(dt,gStory)) more=true;
+    GL.draw(gHero,gStory,storyRun?1:(gS>=11.999?finaleF():0),follow);
+  }
+  if(run.on&&run.narr) placeCap(run.view);
+  if(more) request();
+}
+
+/* ================================================================
+   3D
+   ================================================================ */
+function initGL(){
+  if(!window.THREE) throw new Error('three.js missing');
+  const THREE=window.THREE;
+  const PAPER=0xF7F7F4, SP=24, LINE0=-14, LINE1=11*SP+14.5, D2R=Math.PI/180;
+  const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
+  const scene=new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff,0xd6d6cf,0.95));
+  const sun=new THREE.DirectionalLight(0xffffff,0.38);sun.position.set(-0.6,1,0.75);scene.add(sun);
+  const po={polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1};
+  const MAT={
+    paper:new THREE.MeshLambertMaterial(Object.assign({color:0xffffff},po)),
+    ink:new THREE.MeshLambertMaterial(Object.assign({color:0x1c1c1a},po)),
+    inkB:new THREE.MeshBasicMaterial({color:0x161615}),
+    mid:new THREE.MeshLambertMaterial({color:0xb7b7af}),
+    token:new THREE.MeshBasicMaterial(Object.assign({color:0xff4a1c},po)),
+    edge:new THREE.LineBasicMaterial({color:0x161615}),
+    ghost:new THREE.LineBasicMaterial({color:0xa9a9a1}),
+    dash:new THREE.LineDashedMaterial({color:0x161615,dashSize:0.3,gapSize:0.22}),
+    ghostDash:new THREE.LineDashedMaterial({color:0x7d7d76,dashSize:0.13,gapSize:0.11}),
+    tokEdge:new THREE.LineBasicMaterial({color:0xa82a08})
+  };
+  const GEO=new Map(), EDG=new Map();
+  const bg=(w,h,d)=>{const k=w+'|'+h+'|'+d;if(!GEO.has(k)) GEO.set(k,new THREE.BoxGeometry(w,h,d));return GEO.get(k);};
+  const eg=geo=>{if(!EDG.has(geo.uuid)) EDG.set(geo.uuid,new THREE.EdgesGeometry(geo));return EDG.get(geo.uuid);};
+  function inked(geo,fill,edge){const g=new THREE.Group();if(fill){const m=new THREE.Mesh(geo,fill);g.add(m);g.userData.mesh=m;}if(edge){const e=new THREE.LineSegments(eg(geo),edge);if(edge.isLineDashedMaterial) e.computeLineDistances();g.add(e);g.userData.edge=e;}return g;}
+  const box=(w,h,d,fill,edge)=>inked(bg(w,h,d),fill===undefined?MAT.paper:fill,edge===undefined?MAT.edge:edge);
+  const at=(o,x,y,z)=>{o.position.set(x,y,z);return o;};
+  const mT=(x,y,z)=>new THREE.Matrix4().makeTranslation(x,y,z);
+  function instFill(geo,mats,mat){const m=new THREE.InstancedMesh(geo,mat||MAT.paper,mats.length);mats.forEach((M,i)=>m.setMatrixAt(i,M));m.instanceMatrix.needsUpdate=true;m.frustumCulled=false;return m;}
+  function mergedEdges(geo,mats,mat){const src=eg(geo).attributes.position.array,n=src.length,out=new Float32Array(n*mats.length),v=V();mats.forEach((M,i)=>{for(let j=0;j<n;j+=3){v.set(src[j],src[j+1],src[j+2]).applyMatrix4(M);out[i*n+j]=v.x;out[i*n+j+1]=v.y;out[i*n+j+2]=v.z;}});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(out,3));const l=new THREE.LineSegments(g,mat||MAT.edge);if((mat||MAT.edge).isLineDashedMaterial) l.computeLineDistances();l.userData.per=n/3;return l;}
+  function segs(pts,mat){const l=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),mat||MAT.ghost);if((mat||MAT.ghost).isLineDashedMaterial) l.computeLineDistances();return l;}
+  function polyline(pts,mat){const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat||MAT.edge);if((mat||MAT.edge).isLineDashedMaterial) l.computeLineDistances();return l;}
+  function bez(a,b,lift){const c=a.clone().add(b).multiplyScalar(0.5);c.y+=lift;return new THREE.QuadraticBezierCurve3(a,c,b);}
+  const curveLine=(c,mat)=>polyline(c.getPoints(30),mat);
+  function reveal(line,u){const n=line.geometry.attributes.position.count;const k=Math.round(n*clamp(u,0,1));line.geometry.setDrawRange(0,k);line.visible=k>1;}
+  function torus(r,tube){const m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,8,48),MAT.inkB);return m;}
+  const CUBE=V(1,1,1), SLICE=V(0.28,0.74,2.0);
+  function track(keys){const val=(k,t)=>k.f?k.f(t):k.p.clone();return t=>{if(t<=keys[0].t) return val(keys[0],keys[0].t);for(let k=1;k<keys.length;k++){const b=keys[k];if(t<=b.t){const a=keys[k-1];if(b.f) return b.f(t);const pa=val(a,a.t),pb=val(b,b.t);return pa.lerp(pb,ease((t-a.t)/Math.max(1e-6,b.t-a.t)));}}const z=keys[keys.length-1];return val(z,z.t);};}
+  function shp(keys){return t=>{if(t<=keys[0][0]) return keys[0][1].clone();for(let k=1;k<keys.length;k++){if(t<=keys[k][0]){const a=keys[k-1],b=keys[k];return a[1].clone().lerp(b[1],ease((t-a[0])/Math.max(1e-6,b[0]-a[0])));}}return keys[keys.length-1][1].clone();};}
+  const cam=(x0,y0,z0,x1,y1,z1,az,el)=>({b:[x0,y0,z0,x1,y1,z1],az,el});
+  function camLerp(a,b,u){return {b:a.b.map((v,i)=>lerp(v,b.b[i],u)),az:lerp(a.az,b.az,u),el:lerp(a.el,b.el,u)};}
+  function camKeys(keys){return t=>{let c=keys[0].c;for(let k=1;k<keys.length;k++){const kt=keys[k].t;if(t>=kt) c=keys[k].c;else{const u=seg(t,kt-0.05,kt);if(u>0) c=camLerp(c,keys[k].c,u);break;}}return c;};}
+
+  /* ---------- shared figures ---------- */
+  function tower(ghostOnly){
+    const n=61,gap=0.2,w=5.2,y0=0.7,G=new THREE.Group();
+    G.add(at(box(w+1.0,0.7,w+1.0,ghostOnly?null:MAT.paper,ghostOnly?MAT.ghost:MAT.edge),0,0.35,0));
+    const pg=bg(w,0.08,w),M=[];for(let i=0;i<n;i++) M.push(mT(0,y0+0.12+i*gap,0));
+    const inst=instFill(pg,M),edges=mergedEdges(pg,M),ghost=mergedEdges(pg,M,MAT.ghost);G.add(inst,edges,ghost);
+    const H=n*gap+0.3;G.add(at(box(0.3,H,0.3,ghostOnly?null:MAT.paper,ghostOnly?MAT.ghost:MAT.edge),0,y0+H/2,0));
+    const per=edges.userData.per;
+    const T={G,n,gap,y0,top:y0+H,layerY:i=>y0+0.12+i*gap,_k:-1,solid(k){k=clamp(Math.round(k),0,n);if(k===T._k) return;T._k=k;inst.count=k;inst.visible=k>0;edges.geometry.setDrawRange(0,k*per);edges.visible=k>0;ghost.geometry.setDrawRange(k*per,(n-k)*per);ghost.visible=k<n;}};
+    T.solid(ghostOnly?0:n);return T;
+  }
+  function rack(){
+    const G=new THREE.Group();
+    G.add(at(box(0.14,12.6,0.14),-0.25,6.3,-1.65),at(box(0.14,12.6,0.14),-0.25,6.3,1.65));
+    const sg=bg(2.3,0.06,3.3),SM=[];for(let k=0;k<12;k++) SM.push(mT(0.75,1+k,0));G.add(instFill(sg,SM),mergedEdges(sg,SM));
+    const cg=bg(0.12,0.68,2.5),BM=[],GM=[],DM=[];
+    for(let k=0;k<12;k++){
+      for(let s=0;s<3;s++) BM.push(mT(0.05+s*0.4,1.4+k,0));
+      GM.push(mT(1.25,1.4+k,0));
+      for(let s=0;s<4;s++) DM.push(mT(0.25+s*0.4,1.4+k,0));
+    }
+    const base=instFill(cg,BM),baseE=mergedEdges(cg,BM),grow=instFill(cg,GM),growE=mergedEdges(cg,GM);
+    const dense=instFill(bg(0.1,0.68,2.5),DM,MAT.ink),denseE=mergedEdges(bg(0.1,0.68,2.5),DM,MAT.edge);
+    G.add(base,baseE,grow,growE,dense,denseE);
+    const per=baseE.userData.per, dper=denseE.userData.per;
+    const R={
+      G,
+      set(nb,ng){nb=clamp(Math.round(nb),0,36);ng=clamp(Math.round(ng),0,12);base.count=nb;base.visible=nb>0;baseE.geometry.setDrawRange(0,nb*per);baseE.visible=nb>0;grow.count=ng;grow.visible=ng>0;growE.geometry.setDrawRange(0,ng*per);growE.visible=ng>0;},
+      setDense(nd){nd=clamp(Math.round(nd),0,48);dense.count=nd;dense.visible=nd>0;denseE.geometry.setDrawRange(0,nd*dper);denseE.visible=nd>0;},
+      tokSlot:V(1.68,7.4,0)
+    };
+    R.set(0,0);R.setDense(0);return R;
+  }
+  function screen(lines){
+    const G=new THREE.Group();
+    G.add(at(box(1.6,0.1,0.9),0,0.05,0),at(box(0.18,0.9,0.18),0,0.5,0),at(box(4.6,3.0,0.14),0,2.4,0));
+    const L=[];const lens=lines||[3.4,2.6,3.8,2.2,3.0,1.6];
+    lens.forEach((len,k)=>{const b=new THREE.Mesh(bg(1,0.12,0.03),MAT.mid);b.position.set(-1.95,3.45-k*0.38,0.09);b.userData.len=len;G.add(b);L.push(b);});
+    const S={G,lines:L,show(u){L.forEach((b,k)=>{const v=clamp(u*L.length-k,0,1);b.visible=v>0.01;b.scale.x=Math.max(0.001,b.userData.len*v);b.position.x=-1.95+b.userData.len*v/2;});}};
+    S.show(1);return S;
+  }
+  function cutter(G,o){
+    const W=o.W,gap=o.gap||0.12,total=W.reduce((a,b)=>a+b,0)+gap*(W.length-1),y=o.y||0.95,BX=o.BX;
+    const off=[];let s=0;W.forEach(w=>{off.push(s);s+=w+gap;});
+    const slot=[];let x=o.row0;W.forEach(w=>{slot.push(x+w/2);x+=w+gap;});
+    const rib=box(1,0.9,0.14);G.add(rib);
+    const pcs=W.map((w,i)=>{if(i===o.ti) return null;const b=box(w,1,1);b.visible=false;G.add(b);return b;});
+    const cut=i=>(total-off[i])/total;
+    const ribPos=(i,c)=>V(BX-total+c*total+off[i]+W[i]/2,y,0);
+    function piece(i,c){const k=cut(i);if(c<k) return null;const u=ease((c-k)/0.22);return V(lerp(BX+W[i]/2+0.08,slot[i],u),lerp(y,0.5,u),0);}
+    function update(c){const cc=Math.min(c,1),len=Math.max(0.001,total*(1-cc));rib.scale.x=len;rib.position.set(BX-len/2,y,0);rib.visible=cc<0.999&&!o.hideRib;pcs.forEach((b,i)=>{if(!b) return;const r=piece(i,c);if(r){b.visible=true;b.position.copy(r);}else b.visible=false;});}
+    function tokPos(c){const k=cut(o.ti);if(c<k){const p=ribPos(o.ti,c);p.z=0.16;return p;}return piece(o.ti,c);}
+    function tokShape(c){const k=cut(o.ti),w=W[o.ti];if(c<k) return V(w*0.9,0.62,0.24);const u=ease((c-k)/0.22);return V(w,lerp(0.62,1,u),lerp(0.24,1,u));}
+    return {update,tokPos,tokShape,slot,total,rib,pcs,piece,ribStart:()=>ribPos(o.ti,0)};
+  }
+  function blade(G,BX){G.add(at(box(0.06,2.3,1.9),BX,1.55,0),at(box(1.0,0.5,2.3),BX,2.95,0),at(box(1.0,0.12,2.3),BX,0.06,0));}
+  function hollowTile(w,h,d){return box(w,h,d,null,MAT.ghostDash);}
+
+  /* ---------- stations ---------- */
+  const ST=[];
+  function station(i,build){const G=new THREE.Group();G.position.x=i*SP;scene.add(G);const d=build(G);const S={i,G,_t:-1,update:d.update||(()=>{}),tok:d.tok,shape:d.shape||(()=>CUBE.clone()),cam:camKeys(d.cams),labels:d.labels||[]};ST.push(S);return S;}
+
+  // 01 CORPUS
+  station(0,G=>{
+    const zs=[-4.2,-1.4,1.4,4.2],cnt=[9,11,7,8],SX=-8.5,PT=0.14,PS=0.24,FX=-1.4,CX=6.2;
+    const pg=bg(2.6,PT,1.9),M=[];zs.forEach((z,s)=>{for(let k=0;k<cnt[s];k++) M.push(mT(SX,0.12+k*PS,z));});
+    G.add(instFill(pg,M),mergedEdges(pg,M));
+    G.add(at(box(0.24,6.2,0.24),FX,3.1,-5.1),at(box(0.24,6.2,0.24),FX,3.1,5.1),at(box(0.24,0.24,10.44),FX,6.3,0));
+    const gp=[];for(let i=1;i<8;i++){const z=-5+i*1.25;gp.push(V(FX,0,z),V(FX,6.2,z));}for(let j=1;j<5;j++){const y=j*1.24;gp.push(V(FX,y,-5),V(FX,y,5));}G.add(segs(gp));
+    const cg=bg(3.2,PT,2.4),CM=[];for(let k=0;k<12;k++) CM.push(mT(CX,0.12+k*PS,0));
+    const clean=instFill(cg,CM),cleanE=mergedEdges(cg,CM);G.add(clean,cleanE);
+    const N=7,DUP=[1,4],mv=[];for(let k=0;k<N;k++){const b=box(2.6,PT,1.9);b.visible=false;G.add(b);mv.push(b);}
+    const sch=k=>{const a=0.16+k*0.075;return [a,a+0.13,a+0.26];};
+    const hk=k=>{let n=3;for(let j=0;j<k;j++) if(!DUP.includes(j)) n++;return n;};
+    function mpos(k,t){const [a,b,c]=sch(k);if(t<a) return null;const p0=V(SX,0.12+cnt[k%4]*PS+0.1,zs[k%4]),p1=V(FX,2.2+(k%3)*0.9,0);
+      if(t<b){const u=ease((t-a)/(b-a));return {p:p0.lerp(p1,u).add(V(0,Math.sin(u*Math.PI)*1.2,0)),s:1};}
+      if(DUP.includes(k)){const u=ease((t-b)/(c-b));if(u>=1) return null;return {p:V(FX+0.7,lerp(p1.y,-1.2,u),0),s:1-0.7*u};}
+      const p2=V(CX,0.12+hk(k)*PS,0);if(t<c){const u=ease((t-b)/(c-b));return {p:p1.lerp(p2,u).add(V(0,Math.sin(u*Math.PI)*0.8,0)),s:1};}
+      return null;}
+    const TK=2,[ta,,tc]=sch(TK),s2=V(SX,0.12+cnt[2]*PS+0.14,zs[2]),rest=V(CX+2.7,0.45,0);
+    return {
+      update(t){let n=3;for(let k=0;k<N;k++){const r=mpos(k,t),m=mv[k];if(r){m.visible=true;m.position.copy(r.p);m.scale.setScalar(r.s);}else m.visible=false;if(!DUP.includes(k)&&t>=sch(k)[2]) n++;}clean.count=n;cleanE.geometry.setDrawRange(0,n*cleanE.userData.per);},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:s2},{t:ta,p:s2},{t:tc,f:t=>{const r=mpos(TK,t);return r?r.p.add(V(0,0.14,0)):V(CX,0.12+hk(TK)*PS+0.14,0);}},{t:0.64,p:rest},{t:0.86,p:rest},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.06,V(1.5,0.26,0.7)],[tc,V(1.5,0.26,0.7)],[0.64,CUBE]]),
+      cams:[{t:0,c:cam(-10,0,-5.6,9.6,7.6,5.6,-26,22)}],
+      labels:[
+        ['dedupe · quality · PII filters',V(FX,7.0,0),0.12,1],
+        ['clean mix · 33T tokens*',V(CX,3.9,0),0.4,1],
+        ['books',V(SX,0.12+cnt[2]*PS+0.9,zs[2]),0,0.6],
+        ['near-duplicates dropped',V(FX+0.9,-0.8,0),0.26,0.72],
+        ['web',V(SX,0.12+cnt[0]*PS+0.55,zs[0]),0,0.6],
+        ['code',V(SX,0.12+cnt[1]*PS+0.55,zs[1]),0,0.6],
+        ['papers + math',V(SX,0.12+cnt[3]*PS+0.55,zs[3]),0,0.6]
+      ]
+    };
+  });
+
+  // 02 TOKENS (includes '␣Eiffel' matching “…the Eiffel Tower is in Paris.”)
+  station(1,G=>{
+    const BX=-2.4;blade(G,BX);
+    const W=[0.95,1.45,1.45,0.72,0.72,1.65,0.46],WORDS=['the','␣Eiffel','␣Tower','␣is','␣in','','“.”'],TI=5;
+    const C=cutter(G,{BX,W,gap:0.14,ti:TI,row0:-1.8});
+    const cOf=t=>lin(t,0.06,0.4)*1.22;
+    const cg=bg(0.3,0.3,0.3),VM=[];for(let c=0;c<28;c++) for(let r=0;r<9;r++) VM.push(mT(-1.8+c*0.42,2.4+r*0.42,-4.6));
+    const wall=instFill(cg,VM),wallE=mergedEdges(cg,VM,MAT.ghost);G.add(wall,wallE);
+    const cell=V(-1.8+17*0.42,2.4+5*0.42,-4.6),cellB=at(box(0.34,0.34,0.34,MAT.ink),cell.x,cell.y,cell.z);G.add(cellB);
+    const slotP=V(C.slot[TI],0.5,0);const conn=polyline([slotP.clone().add(V(0,0.55,0)),cell]);G.add(conn);
+    const IX=3.0,IZ=4.4;G.add(at(box(2.6,0.08,2.6),IX,0.04,IZ));
+    const ig=[];for(let k=1;k<4;k++){const d=-1.3+k*0.65;ig.push(V(IX+d,0.09,IZ-1.3),V(IX+d,0.09,IZ+1.3),V(IX-1.3,0.09,IZ+d),V(IX+1.3,0.09,IZ+d));}G.add(segs(ig));
+    const patches=[0,1,2,3].map(k=>{const b=box(0.6,0.08,0.6);b.position.set(IX-0.975+k*0.65,0.12,IZ-0.325);G.add(b);return b;});
+    return {
+      update(t){const c=cOf(t);C.update(c);cellB.visible=t>0.42&&t<0.9;conn.visible=t>0.42&&t<0.9;
+        const u=seg(t,0.66,0.86);patches.forEach((b,k)=>{const p0=V(IX-0.975+k*0.65,0.12,IZ-0.325),p1=V(6.4+k*0.55,1.1,IZ);b.position.copy(p0.lerp(p1,u));b.scale.set(lerp(1,0.37,u),lerp(1,22,u),lerp(1,0.37,u));});},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:C.tokPos(0)},{t:0.4,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.5,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.9,p:slotP},{t:1,p:V(12,0.45,0)}]),
+      shape:t=>{if(t<0.06) return CUBE.clone().lerp(C.tokShape(0),ease(t/0.06));if(t<0.9) return C.tokShape(cOf(t));return C.tokShape(2).lerp(CUBE,ease((t-0.9)/0.1));},
+      cams:[{t:0,c:cam(-11.2,0,-4.9,10.2,6.9,5.2,-24,20)}],
+      labels:[
+        ['byte-level BPE',V(BX,3.7,0),0.04,0.42],
+        ['vocabulary · 129,280 tokens*',V(-1.8,6.4,-4.6),0.4,0.68],
+        ['ID 12842 (illustrative)',cell.clone().add(V(0.3,0.1,0)),0.44,0.68],
+        ['image → patches → vectors',V(IX+2.2,2.4,IZ),0.66,0.95],
+        ...[0,1,2,3,4,6].map(i=>[WORDS[i],t=>{const p=C.piece(i,cOf(t));return p?p.add(V(0,0.8+(i%2)*0.32,0)):V(-99,-99,0);},0.2,0.68])
+      ]
+    };
+  });
+
+  // 03 PRETRAIN
+  station(2,G=>{
+    const T=tower();G.add(T.G);
+    const fg=bg(0.62,0.16,0.62),FM=[];for(let a=0;a<10;a++) for(let b=0;b<10;b++){const x=-4.95+a*1.1,z=-4.95+b*1.1;if(Math.abs(x)<3.4&&Math.abs(z)<3.4) continue;FM.push(mT(x,0.08,z));}
+    G.add(instFill(fg,FM),mergedEdges(fg,FM,MAT.ghost));
+    const B=[];for(let k=0;k<8;k++){if(k===5){B.push(null);continue;}const b=box(0.42,0.42,0.42);G.add(b);B.push(b);}
+    const bpos=(k,t)=>{const p0=V(-11+k*0.62,0.21,0),p1=V(-1.75+k*0.5,0.95,0),p2=V(-1.75+k*0.5,T.top-0.25,0);if(t<0.05) return p0;if(t<0.15) return p0.lerp(p1,seg(t,0.05,0.15));return p1.lerp(p2,seg(t,0.15,0.36));};
+    const ring=torus(0.8,0.06);ring.rotation.x=Math.PI/2;ring.position.set(0,T.top+0.9,0);G.add(ring);
+    const GX=3.3,gl=polyline([V(GX,T.top,0),V(GX,0.9,0)]);G.add(gl);
+    const pulses=[0,1,2].map(()=>{const b=box(0.22,0.22,0.22,MAT.ink,null);G.add(b);return b;});
+    const ruler=box(1,0.12,0.36);G.add(ruler);
+    const tk=[];for(let k=0;k<=16;k++){const x=-5+k*0.7;tk.push(V(x,0.12,4.6),V(x,0.5,4.6));}const ticksL=segs(tk,MAT.edge);G.add(ticksL);
+    const Lr=t=>lerp(0.7,11.2,seg(t,0.82,0.95));
+    return {
+      update(t){B.forEach((b,k)=>{if(!b) return;b.visible=t<0.38;b.position.copy(bpos(k,t));});
+        T.solid(t<0.15?0:61*lin(t,0.15,0.36));
+        ring.visible=t>0.34;const gv=t>0.38&&t<0.8;gl.visible=gv;pulses.forEach((p,k)=>{p.visible=gv;const f=((t-0.38)*7+k/3)%1;p.position.set(GX,T.top-f*(T.top-0.9),0);});
+        const L=Lr(t);ruler.visible=t>0.76;ruler.scale.x=L;ruler.position.set(-5+L/2,0.06,4.6);ticksL.visible=t>0.76;ticksL.geometry.setDrawRange(0,2*(1+Math.floor(L/0.7+0.001)));},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.05,p:bpos(5,0)},{t:0.36,f:t=>bpos(5,t)},{t:0.4,p:V(0,T.top+0.9,0)},{t:0.76,p:V(0,T.top+0.9,0)},{t:0.82,p:V(-4.6,0.5,4.6)},{t:0.95,f:t=>V(-5+Lr(t),0.5,4.6)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.05,V(0.62,0.62,0.62)],[0.36,V(0.62,0.62,0.62)],[0.4,CUBE]]),
+      cams:[{t:0,c:cam(-11.6,0,-5.6,5.6,15,5.6,-28,16)},{t:0.36,c:cam(-5.6,0,-5.6,5.6,15.4,5.6,-28,16)},{t:0.78,c:cam(-6,0,-3.5,7,8,5.2,-24,20)}],
+      labels:[
+        ['tower · 61 layers*',V(-3.2,9.5,0),0.08,0.4],
+        ['loss = −log p(“ Paris”)',V(0.9,T.top+1.5,0),0.36,0.62],
+        ['gradients flow down to every weight',V(GX+0.3,8,0),0.42,0.8],
+        ['1,048,576 · YaRN ×16*',t=>V(-5+Lr(t),0.9,4.6),0.86,1],
+        ['65,536',V(-5,0.9,4.6),0.8,1],
+        ['causal mask: position n sees ≤ n',V(-3.2,5.0,0),0.14,0.36],
+        ['accelerator cluster',V(-5,0.2,5),0,0.3]
+      ]
+    };
+  });
+
+  // 04 POST-TRAIN
+  station(3,G=>{
+    const PX=-4,T=tower();T.G.position.x=PX;G.add(T.G);
+    const R=tower(true);R.G.scale.setScalar(0.6);R.G.position.set(-10.5,0,-5.5);G.add(R.G);
+    const tether=polyline([V(PX,T.top,0),V(-10.5,R.top*0.6,-5.5)],MAT.dash);G.add(tether);
+    const sft=[0,1,2,3].map(k=>{const b=box(2.2,0.12,1.6);b.position.set(-11,0.1+k*0.2,3.2);G.add(b);return b;});
+    const gp=k=>V(6.4,6.6,-5.25+k*1.5),PASS=[0,2,3,6];
+    const graders=[0,1,2,3,4,5,6,7].map(k=>{const b=box(0.8,0.8,0.8);b.position.copy(gp(k));G.add(b);return b;});
+    const A=V(PX,T.top+0.1,0);
+    const curves=graders.map((_,k)=>bez(A,gp(k).add(V(0,0.45,0)),3.2+k*0.12));
+    const solid=curves.map(c=>{const l=curveLine(c);G.add(l);return l;});
+    const dashed=curves.map(c=>{const l=curveLine(c,MAT.ghostDash);l.visible=false;G.add(l);return l;});
+    G.add(at(box(2.4,3.2,0.12),6.4,1.7,-8.2));
+    const dl=[];for(let k=0;k<7;k++){const y=2.9-k*0.36;dl.push(V(5.4,y,-8.13),V(k%3===2?6.7:7.4,y,-8.13));}G.add(segs(dl,MAT.edge));
+    const feed=polyline([V(6.4,3.4,-8.2),V(6.4,6.1,-5.25)],MAT.dash);G.add(feed);
+    return {
+      update(t){sft.forEach((b,k)=>{const a=0.03+k*0.04,u=seg(t,a,a+0.09);b.visible=u<0.999;b.position.set(lerp(-11,PX,u),lerp(0.1+k*0.2,0.9,u),lerp(3.2,0,u));});
+        curves.forEach((c,k)=>{const pass=PASS.includes(k),g=t>0.52;const r=seg(t,0.28+k*0.012,0.42+k*0.012);if(g&&!pass){solid[k].visible=false;dashed[k].visible=true;}else{dashed[k].visible=false;reveal(solid[k],r);}
+          graders[k].userData.mesh.material=(g&&pass)?MAT.ink:MAT.paper;});
+        feed.visible=t>0.54&&t<0.82;tether.visible=t>0.7;},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(-11,1.15,3.2)},{t:0.16,p:V(PX,1.0,0)},{t:0.28,p:A.clone()},{t:0.3,p:A.clone()},{t:0.46,f:t=>curves[2].getPoint(lin(t,0.3,0.46))},{t:0.5,p:gp(2).add(V(0,0.95,0))},{t:0.74,p:gp(2).add(V(0,0.95,0))},{t:0.86,p:V(7.6,0.45,0)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.06,V(0.55,0.55,0.55)],[0.3,V(0.55,0.55,0.55)],[0.5,V(0.6,0.6,0.6)],[0.86,CUBE]]),
+      cams:[{t:0,c:cam(-12.2,0,-8.6,7.6,15,5.8,-30,20)}],
+      labels:[
+        ['SFT · worked demonstrations',V(-11,2.0,3.2),0,0.24],
+        ['policy samples a group of 8 (illustrative)',V(0.6,T.top+3.3,0),0.28,0.52],
+        ['verifiers: tests pass · answer matches',V(6.4,8.0,-5.25),0.46,0.74],
+        ['constitution → AI feedback',V(6.4,3.7,-8.2),0.54,0.82],
+        ['frozen reference model',V(-10.5,R.top*0.6+0.7,-5.5),0.7,1],
+        ['KL penalty',V(-7.2,T.top*0.82,-2.8),0.72,1],
+        ['filled = above the group mean',V(6.4,7.6,5.6),0.52,0.74]
+      ]
+    };
+  });
+
+  // 05 RELEASE
+  station(4,G=>{
+    G.add(at(box(0.8,9,0.8),0,4.5,-4.2),at(box(0.8,9,0.8),0,4.5,4.2),at(box(0.8,0.8,9.2),0,9.4,0));
+    const checks=[...Array(10)].map((_,k)=>{const b=box(0.5,0.5,0.5);b.position.set(0,10.05,-3.6+k*0.8);G.add(b);return b;});
+    const scan=box(0.05,8.4,7.8);scan.position.y=4.4;G.add(scan);
+    G.add(at(box(2.2,3.0,0.12),-7,1.5,-5));const dl=[];for(let k=0;k<6;k++){const y=2.6-k*0.36;dl.push(V(-7.8,y,-4.93),V(k%2?-6.6:-6.2,y,-4.93));}G.add(segs(dl,MAT.edge));
+    const ring=torus(1.5,0.09);ring.rotation.y=Math.PI/2;ring.position.set(6.5,1.8,0);G.add(ring);
+    const sx=t=>lerp(-7,7,seg(t,0.36,0.64));
+    return {
+      update(t){checks.forEach((b,k)=>{b.userData.mesh.material=t>0.06+k*0.036?MAT.ink:MAT.paper;});scan.visible=t>0.34&&t<0.66;scan.position.x=sx(t);},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.1,p:V(-6,1.8,0)},{t:0.62,p:V(2,1.8,0)},{t:0.78,p:V(9,1.8,0)},{t:1,p:V(12,0.45,0)}]),
+      cams:[{t:0,c:cam(-8.6,0,-5.4,8.4,10.6,5,-32,16)}],
+      labels:[
+        ['capability + dangerous-capability evals',V(0,10.9,0),0.04,0.46],
+        ['red-team sweep',t=>V(sx(t),8.9,3.9),0.36,0.64],
+        ['safety classifier · stop_reason "refusal"',V(6.5,3.7,0),0.3,1],
+        ['weights frozen from here on',V(9.6,0.9,1.5),0.8,1],
+        ['system card',V(-7,3.4,-5),0.1,0.6]
+      ]
+    };
+  });
+
+  // 06 REQUEST (interactive Prefix Cache Mode: Hit doubled lines + suffix fast-forward vs Miss full prefill)
+  station(5,G=>{
+    const BX=-0.6;blade(G,BX);
+    const W=[...Array(8).fill(0.48),0.62,0.36,0.52,1.0,0.44,1.0,0.7,0.62,0.32],TI=13;
+    const C=cutter(G,{BX,W,gap:0.07,ti:TI,row0:0.0,hideRib:true});
+    const cOf=t=>lin(t,0.32,0.62)*1.22;
+    const R0=BX-C.total;
+    const slabs=[['tools',4.4,R0,2.1],['system',3.1,R0+2.2,2.1],['messages',1.8,R0+4.37,C.total-4.37]].map(([name,y,x0,len],idx)=>{
+      const b=box(1,0.9,0.22);
+      G.add(b);
+      let dbl=null;
+      if(idx<2){
+        // Doubled cache outline bars above prefix slabs (tools & system) on Cache Hit
+        dbl=new THREE.Group();
+        dbl.add(polyline([V(-0.5,0.54,0),V(0.5,0.54,0)],MAT.edge),polyline([V(-0.5,0.65,0),V(0.5,0.65,0)],MAT.edge));
+        G.add(dbl);
+      }
+      return {name,b,dbl,pre:V(-9.4,y,0),post:V(x0+len/2,0.95,0),len};
+    });
+    const slabAt=(s,t)=>{const u=seg(t,0.1,0.3);return {p:s.pre.clone().lerp(s.post,u),len:lerp(3.0,s.len,u)};};
+    const slotP=V(C.slot[TI],0.5,0);
+    const px=C.slot[7]+0.24;
+    const brMiss=polyline([V(0,1.45,0),V(0,1.62,0),V(px,1.62,0),V(px,1.45,0)],MAT.ghostDash);G.add(brMiss);
+    const brHit=new THREE.Group();
+    brHit.add(
+      polyline([V(0,1.45,0),V(0,1.58,0),V(px,1.58,0),V(px,1.45,0)],MAT.edge),
+      polyline([V(0,1.69,0),V(px,1.69,0)],MAT.edge)
+    );
+    G.add(brHit);
+    // Prefill sweep indicator across either uncached suffix (hit) or entire stack (miss)
+    const suf0=C.slot[8]-W[8]/2, rowEnd=C.slot[W.length-1]+W[W.length-1]/2;
+    const sweep=box(0.08,1.25,1.3,MAT.ink,null);G.add(sweep);
+    const msgTok=t=>{const pre=V(-8.9,1.8,0.14),post=C.ribStart();return pre.lerp(post,seg(t,0.1,0.3));};
+    return {
+      update(t){
+        const hit=CACHE_MODE==='hit';
+        slabs.forEach(s=>{
+          const a=slabAt(s,t);
+          s.b.visible=t<0.32;
+          s.b.position.copy(a.p);
+          s.b.scale.x=a.len;
+          if(s.dbl){
+            s.dbl.visible=hit&&t<0.32;
+            s.dbl.position.copy(a.p);
+            s.dbl.scale.x=a.len;
+          }
+        });
+        C.rib.visible=false;
+        C.update(cOf(t));
+        if(t>=0.32&&cOf(t)<1){
+          const len=Math.max(0.001,C.total*(1-Math.min(cOf(t),1)));
+          C.rib.visible=true;C.rib.scale.x=len;C.rib.position.set(BX-len/2,0.95,0);
+        }
+        brHit.visible=hit&&t>0.62;
+        brMiss.visible=!hit&&t>0.62;
+        // Animate prefill sweep: fast-forward to suffix on hit, full prompt stack on miss
+        const su=lin(t,0.68,0.92);
+        const swOn=t>0.68&&t<0.93;
+        sweep.visible=swOn;
+        if(swOn){
+          const x0=hit?suf0:0;
+          sweep.position.set(lerp(x0,rowEnd,ease(su)),0.62,0);
+        }
+        // Highlight prefilled tokens briefly as sweep passes
+        C.pcs.forEach((b,k)=>{
+          if(!b||!b.visible) return;
+          const xk=C.slot[k];
+          const x0=hit?suf0:0;
+          const passed=swOn&&xk>=x0&&xk<=lerp(x0,rowEnd,ease(su));
+          b.userData.mesh.material=passed?MAT.ink:MAT.paper;
+        });
+      },
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.08,p:V(-8.9,1.8,0.14)},{t:0.3,f:t=>msgTok(t)},{t:0.32,f:()=>C.ribStart()},{t:0.7,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.88,p:slotP},{t:1,p:V(12,0.45,0)}]),
+      shape:t=>{if(t<0.08) return CUBE.clone().lerp(V(0.9,0.5,0.24),ease(t/0.08));if(t<0.32) return V(0.9,0.5,0.24);if(t<0.88) return C.tokShape(cOf(t));return C.tokShape(2).lerp(CUBE,ease((t-0.88)/0.12));},
+      cams:[{t:0,c:cam(-11.6,0,-1,1.2,5.2,1,-20,22)},{t:0.34,c:cam(-11.6,0,-1.2,11,4,1.2,-20,22)},{t:0.62,c:cam(-1.4,0,-1.2,11,3.2,1.2,-20,22)}],
+      labels:[
+        ['render order = cache order',V(R0+2,2.2,0),0.14,0.34],
+        ['same tokenizer as training',V(BX,3.7,0),0.32,0.62],
+        [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok (doubled)':'prefix cache miss · $8.00 / MTok (full prefill)',V(px/2,2.7,0),0.62,1],
+        ['prefix: tools + system',V(px/2,2.1,0),0.62,1],
+        ['same ID as in stage 2',slotP.clone().add(V(0.4,1.6,0)),0.58,0.86],
+        ...slabs.map(s=>[s.name,t=>slabAt(s,t).p.add(V(0,0.75,0)),0,0.32])
+      ]
+    };
+  });
+
+  // 07 FORWARD PASS (Layer 18 sync in Step 7.3 + interactive Sparse/Dense KV Mode)
+  station(6,G=>{
+    const T=tower();G.add(T.G);
+    const LA=10, LM=17, yA=T.layerY(LA), yM=T.layerY(LM);
+    const layerIdx7=t=>t<0.44?LA:t<0.48?lerp(LA,LM,seg(t,0.44,0.48)):LM;
+    const act=at(box(5.5,0.1,5.5),0,yA,0);G.add(act);
+    const EX=-9,EZ=-4.4;G.add(at(box(3.2,6,1.4),EX,3,EZ));
+    const rl=[];for(let k=1;k<24;k++){const y=k*0.25;rl.push(V(EX-1.6,y,EZ+0.71),V(EX+1.6,y,EZ+0.71));}G.add(segs(rl));
+    const row=box(3.2,0.24,1.4);G.add(row);
+    const AZ=3.2,AG=new THREE.Group();G.add(AG);
+    const blocks=[-12.2,-10.6,-9.0,-7.4].map((x,k)=>{
+      const sel=k===0||k===2;
+      const b=box(1.3,0.7,0.7,MAT.ink,MAT.edge);
+      at(b,x,yA,AZ);AG.add(b);
+      return {x,sel,b};
+    });
+    const win=[-6.1,-5.4,-4.7,-4.0,-3.3];
+    const winBoxes=win.map(x=>{const b=at(box(0.56,0.56,0.56),x,yA,AZ);AG.add(b);return b;});
+    [3.4,4.1,4.8].forEach(x=>AG.add(at(hollowTile(0.56,0.56,0.56),x,yA,AZ)));
+    const src=V(0,yA+0.3,0);
+    const sparseTargets=[...blocks.filter(o=>o.sel).map(o=>V(o.x,yA+0.36,AZ)),...win.map(x=>V(x,yA+0.3,AZ))];
+    const arcs=sparseTargets.map((p,k)=>{const l=curveLine(bez(src,p,2.2+k*0.14));AG.add(l);return l;});
+    const denseTargets=blocks.filter(o=>!o.sel).map(o=>V(o.x,yA+0.36,AZ));
+    const denseArcs=denseTargets.map((p,k)=>{const l=curveLine(bez(src,p,2.6+k*0.22));AG.add(l);return l;});
+    AG.add(polyline([V(0.3,yA+0.25,0.4),V(3.1,yA+0.25,AZ)],MAT.ghostDash));
+    const MG=new THREE.Group();G.add(MG);
+    const epos=a=>{const ang=a/384*Math.PI*2;return V(Math.cos(ang)*4.95,yM,Math.sin(ang)*4.95);};
+    const dial=[];for(let a=0;a<384;a++){const ang=a/384*Math.PI*2,c=Math.cos(ang),s=Math.sin(ang),r0=a%32===0?4.4:4.68;dial.push(V(c*r0,yM,s*r0),V(c*5.24,yM,s*5.24));}MG.add(segs(dial,MAT.ghost));
+    const SEL=[27,120,189,264,303,357];
+    const sel=SEL.map(a=>{const b=box(0.42,0.42,0.42,MAT.ink);b.position.copy(epos(a));MG.add(b);return b;});
+    MG.add(at(box(0.9,0.9,0.9,MAT.ink),0,yM,-3.4));
+    const router=torus(0.55,0.07);router.rotation.x=Math.PI/2;router.position.y=yM;MG.add(router);
+    const elines=SEL.map(a=>{const p=epos(a);p.y+=0.5;const l=polyline([V(0,yM,0),p]);MG.add(l);return l;});
+    MG.add(polyline([V(0,yM,0),V(0,yM,-3.4)]));
+    const yH=T.top+0.5,NB=36,H=[],H2=[];for(let k=0;k<NB;k++){const r=Math.abs(Math.sin(k*12.9898)*43758.5453)%1;H.push(0.12+r*0.55);}H[23]=3.0;H[9]=2.1;H[30]=1.5;H[15]=1.05;
+    for(let k=0;k<18;k++){const r=Math.abs(Math.sin(k*78.233)*12345.678)%1;H2.push(0.08+r*0.35);}H2[7]=1.4;H2[12]=0.8;
+    const bgeo=bg(0.2,1,0.2),bars=new THREE.InstancedMesh(bgeo,MAT.ink,NB),mtp=new THREE.InstancedMesh(bgeo,MAT.mid,18);bars.frustumCulled=false;mtp.frustumCulled=false;G.add(bars,mtp);
+    const m4=new THREE.Matrix4(),sc=V(),q=new THREE.Quaternion();
+    function setBars(u){for(let k=0;k<NB;k++){const h=Math.max(0.02,H[k]*u);m4.compose(V(-4.2+k*0.24,yH+h/2,0),q,sc.set(1,h,1));bars.setMatrixAt(k,m4);}bars.instanceMatrix.needsUpdate=true;for(let k=0;k<18;k++){const h=Math.max(0.02,H2[k]*u);m4.compose(V(-2.1+k*0.24,yH+h/2,-1.4),q,sc.set(1,h,1));mtp.setMatrixAt(k,m4);}mtp.instanceMatrix.needsUpdate=true;}
+    const topBar=V(-4.2+23*0.24,yH+3.0+0.6,0);
+    return {
+      update(t){
+        row.visible=t<0.19;const ru=seg(t,0.06,0.16);row.position.set(lerp(EX,-4.4,ru),3.6,lerp(EZ,-1.2,ru));
+        // Synchronize cutaway top, act highlight plate, MG ring, and HUD on exact layer 18 (index 17) during Step 7.3
+        const li=layerIdx7(t);
+        let k=61;
+        if(t>=0.18&&t<0.24) k=lerp(61,LA+1,seg(t,0.18,0.24));
+        else if(t>=0.24&&t<=0.66) k=li+1;
+        else if(t>0.66&&t<0.84) k=lerp(LM+1,61,lin(t,0.66,0.82));
+        T.solid(k);
+        act.position.y=T.layerY(li);
+        act.visible=t>0.2&&t<0.68;
+        AG.visible=t>0.2&&t<0.48;
+        const dense=KV_MODE==='dense';
+        blocks.forEach(o=>{
+          const active=dense||o.sel;
+          o.b.userData.mesh.visible=active;
+          o.b.userData.edge.material=active?MAT.edge:MAT.ghost;
+        });
+        winBoxes.forEach(b=>{b.userData.mesh.material=dense?MAT.ink:MAT.paper;});
+        arcs.forEach((l,j)=>reveal(l,seg(t,0.26+j*0.012,0.36+j*0.012)));
+        denseArcs.forEach((l,j)=>{if(dense) reveal(l,seg(t,0.26+j*0.014,0.36+j*0.014));else l.visible=false;});
+        MG.visible=t>0.44&&t<0.7;
+        sel.forEach(b=>{b.position.y=yM+0.5*seg(t,0.5,0.54);});
+        elines.forEach(l=>reveal(l,seg(t,0.52,0.58)));
+        bars.visible=mtp.visible=t>0.8;setBars(seg(t,0.82,0.9));
+      },
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(EX+1.75,3.6,EZ)},{t:0.16,p:V(-2.6,3.6,-1.2)},{t:0.21,p:V(0,yA,0)},{t:0.44,p:V(0,yA,0)},{t:0.48,p:V(0,yM,0)},{t:0.66,p:V(0,yM,0)},{t:0.82,p:V(0,T.top+0.1,0)},{t:0.86,p:topBar},{t:0.94,p:topBar},{t:0.97,p:V(6,T.top-1,0)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.16,CUBE],[0.21,V(0.42,1.5,0.42)],[0.82,V(0.42,1.5,0.42)],[0.86,V(0.7,0.7,0.7)],[0.97,CUBE]]),
+      cams:[{t:0,c:cam(-11,0,-5.6,3.4,T.top+0.4,3.4,-30,18)},{t:0.22,c:cam(-13,yA-1.6,-0.8,5.4,yA+3.4,3.8,-26,24)},{t:0.48,c:cam(-5.6,yM-0.6,-5.6,5.6,yM+1.6,5.6,-30,34)},{t:0.68,c:cam(-3,0,-3,3,T.top+1,3,-30,16)},{t:0.84,c:cam(-4.6,T.top-4,-2.6,4.6,T.top+4.3,2.6,-28,16)}],
+      labels:[
+        ['embedding table · 129,280 × 7,168*',V(EX,6.6,EZ),0,0.21],
+        ['E[12842] → float[7,168]',V(-3.6,4.3,-1.2),0.08,0.21],
+        [()=>KV_MODE==='dense'?'dense full KV · 10× memory & bandwidth':'indexer keeps top-k=1,024 · ≈10% KV*',V(-9.6,yA-1.0,AZ),0.22,0.46],
+        ['RMSNorm, then attention',V(0.6,yA+1.9,0),0.22,0.46],
+        ['router · top-6 of 384* (layer 18)',V(0.8,yM+0.9,0),0.48,0.66],
+        ['6 routed experts (filled)',epos(120).add(V(0.3,0.9,0)),0.52,0.66],
+        ['× 61 layers, each with its own weights',V(3.2,9.5,0),0.68,0.82],
+        ['LM head → 129,280 logits',V(-4.6,yH+0.7,0),0.84,1],
+        ['p(“ right”) = 0.31 (illustrative)',topBar.clone().add(V(0.4,0.4,0)),0.86,1],
+        [()=>KV_MODE==='dense'?'all historical KV slabs attended':'older context, compressed',V(-11.4,yA+1.1,AZ),0.24,0.46],
+        ['sliding window · last 128*',V(-4.7,yA+1.0,AZ),0.26,0.46],
+        ['future: masked',V(4.1,yA+1.0,AZ),0.26,0.46],
+        ['shared expert · always on',V(0.2,yM+0.9,-3.4),0.5,0.66],
+        ['MTP head: token after next',V(-2.4,yH+1.6,-1.4),0.86,1]
+      ]
+    };
+  });
+
+  // 08 PREFILL (interactive Sparse/Dense KV Mode updates rack density & callout)
+  station(7,G=>{
+    const TX=-3,T=tower();T.G.position.x=TX;G.add(T.G);
+    const K=rack();K.G.position.x=4.2;G.add(K.G);
+    const NI=12,TI=9;
+    const row=[...Array(NI)].map((_,i)=>{if(i===TI) return null;const b=box(0.34,0.34,0.34);G.add(b);return b;});
+    const rpos=(i,t)=>{const p0=V(-12+i*0.52,0.17,0),p1=V(TX-2.2+i*0.4,0.95,0),p2=V(TX-2.2+i*0.4,T.top-0.3,0);if(t<0.06) return p0;if(t<0.12) return p0.lerp(p1,seg(t,0.06,0.12));return p1.lerp(p2,lin(t,0.12,0.5));};
+    const others=[-2.4,2.4].map(z=>[...Array(8)].map((_,i)=>{const b=hollowTile(0.34,0.34,0.34);G.add(b);return {b,z,i};}));
+    const slotW=K.tokSlot.clone().add(V(4.2,0,0));
+    return {
+      update(t){
+        row.forEach((b,i)=>{if(!b) return;b.visible=t<0.52;b.position.copy(rpos(i,t));});
+        const ry=rpos(0,t).y;
+        const shelves=clamp(Math.floor(ry-0.4),0,12)*(t>0.12?1:0);
+        T.solid(t<0.12?0:61*lin(t,0.12,0.5));
+        const fillShelves=t>=0.5?12:shelves;
+        K.set(3*fillShelves,0);
+        K.setDense(KV_MODE==='dense'?4*fillShelves:0);
+        others.forEach(set=>set.forEach(o=>{const u=seg(t,0.66,0.86);o.b.visible=t>0.62;o.b.position.set(lerp(-12+o.i*0.5,TX-2.0+o.i*0.5,u),0.95,o.z);}));
+      },
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:rpos(TI,0)},{t:0.5,f:t=>rpos(TI,t)},{t:0.62,p:slotW},{t:0.92,p:slotW},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.06,V(0.5,0.5,0.5)],[0.5,V(0.5,0.5,0.5)],[0.62,SLICE]]),
+      cams:[{t:0,c:cam(-6.2,0,-3,6.7,14,3,-28,18)},{t:0.62,c:cam(-12.6,0,-3,6.7,14,3,-28,18)}],
+      labels:[
+        ['all prompt tokens in parallel',V(TX-4,4.5,0),0.1,0.5],
+        ['KV cache · keys + values per layer',V(5,13.7,0),0.3,0.95],
+        [()=>KV_MODE==='dense'?'dense full KV · 10× cache memory':'compressed: 1 entry/block · ≈10% KV*',V(6.4,10.6,1.2),0.42,0.95],
+        ['“ Paris” lives here now',slotW.clone().add(V(0.6,0.8,0)),0.62,0.95],
+        ['other requests join (continuous batching)',V(-8.6,1.9,2.4),0.66,0.95],
+        ['time to first token grows with prompt length',V(TX-3.6,T.top+1.2,0),0.3,0.55]
+      ]
+    };
+  });
+
+  // 09 THINK (cleaned unused `last` variable)
+  station(8,G=>{
+    const TX=-5.5,T=tower();T.G.position.x=TX;G.add(T.G);
+    const K=rack();K.G.position.x=0.2;G.add(K.G);K.set(36,0);
+    G.add(at(box(8.8,0.1,1.7),7.7,0.05,0));
+    const pos=k=>V(3.6+(k%14)*0.6,0.33,k<14?-0.38:0.38);
+    const tiles=[...Array(28)].map((_,k)=>{const b=hollowTile(0.42,0.42,0.42);b.position.copy(pos(k));G.add(b);return b;});
+    const fly=hollowTile(0.42,0.42,0.42);G.add(fly);
+    const slotW=K.tokSlot.clone().add(V(0.2,0,0));
+    const read=curveLine(bez(V(TX,T.top,0),slotW.clone().add(V(0,0.4,0)),2.4));G.add(read);
+    const div=at(box(0.08,1.6,1.9),12.25,0.8,0);G.add(div);
+    return {
+      update(t){const N=EFF[EFFORT],n=N*lin(t,0.16,0.8),c=Math.floor(n),f=n-c;tiles.forEach((b,k)=>{b.visible=k<Math.min(c,N);});
+        const inFlight=c<N&&t>0.16&&t<0.8;fly.visible=inFlight;if(inFlight){const p0=V(TX,T.top+0.4,0),p1=pos(c);const u=ease(f);fly.position.copy(p0.lerp(p1,u)).add(V(0,Math.sin(u*Math.PI)*2.0,0));}
+        read.visible=inFlight&&f<0.45;div.visible=t>0.8;},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.1,p:slotW},{t:0.92,p:slotW},{t:1,p:V(12,0.45,0)}]),
+      shape:()=>SLICE.clone(),
+      cams:[{t:0,c:cam(-8.7,0,-2,12.5,14,2,-26,20)}],
+      labels:[[()=>`thinking tokens · hidden · effort ${EFFORT}`,V(7.6,1.7,0),0.16,0.86],['each step reads the KV cache, “ Paris” included',V(0.8,13.7,0),0.2,0.8],['display: "omitted" (default) or "summarized"',V(10.4,2.6,0),0.8,1]]
+    };
+  });
+
+  // 10 DECODE
+  station(9,G=>{
+    const TX=-6,T=tower();T.G.position.x=TX;G.add(T.G);
+    const K=rack();K.G.position.x=-0.8;G.add(K.G);
+    const NB=16,bgeo=bg(0.18,1,0.18),bars=new THREE.InstancedMesh(bgeo,MAT.ink,NB);bars.frustumCulled=false;G.add(bars);
+    const m4=new THREE.Matrix4(),sc=V(),q=new THREE.Quaternion(),yH=T.top+0.5;
+    const W=[2.0,0.8,0.9,0.5,0.5,1.1,0.8],PARTS=['get_weather','({"','city','": ','"','Paris','"})'],TI=5;
+    const slot=[];let x=3.4;W.forEach(w=>{slot.push(x+w/2);x+=w+0.1;});
+    const tk=k=>0.14+k*0.1;
+    const tiles=W.map((w,k)=>{if(k===TI) return null;const b=box(w,1,1);G.add(b);return b;});
+    const ghosts=W.map(w=>{const b=hollowTile(w,1,1);G.add(b);return b;});
+    const picker=box(0.24,0.24,0.24,MAT.ink,null);G.add(picker);
+    const slotW=K.tokSlot.clone().add(V(-0.8,0,0));
+    const copy=curveLine(bez(V(TX,T.top+0.2,0),slotW.clone().add(V(0,0.4,0)),2.2));G.add(copy);
+    const peak=k=>(k*5+3)%NB;
+    function setBars(t){let tick=Math.floor((t-0.1)/0.1);tick=clamp(tick,0,6);const ph=clamp(((t-0.1)%0.1)/0.1,0,1);for(let j=0;j<NB;j++){let h=0.12+(Math.abs(Math.sin((j+1)*(tick+3)*7.13))%1)*0.5;if(j===peak(tick)) h=1.8;h*=0.35+0.65*ease(ph*2);m4.compose(V(TX-2.0+j*0.24,yH+h/2,0),q,sc.set(1,h,1));bars.setMatrixAt(j,m4);}bars.instanceMatrix.needsUpdate=true;}
+    return {
+      update(t){bars.visible=t>0.1&&t<0.86;setBars(t);
+        tiles.forEach((b,k)=>{if(!b) return;const a=tk(k),u=seg(t,a,a+0.04);b.visible=t>a;b.position.set(slot[k],lerp(3.2,0.5,u),0);});
+        ghosts.forEach((b,k)=>{const prev=k-1;b.visible=prev>=0&&t>tk(prev)+0.04&&t<tk(k)&&k<W.length;b.position.set(slot[k],0.5,0);});
+        let pk=-1;for(let k=0;k<W.length;k++){if(t>tk(k)-0.035&&t<tk(k)) pk=k;}picker.visible=pk>=0;if(pk>=0){const tick=clamp(Math.floor((tk(pk)-0.1)/0.1),0,6);const p0=V(TX-2.0+peak(tick)*0.24,yH+2.0,0),p1=V(slot[pk],1.2,0);const u=lin(t,tk(pk)-0.035,tk(pk));picker.position.copy(p0.lerp(p1,u)).add(V(0,Math.sin(u*Math.PI)*1.5,0));}
+        const grown=clamp(Math.floor((t-0.14)/0.1)+1,0,7);K.set(36,t<0.14?0:grown);copy.visible=t>0.5&&t<0.6;},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.1,p:slotW},{t:0.54,p:slotW},{t:0.6,p:V(TX,T.top+0.6,0)},{t:0.66,p:V(slot[TI],0.5,0)},{t:0.9,p:V(slot[TI],0.5,0)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.1,SLICE],[0.54,SLICE],[0.6,V(0.6,0.6,0.6)],[0.66,V(1.1,1,1)],[0.9,V(1.1,1,1)],[1,CUBE]]),
+      cams:[{t:0,c:cam(-9.2,0,-2,11.4,15.8,2,-24,18)}],
+      labels:[
+        [t=>PARTS.filter((_,k)=>t>tk(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.6,0),0.16,1],
+        ['one pass up the tower per new token',V(TX,T.top+3.6,0),0.1,0.45],
+        ['attention copies “Paris” from the prompt',V(-3.2,T.top+1.6,0),0.5,0.66],
+        ['“Paris” ≠ “ Paris”: different IDs',V(4.4,-0.9,0),0.66,0.8],
+        ['stop_reason "tool_use"',V(4.4,-0.9,0),0.8,1],
+        ['memory-bound: each step reads the weights and the cache',V(-0.6,13.8,0),0.12,0.5],
+        ['MTP draft, verified next step',V(4.4,-0.9,0),0.22,0.62],
+        ['sampler · temperature, top_p, top_k fixed',V(TX-2.2,T.top+2.7,0),0.3,0.62]
+      ]
+    };
+  });
+
+  // 11 STREAM
+  station(10,G=>{
+    const W=[2.0,0.8,0.9,0.5,0.5,1.1,0.8],TI=5;const slot=[];let x=-11.8;W.forEach(w=>{slot.push(x+w/2);x+=w+0.1;});
+    W.forEach((w,k)=>{if(k!==TI) G.add(at(box(w,1,1),slot[k],0.5,0));});
+    const FX=-3.6;G.add(at(box(0.18,2.2,0.18),FX,1.1,-1.0),at(box(0.18,2.2,0.18),FX,1.1,1.0),at(box(0.18,0.18,2.18),FX,2.2,0));
+    G.add(at(box(9.6,0.08,1.4),1.6,0.04,0),at(box(9.6,0.36,0.06),1.6,0.22,-0.7),at(box(9.6,0.36,0.06),1.6,0.22,0.7));
+    const ring=torus(0.95,0.07);ring.rotation.y=Math.PI/2;ring.position.set(1.6,0.62,0);G.add(ring);
+    const SCR=screen([3.4,2.6,3.8,2.2,3.0,1.6]),SX=9.8,RY=-0.35;SCR.G.position.x=SX;SCR.G.rotation.y=RY;G.add(SCR.G);
+    const onScreen=(lx,ly)=>V(SX+lx*Math.cos(RY)+0.12*Math.sin(RY),ly,-lx*Math.sin(RY)+0.12*Math.cos(RY));
+    const pulses=[...Array(5)].map(()=>{const b=box(0.16,0.16,0.16,MAT.ink,null);G.add(b);return b;});
+    const tgt=onScreen(-0.9,3.45-2*0.38);
+    return {
+      update(t){const v=t>0.24&&t<0.86;pulses.forEach((b,k)=>{b.visible=v;b.position.set(-3+(((t-0.24)*5+k/5)%1)*9.6,0.5,0);});SCR.show(seg(t,0.36,0.86));},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.08,p:V(slot[TI],0.5,0)},{t:0.2,p:V(slot[TI],0.5,0)},{t:0.3,p:V(FX,0.6,0)},{t:0.62,p:V(6.6,0.6,0)},{t:0.74,p:tgt},{t:0.92,p:tgt},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.08,V(1.1,1,1)],[0.2,V(1.1,1,1)],[0.3,V(0.5,0.6,0.3)],[0.62,V(0.5,0.6,0.3)],[0.74,V(1.4,0.44,0.3)],[0.92,V(1.4,0.44,0.3)],[1,CUBE]]),
+      cams:[{t:0,c:cam(-12.3,0,-1.7,12.3,4.6,1.7,-22,22)}],
+      labels:[
+        ['detokenize: IDs → UTF-8 bytes',V(FX,3.0,0),0.06,0.4],
+        ['server-sent events · content_block_delta',V(1.6,1.7,1.0),0.28,0.72],
+        ['stop_reason "tool_use"',V(SX,0.4,1.4),0.76,1],
+        ['your app',onScreen(0,4.3),0.44,1],
+        ['output safety classifier',V(1.6,2.1,0),0.12,1]
+      ]
+    };
+  });
+
+  // 12 TOOL LOOP (Prefix Cache Hit/Miss live sync + Step 12.4 150K Compaction visual)
+  station(11,G=>{
+    const SCR=screen(),SX=-9.6;SCR.G.position.x=SX;SCR.G.rotation.y=-0.35;G.add(SCR.G);
+    G.add(at(box(2.2,2.2,2.2),-3.6,1.1,0));
+    G.add(segs([V(-12.4,0.01,-2.6),V(-1.9,0.01,-2.6),V(-1.9,0.01,-2.6),V(-1.9,0.01,2.6),V(-1.9,0.01,2.6),V(-12.4,0.01,2.6),V(-12.4,0.01,2.6),V(-12.4,0.01,-2.6)],MAT.ghostDash));
+    const res=box(1.5,0.7,0.7);G.add(res);
+    const loop=bez(V(-2.0,1.0,0),V(3.0,0.5,0),9);const loopL=curveLine(loop);G.add(loopL);
+    const MX=5.0,T=tower();T.G.scale.setScalar(0.5);T.G.position.x=MX;G.add(T.G);const mtop=T.top*0.5;
+    const pre=[...Array(7)].map((_,k)=>{const b=box(0.32,0.32,0.32);b.position.set(0.9+k*0.38,0.16,1.2);G.add(b);return b;});
+    const nw=[0,1].map(()=>{const b=box(0.42,0.42,0.42);G.add(b);return b;});
+    const dbl=[polyline([V(0.7,0.55,1.2),V(3.4,0.55,1.2)]),polyline([V(0.7,0.68,1.2),V(3.4,0.68,1.2)])];dbl.forEach(l=>G.add(l));
+    const W=[0.62,0.5,0.5,0.56,0.7,0.42,0.95,0.28],TI=6,ANS=['It’s',' 18',' °C',' and',' clear',' in',' Paris','.'];const slot=[];let x=7.0;W.forEach(w=>{slot.push(x+w/2);x+=w+0.08;});
+    const ta=k=>0.66+k*0.022;
+    const ans=W.map((w,k)=>{if(k===TI) return null;const b=box(w,1,1);G.add(b);return b;});
+    G.add(at(box(0.16,3.2,0.16),13.7,1.6,0),at(box(0.9,0.08,0.9),13.7,0.04,0));
+    // Step 12.4 — 150K Server-Side Compaction cue along back context rail (z = -2.0)
+    const CZ=-2.0, CX0=1.6;
+    const compRail=polyline([V(-2.5,0.02,CZ),V(5.7,0.02,CZ)],MAT.ghostDash);G.add(compRail);
+    const compTurns=[...Array(8)].map((_,k)=>{
+      const b=box(0.54,0.44,0.62);
+      b.position.set(-2.1+k*0.78,0.22,CZ);
+      b.visible=false;G.add(b);return b;
+    });
+    const compSlab=new THREE.Group();
+    compSlab.position.set(CX0,0.34,CZ);
+    compSlab.add(
+      box(1.9,0.54,0.72,MAT.paper,MAT.edge),
+      box(2.08,0.68,0.88,null,MAT.edge),
+      polyline([V(-1.04,0.44,0),V(1.04,0.44,0)],MAT.edge),
+      polyline([V(-1.04,0.56,0),V(1.04,0.56,0)],MAT.edge)
+    );
+    compSlab.visible=false;G.add(compSlab);
+    return {
+      update(t){
+        const hit=CACHE_MODE==='hit';
+        const ru=lin(t,0.3,0.5);
+        res.visible=t>0.22&&t<0.52;
+        res.position.copy(t<0.3?V(-3.6,1.1,0).lerp(V(-2.0,1.0,0),seg(t,0.22,0.3)):loop.getPoint(ease(ru)).add(V(0,0.5,0)));
+        reveal(loopL,seg(t,0.28,0.4));
+        dbl.forEach(l=>{l.visible=hit&&t>0.48;});
+        const preU=seg(t,0.48,0.62);
+        pre.forEach((b,k)=>{
+          const x0=0.9+k*0.38;
+          if(hit){
+            b.visible=t>0.42;
+            b.position.set(x0,0.16,1.2);
+          }else{
+            b.visible=t>0.42&&t<0.64;
+            b.position.set(lerp(x0,MX-0.75+k*0.24,preU),lerp(0.16,mtop,preU),lerp(1.2,0,preU));
+          }
+        });
+        nw.forEach((b,k)=>{b.visible=t>0.46&&t<0.64;const u=seg(t,0.52,0.62);b.position.set(lerp(3.7+k*0.48,MX,u),lerp(0.21,mtop,u),lerp(1.2,0,u));});
+        ans.forEach((b,k)=>{if(!b) return;const a=ta(k);b.visible=t>a;b.position.set(slot[k],lerp(2.4,0.5,seg(t,a,a+0.03)),0);});
+        // Step 12.4 compaction animation
+        const compOn=t>0.76;
+        const cu=seg(t,0.79,0.92);
+        compRail.visible=compOn;
+        compTurns.forEach((b,k)=>{
+          b.visible=compOn&&cu<0.96;
+          if(b.visible){
+            const x0=-2.1+k*0.78;
+            b.position.set(lerp(x0,CX0,cu),0.22,CZ);
+            b.scale.set(lerp(1,0.22,cu),lerp(1,0.85,cu),1);
+          }
+        });
+        const slabU=seg(cu,0.28,1);
+        compSlab.visible=compOn&&slabU>0.02;
+        if(compSlab.visible){
+          compSlab.scale.set(lerp(0.4,1,slabU),lerp(0.6,1,slabU),1);
+        }
+      },
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.08,p:V(-3.6,1.1,1.25)},{t:0.2,p:V(-3.6,1.1,1.25)},{t:0.3,p:V(-2.0,1.0,0)},{t:0.5,f:t=>loop.getPoint(ease(lin(t,0.3,0.5)))},{t:0.62,p:V(MX,mtop+0.3,0)},{t:0.8,p:V(slot[TI],0.5,0)},{t:0.93,p:V(slot[TI],0.5,0)},{t:1,p:V(13.15,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.08,V(0.9,0.36,0.24)],[0.2,V(0.9,0.36,0.24)],[0.3,V(0.7,0.7,0.7)],[0.62,V(0.7,0.7,0.7)],[0.8,V(0.95,1,1)],[0.93,V(0.95,1,1)],[1,V(0.8,0.8,0.8)]]),
+      cams:[{t:0,c:cam(-12.5,0,-2.8,14.2,9.6,2.7,-22,20)}],
+      labels:[
+        ['your code runs get_weather',V(-3.6,2.9,0),0.04,0.3],
+        ['tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.22,0.46],
+        [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok · reuse KV':'prefix cache miss · $8.00 / MTok · full prefill',V(2.0,1.4,1.2),0.48,0.74],
+        ['150K compaction → summary',V(CX0,1.55,CZ),0.78,1],
+        [t=>ANS.filter((_,k)=>t>ta(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.7,0),0.67,1],
+        [()=>CACHE_MODE==='hit'?'prefill only the new tokens':'prefill entire prompt stack',V(MX+1.5,mtop+0.6,0),0.52,0.72],
+        ['stop_reason "end_turn"',V(9.5,-0.9,0),0.82,1],
+        ['whole conversation sent again',V(0.5,5.6,0),0.32,0.56],
+        ['your app',V(-7,0.3,3.0),0.04,0.4],
+        ['your screen',V(13.7,3.7,0),0.86,1]
+      ]
+    };
+  });
+
+  /* ---------- token + line ---------- */
+  MAT.token.depthTest=false;MAT.tokEdge.depthTest=false;
+  const TOKEN=new THREE.Group();const tokM=new THREE.Mesh(bg(1,1,1),MAT.token);tokM.renderOrder=20;const tokE=new THREE.LineSegments(eg(bg(1,1,1)),MAT.tokEdge);tokE.renderOrder=21;TOKEN.add(tokM,tokE);scene.add(TOKEN);
+  const lineS=polyline([V(LINE0,0.01,0),V(LINE0+0.01,0.01,0)],MAT.edge),lineD=polyline([V(LINE0,0.01,0),V(LINE1,0.01,0)],MAT.ghostDash);scene.add(lineS,lineD);
+  const tickPts=[];for(let i=0;i<=12;i++){const x=i===0?LINE0:i===12?LINE1:i*SP-SP/2;tickPts.push(V(x,0.01,-0.5),V(x,0.01,0.5));}scene.add(segs(tickPts,MAT.edge));
+  function setLine(x){x=clamp(x,LINE0+0.01,LINE1);const a=lineS.geometry.attributes.position;a.setX(1,x);a.needsUpdate=true;lineS.geometry.computeBoundingSphere();const b=lineD.geometry.attributes.position;b.setX(0,x);b.needsUpdate=true;lineD.computeLineDistances();lineD.geometry.computeBoundingSphere();}
+  function tokenAt(g){const i=clamp(Math.floor(g),0,11),t=clamp(g-i,0,1),S=ST[i];const p=S.tok(t).add(V(i*SP,0,0));const s=S.shape(t);return {p,s,i,t};}
+  function setStations(g){for(const S of ST){const t=clamp(g-S.i,0,1);if(S._t!==t){S.update(t);S._t=t;}}}
+
+  /* ---------- cameras ---------- */
+  const OVS=cam(LINE0-1,-1.5,-8.6,LINE1+1,17,8.6,-64,27);
+  const OVI=(()=>{const az=OVS.az*D2R,el=OVS.el*D2R,rx=Math.cos(az),rz=-Math.sin(az),ux=-Math.sin(el)*Math.sin(az),uy=Math.cos(el),uz=-Math.sin(el)*Math.cos(az);
+    const L=Math.hypot(rx,ux),lu=rx/L,lv=ux/L,k=(lu*rz+lv*uz)/(lv*uy),per=lv*rz-lu*(uz-k*uy);
+    const pt=(i,d)=>V(i*SP,-k*d/per,d/per),pts=[];
+    for(let i=0;i<12;i++) pts.push(pt(i,5.2),pt(i,8.2));
+    pts.push(pt(0,8.2),pt(11,8.2));
+    const G=segs(pts,MAT.ghost);G.visible=false;scene.add(G);
+    return {G,num:i=>pt(i,10)};})();
+  function heroCam(tx,g,aspect,follow){
+    const R=LINE1+5,W=clamp(aspect*24,34,118),lo=LINE0-1+W/2,hi=R-W/2,cx=clamp(tx,lo,hi);
+    const F=cam(cx-W/2,-2.2,-6,cx+W/2,17.2,6,-14,15);
+    let O;
+    if(aspect>2.2){const oaz=-clamp(lerp(24,9,(aspect-3)/3),9,24);O=cam(LINE0-1,-2.2,-8.6,R,17.2,8.6,oaz,16);}
+    else{const t=clamp((aspect-1)/1.2,0,1);O=cam(LINE0-1,-2.2,-6,LINE0+lerp(76,58,t),17.2,6,-lerp(50,24,t),lerp(26,16,t));}
+    return follow>0?camLerp(O,F,ease(follow)):O;
+  }
+  function camWorld(S,t){const c=S.cam(t);const b=c.b.slice();b[0]+=S.i*SP;b[3]+=S.i*SP;return {b,az:c.az,el:c.el};}
+  function storyCam(g){const i=clamp(Math.floor(g),0,11),t=g-i,Wd=0.1;
+    if(t<Wd&&i>0) return camLerp(camWorld(ST[i-1],1),camWorld(ST[i],0),ease((t+Wd)/(2*Wd)));
+    if(t>1-Wd&&i<11) return camLerp(camWorld(ST[i],1),camWorld(ST[i+1],0),ease((t-(1-Wd))/(2*Wd)));
+    return camWorld(ST[i],clamp(t,0,1));}
+  const _dir=V(),_rt=V(),_up=V(),_o=V(),_q=V();
+  function frameCam(c3,c,aspect,fx,fy,shift){
+    const az=c.az*D2R,el=c.el*D2R,b=c.b;
+    _dir.set(Math.cos(el)*Math.sin(az),Math.sin(el),Math.cos(el)*Math.cos(az));_rt.set(Math.cos(az),0,-Math.sin(az));_up.crossVectors(_dir,_rt).normalize();
+    _o.set((b[0]+b[3])/2,(b[1]+b[4])/2,(b[2]+b[5])/2);
+    let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;
+    for(let i=0;i<8;i++){_q.set(i&1?b[3]:b[0],i&2?b[4]:b[1],i&4?b[5]:b[2]).sub(_o);const u=_q.dot(_rt),v=_q.dot(_up);if(u<u0)u0=u;if(u>u1)u1=u;if(v<v0)v0=v;if(v>v1)v1=v;}
+    const hView=Math.max((v1-v0)/fy,(u1-u0)/(aspect*fx));
+    const tgt=_o.clone().addScaledVector(_rt,(u0+u1)/2).addScaledVector(_up,(v0+v1)/2+hView*shift);
+    c3.position.copy(tgt).addScaledVector(_dir,170);c3.up.set(0,1,0);c3.lookAt(tgt);
+    const hh=hView/2,ww=hh*aspect;c3.left=-ww;c3.right=ww;c3.top=hh;c3.bottom=-hh;c3.near=1;c3.far=420;c3.updateProjectionMatrix();
+  }
+
+  /* ---------- views + WebGL context-loss recovery ---------- */
+  function mkView(canvasSel,labelsSel,hostSel){
+    const cv=$(canvasSel),host=$(hostSel),labels=$(labelsSel);
+    const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false,powerPreference:'high-performance'});
+    r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));r.setClearColor(PAPER,1);
+    const v={r,cv,host,labels,cam:new THREE.OrthographicCamera(-1,1,1,-1,1,400),w:1,h:1,vis:false,lost:false,lb:[],ov:[]};
+    cv.addEventListener('webglcontextlost',e=>{
+      e.preventDefault();
+      v.lost=true;
+      if(raf){cancelAnimationFrame(raf);raf=0;}
+    },false);
+    cv.addEventListener('webglcontextrestored',()=>{
+      v.lost=false;
+      r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+      r.setClearColor(PAPER,1);
+      r.setSize(v.w,v.h,false);
+      ST.forEach(S=>{S._t=-1;});
+      request();
+    },false);
+    const ro=new ResizeObserver(()=>{const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);v.hudR=null;if(w!==v.w||h!==v.h){v.w=w;v.h=h;if(!v.lost) r.setSize(w,h,false);request();}});ro.observe(host);
+    new IntersectionObserver(es=>{es.forEach(e=>{v.vis=e.isIntersecting;});request();},{rootMargin:'80px'}).observe(host);
+    return v;
+  }
+  const VH=mkView('#heroCanvas','#heroLabels','#heroGL');
+  const VS=mkView('#storyCanvas','#storyLabels','.stage-sticky');
+
+  /* ---------- gentle pointer-drag 3D orbit on #storyCanvas ---------- */
+  const orbitHint=$('#orbitHint');
+  const orbit={active:false,engaged:false,pid:null,x0:0,y0:0,sy0:0,sp0:0,yaw:0,pitch:0,vy:0,vp:0,maxYaw:22,maxPitch:14,lastStage:-1,used:false};
+  function releaseOrbit(){
+    if(!orbit.active) return;
+    if(orbit.pid!==null&&VS.cv.hasPointerCapture&&VS.cv.hasPointerCapture(orbit.pid)){
+      try{VS.cv.releasePointerCapture(orbit.pid);}catch(_){}
+    }
+    orbit.active=false;orbit.engaged=false;orbit.pid=null;
+    VS.cv.classList.remove('grabbing');
+    request();
+  }
+  VS.cv.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0) return;
+    orbit.active=true;
+    orbit.engaged=(e.pointerType!=='touch');
+    orbit.pid=e.pointerId;
+    orbit.x0=e.clientX;orbit.y0=e.clientY;
+    orbit.sy0=orbit.yaw;orbit.sp0=orbit.pitch;
+    orbit.vy=orbit.vp=0;
+    if(orbit.engaged){
+      VS.cv.classList.add('grabbing');
+      try{VS.cv.setPointerCapture(e.pointerId);}catch(_){}
+    }
+  });
+  VS.cv.addEventListener('pointermove',e=>{
+    if(!orbit.active||e.pointerId!==orbit.pid) return;
+    const dx=e.clientX-orbit.x0, dy=e.clientY-orbit.y0;
+    if(!orbit.engaged){
+      // On touch, only engage orbit for predominantly horizontal drags; let vertical page scrolling pass through
+      if(Math.hypot(dx,dy)<6) return;
+      if(Math.abs(dy)>Math.abs(dx)*1.15){releaseOrbit();return;}
+      orbit.engaged=true;
+      VS.cv.classList.add('grabbing');
+      try{VS.cv.setPointerCapture(e.pointerId);}catch(_){}
+    }
+    if(!orbit.used){orbit.used=true;if(orbitHint) orbitHint.classList.add('off');}
+    orbit.yaw=clamp(orbit.sy0-dx*0.18,-orbit.maxYaw,orbit.maxYaw);
+    orbit.pitch=clamp(orbit.sp0+dy*0.14,-orbit.maxPitch,orbit.maxPitch);
+    request();
+  });
+  VS.cv.addEventListener('pointerup',releaseOrbit);
+  VS.cv.addEventListener('pointercancel',releaseOrbit);
+  function stepOrbit(dt,gStory){
+    const st=clamp(Math.floor(gStory),0,11);
+    if(orbit.lastStage>=0&&st!==orbit.lastStage){
+      if(orbit.active) releaseOrbit();
+    }
+    orbit.lastStage=st;
+    if(orbit.engaged) return false;
+    const mag=Math.abs(orbit.yaw)+Math.abs(orbit.pitch)+Math.abs(orbit.vy)+Math.abs(orbit.vp);
+    if(mag<0.02){orbit.yaw=orbit.pitch=orbit.vy=orbit.vp=0;return false;}
+    if(reduce){
+      // Zero spring overshoot under reduced motion
+      const k=Math.exp(-dt/0.09);
+      orbit.yaw*=k;orbit.pitch*=k;orbit.vy=orbit.vp=0;
+      if(Math.abs(orbit.yaw)+Math.abs(orbit.pitch)<0.04){orbit.yaw=orbit.pitch=0;return false;}
+      return true;
+    }
+    // Crisp architectural spring-damper back to editorial framing
+    const stiffness=78, damping=14.5;
+    const ay=-stiffness*orbit.yaw-damping*orbit.vy;
+    const ap=-stiffness*orbit.pitch-damping*orbit.vp;
+    orbit.vy+=ay*dt;orbit.vp+=ap*dt;
+    orbit.yaw+=orbit.vy*dt;orbit.pitch+=orbit.vp*dt;
+    return true;
+  }
+
+  // overview name labels
+  function ovLabels(v,asLinks){STAGES.forEach((s,i)=>{const el=document.createElement(asLinks?'a':'span');el.className=asLinks?'ov':'lb ovn';if(asLinks){el.href='#s-'+(i+1);el.tabIndex=-1;el.setAttribute('aria-hidden','true');el.innerHTML=`<b>${pad(i+1)}</b>${s.name}`;}else el.textContent=pad(i+1);v.labels.appendChild(el);v.ov.push(el);});}
+  ovLabels(VH,true);ovLabels(VS,false);
+  // station labels (story)
+  ST.forEach(S=>S.labels.forEach(([text,pos,from,to])=>{const el=document.createElement('span');el.className='lb';if(typeof text==='string') el.textContent=text;VS.labels.appendChild(el);VS.lb.push({el,S,text,pos,from,to,on:false});}));
+  [VH,VS].forEach(v=>{const el=document.createElement('span');el.className='lb tok';el.textContent='“ Paris”';v.labels.appendChild(el);v.tok=el;});
+  const _p=V();
+  function hide(el){if(el._vis!==false){el.style.transform='translate(-9999px,0)';el._vis=false;}}
+  function hit(r,rs){for(const s of rs){if(r.x<s.x+s.w+4&&r.x+r.w+4>s.x&&r.y<s.y+s.h+2&&r.y+r.h+2>s.y) return true;}return false;}
+  function putLabel(v,el,p,rs,center,above){
+    _p.copy(p).project(v.cam);const x=(_p.x+1)/2*v.w;let y=(1-_p.y)/2*v.h;
+    if(above){if(el._wt!==el.textContent){el._w=el.offsetWidth||60;el._h=el.offsetHeight||16;el._wt=el.textContent;}y-=el._h+4;}
+    if(!(x>-80&&x<v.w+80&&y>-30&&y<v.h+30)||(center&&!above&&(x<v.w*0.02||x>v.w*0.98))){hide(el);return false;}
+    if(el._wt!==el.textContent){el._w=el.offsetWidth||60;el._h=el.offsetHeight||16;el._wt=el.textContent;}
+    const w=el._w,h=el._h;
+    for(const d of [0,-18,18,-36,36]){let rx=center?x-w/2:x;const ry=(center?y:y-h/2)+d;if(rx+w>v.w-12) rx=v.w-12-w;if(rx<12) rx=12;if(ry<4||ry+h>v.h-4) continue;const r={x:rx,y:ry,w,h};if(!hit(r,rs)){rs.push(r);el.style.transform=`translate(${(center?rx+w/2:rx).toFixed(1)}px,${(center?ry:ry+h/2).toFixed(1)}px)`;el._vis=true;return true;}}
+    hide(el);return false;
+  }
+  function setLb(o,on){if(o.on!==on){o.on=on;o.el.classList.toggle('on',on);}}
+
+  function renderView(v,g,mode,blend,follow){
+    if(v.lost) return;
+    setStations(g);
+    const overview=mode==='hero'||blend>0.5;
+    const cur=clamp(Math.floor(g),0,11),tt=g-cur;
+    ST.forEach(S=>{S.G.visible=mode==='hero'||blend>0||S.i===cur||Math.abs(g-S.i)<0.12||Math.abs(g-(S.i+1))<0.12;});
+    const tk=tokenAt(g);TOKEN.position.copy(tk.p);TOKEN.scale.copy(tk.s);setLine(tk.p.x);
+    const aspect=v.w/v.h,narrow=v.w<600,fw=follow||0;
+    if(mode==='hero') TOKEN.scale.multiplyScalar(lerp(narrow?2.2:3.4,narrow?1.4:1.7,ease(fw)));
+    else if(blend>0) TOKEN.scale.multiplyScalar(lerp(1,3,ease(blend)));
+    if(v===VS&&!v.hudR){const h=$('.stage-hud');if(h) v.hudR={x:h.offsetLeft-4,y:h.offsetTop-4,w:h.offsetWidth+8,h:h.offsetHeight+8};}
+    // Reserve room under the HUD whenever it covers a real share of the canvas: on wide canvases always,
+    // and on narrow side-by-side canvases (901–1279 px windows) where the full-size HUD covers ~30% of the height.
+    const hudShare=v.hudR?(v.hudR.y+v.hudR.h)/v.h:0;
+    const hudF=(v===VS&&v.hudR&&(!narrow||hudShare>0.2))?clamp(hudShare,0,0.4):0;
+    OVI.G.visible=mode!=='hero'&&blend>0.5;
+    if(v===VS&&orbitHint&&!orbit.used) orbitHint.classList.toggle('off',overview||capStory.classList.contains('on'));
+    if(mode==='hero') frameCam(v.cam,heroCam(tk.p.x,g,aspect,fw),aspect,0.97,0.84,0);
+    else{
+      const e=ease(blend);
+      const sc=blend>0?camLerp(storyCam(Math.min(g,11.999)),OVS,e):storyCam(g);
+      if(blend<0.5&&(orbit.yaw||orbit.pitch)){
+        const ow=1-blend*2;
+        sc.az+=orbit.yaw*ow;
+        sc.el=clamp(sc.el+orbit.pitch*ow,4,65);
+      }
+      frameCam(v.cam,sc,aspect,0.94,lerp((1-hudF)*0.9,0.9,e),lerp(hudF/2,0,e));
+    }
+    v.r.render(scene,v.cam);
+    // labels: token first, then HUD & caption obstacles, then station labels in priority order
+    const rs=[];
+    if(v===VS&&v.hudR) rs.push(v.hudR);
+    if(v===VS&&capStory.classList.contains('on')){
+      const hr=v.host.getBoundingClientRect(), cr=capStory.getBoundingClientRect();
+      rs.push({x:cr.left-hr.left-6,y:cr.top-hr.top-6,w:cr.width+12,h:cr.height+12});
+    }
+    const tokLabel=isNoSpaceParis(g)?'“Paris”':'“ Paris”';
+    if(v.tok.textContent!==tokLabel) v.tok.textContent=tokLabel;
+    putLabel(v,v.tok,TOKEN.position.clone().add(V(0,TOKEN.scale.y/2+0.35,0)),rs,true,true);v.tok.classList.add('on');
+    v.ov.forEach((el,i)=>{if(overview){const ok=putLabel(v,el,v===VS?OVI.num(i):V(i*SP,-1.6,3.5),rs,true);el.classList.toggle('on',v.ov.isLink?(cur===i&&g>0.004&&g<11.996):ok);}else hide(el);});
+    if(v===VS){let n=0;const max=narrow?2:99;
+      VS.lb.forEach(o=>{let on=!overview&&o.S.i===cur&&tt>=o.from&&tt<=o.to+0.0001&&n<max;
+        if(on){if(typeof o.text==='function'){const s=o.text(tt);if(o.el.textContent!==s) o.el.textContent=s;}const p=(typeof o.pos==='function'?o.pos(tt):o.pos.clone()).add(V(o.S.i*SP,0,0));on=putLabel(v,o.el,p,rs);if(on) n++;}else hide(o.el);
+        setLb(o,on);});}
+  }
+  VH.ov.isLink=true;
+  return {
+    remeasure(){$$('.lb,.ov').forEach(el=>{el._wt=null;});VS.hudR=null;request();},
+    remeasureHud(){VS.hudR=null;},
+    stepOrbit,
+    draw(gHero,gStory,blend,follow){if(VH.vis) renderView(VH,gHero,'hero',0,follow);if(VS.vis) renderView(VS,gStory,'story',blend,0);},
+    invalidate(i){if(ST[i]) ST[i]._t=-1;}
+  };
+}
+
+/* ---------------- Three.js fallback loader + boot ---------------- */
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=src;s.async=true;
+    s.onload=()=>window.THREE?resolve():reject(new Error('THREE undefined after '+src));
+    s.onerror=()=>reject(new Error('Failed to load '+src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureThree(){
+  if(window.THREE) return;
+  for(const url of ['https://unpkg.com/three@0.128.0/build/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js']){
+    try{await loadScript(url);if(window.THREE) return;}catch(_){}
+  }
+  throw new Error('three.js unavailable from primary and fallback sources');
+}
+function startGL(){
+  try{
+    GL=initGL();
+    document.documentElement.classList.remove('no-gl');
+    GL.remeasure();
+    request();
+  }catch(err){
+    GL=null;
+    document.documentElement.classList.add('no-gl');
+    console.warn('3D view disabled:',err&&err.message);
+  }
+}
+
+layout();
+if(window.THREE){startGL();}
+else{ensureThree().then(startGL).catch(err=>{GL=null;document.documentElement.classList.add('no-gl');console.warn('3D view disabled:',err&&err.message);});}
+const q=new URLSearchParams(location.search);
+function boot(){layout();if(GL) GL.remeasure();if(q.has('g')){const g=parseFloat(q.get('g'));if(!isNaN(g)){window.scrollTo({top:scrollForG(g),behavior:'instant'});gT=gS=gFromScroll();}}else{gT=gS=gFromScroll();}request();}
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(boot);else boot();
+addEventListener('load',()=>{layout();onScroll();});
+request();
+})();
+</script>
+</body>
+</html>
