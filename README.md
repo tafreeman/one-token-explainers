@@ -9,8 +9,8 @@ Scroll-driven 3D explainers that follow one token through a large language model
 | Folder | Experience | What it is |
 |---|---|---|
 | [`one-token-end-to-end/`](one-token-end-to-end/) | **One Token, End to End** | "Paris" crosses twelve stages on one line, from training data to the streamed reply: how Claude Fable 5.2 is made and how it answers you. Scroll-driven 3D figures with 4:38 of narration (14 MP3s plus `manifest.json`). |
-| [`one-tokens-journey/`](one-tokens-journey/) | **One Token's Journey** | A scrolling 3D story of one token through DeepSeek-V4-Pro in six chapters, with 3D rooms you can orbit and inspect. [`one-token-journey-3d.html`](one-tokens-journey/one-token-journey-3d.html) |
-| [`tour-v4.html`](one-tokens-journey/tour-v4.html) | **Guided Tour** | Thirty stops through the same model, with a chapter rail and a 31-component index. [`tour-v4.html`](one-tokens-journey/tour-v4.html) |
+| [`one-tokens-journey/`](one-tokens-journey/) | **One Token's Journey** | A scrolling 3D story of one token through DeepSeek-V4-Pro in six chapters, with 3D rooms you can orbit and inspect, and 6:25 of narration ("Narrated run"). [`one-token-journey-3d.html`](one-tokens-journey/one-token-journey-3d.html) |
+| [`tour-v4.html`](one-tokens-journey/tour-v4.html) | **Guided Tour** | Thirty stops through the same model, with a chapter rail, a 31-component index and the same 6:25 narration ("Narrated tour"). [`tour-v4.html`](one-tokens-journey/tour-v4.html) |
 |[`obs-core.html`](one-tokens-journey/obs-core.html) | 3D engine | [`obs-core.html`](one-tokens-journey/obs-core.html) is the shared Three.js engine the story and tour embed in an iframe (`obs-core.html?embed=1`). It also opens on its own. |
 
 `one-tokens-journey/index.html` redirects to the scrolling story. The page filenames in that folder link to each other by name, so keep them as they are. See [`one-tokens-journey/README.md`](one-tokens-journey/README.md) for its controls, deep-link states and test notes.
