@@ -69,12 +69,12 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}.tblock span
 #tourCard .obs-actions{position:sticky;bottom:-1px;z-index:2;background:inherit;padding-block:10px 4px;box-shadow:0 -14px 14px -14px rgba(0,0,0,.35)}
 
 /* Narration (Jade, eleven_v4): button + captions. */
-.narr-cap{position:fixed;z-index:60;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(44rem,calc(100vw - 32px));padding:8px 14px;border-radius:6px;background:rgba(14,18,24,.86);color:#f4f1e8;font:500 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.narr-cap{position:fixed;z-index:60;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(44rem,calc(100vw - 32px));padding:8px 14px;border-radius:6px;background:rgba(14,18,24,.93);color:#f4f1e8;font:500 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 .narr-cap[hidden],#narrTour[hidden],#narrRun[hidden]{display:none!important}
 .narr-dur{opacity:.7;font-variant-numeric:tabular-nums}
 
 @media (min-width:900px){#narrCap{left:max(16px,env(safe-area-inset-left,0px));transform:none;text-align:left;max-width:min(40rem,calc(100vw - 480px))}}
-@media (max-width:899px){#narrCap{top:calc(64px + env(safe-area-inset-top,0px));bottom:auto}}
+@media (max-width:899px){#narrCap{top:calc(64px + env(safe-area-inset-top,0px));bottom:auto}}@media (max-width:767px){#narrCap{top:calc(112px + env(safe-area-inset-top,0px));left:12px;right:12px;transform:none;max-width:none}}
 #narrTour[aria-pressed="true"]{outline:2px solid currentColor;outline-offset:1px}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
