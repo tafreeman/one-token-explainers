@@ -115,6 +115,10 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .st-title{display:flex;align-items:flex-end;gap:16px;margin:0 0 22px}
 .st-num{flex:none;font-size:clamp(3.6rem,6vw,5.6rem);line-height:.78;letter-spacing:-.04em;font-variation-settings:"wdth" 25,"wght" 160,"opsz" 144;color:var(--ink);font-variant-numeric:tabular-nums}
 .station h2{margin:0;font-size:clamp(2.1rem,3.4vw,3.5rem);line-height:.98;letter-spacing:-.01em;font-variation-settings:"wdth" 64,"wght" 830,"opsz" 120;text-wrap:balance}
+.prov{margin:-8px 0 18px;font:500 10.5px/1.55 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.04em;color:var(--ink-3);max-width:40rem}
+.prov>span{display:block}
+.prov b{font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.prov i{font-style:normal;white-space:nowrap}
 .lead{margin:0 0 clamp(28px,5vh,48px);font-size:1.16rem;line-height:1.52;color:var(--ink-2);max-width:40rem}
 .step{min-height:44vh;padding:22px 0 40px;border-top:1px solid var(--rule);max-width:40rem;color:var(--ink-3);transition:color .35s var(--ease-out)}
 .step.on{color:var(--ink)}
@@ -409,6 +413,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
     <!-- 03 PRETRAIN -->
     <section class="station" id="s-3" data-i="2" aria-labelledby="h-3">
       <div class="st-title"><span class="st-num" aria-hidden="true">03</span><h2 id="h-3">Predict the next one.</h2></div>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— 1M-token context</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— figures marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">Pretraining is one objective repeated trillions of times: given everything so far, put probability on the next token. The tower of layers you’ll meet again in stage 7 is built here.</p>
       <article class="step">
         <h3><span class="sn">3.1</span>Forward, in parallel</h3>
@@ -449,6 +454,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
     <!-- 04 POST-TRAIN -->
     <section class="station" id="s-4" data-i="3" aria-labelledby="h-4">
       <div class="st-title"><span class="st-num" aria-hidden="true">04</span><h2 id="h-4">Learn what good looks like.</h2></div>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no training recipe</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— the recipe marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">A pretrained model only continues text. Post-training turns the same tower into an assistant that follows instructions, uses tools and reasons toward answers it can check.</p>
       <article class="step">
         <h3><span class="sn">4.1</span>Imitate</h3>
@@ -458,7 +464,8 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
         <h3><span class="sn">4.2</span>Try, grade, reinforce</h3>
         <p>For a prompt with a checkable answer, the policy samples a group of attempts. Verifiers grade them: the tests pass, the final answer matches. Each score is compared with the group’s mean, so no separate value model is needed. Rewarding correct answers is also how a model learns to think before it answers.</p>
         <pre class="eq"><code>A_i = (r_i − mean(r)) / std(r)
-θ  ← θ + η · ∇ Σ_i A_i · log π_θ(attempt_i)</code></pre>
+θ  ← θ + η · ∇ Σ_i A_i · log π_θ(attempt_i)
+# simplified: GRPO also clips π_θ / π_old to 1 ± ε, PPO-style</code></pre>
         <dl class="spec">
           <div><dt>Method</dt><dd>GRPO</dd><dd class="src">Shao et al., 2024</dd></div>
           <div><dt>Group of 8 in the drawing</dt><dd>Illustrative</dd><dd class="src">—</dd></div>
@@ -484,7 +491,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
     <!-- 05 RELEASE -->
     <section class="station" id="s-5" data-i="4" aria-labelledby="h-5">
       <div class="st-title"><span class="st-num" aria-hidden="true">05</span><h2 id="h-5">Pass the gate.</h2></div>
-      <p class="lead">Before a frontier model ships, it is tested for what it can do and for what it could be misused to do. After this gate the weights are frozen.</p>
+      <p class="lead">Before a frontier model ships, it is tested for what it can do and for what it could be misused to do. After this gate the weights are frozen: everything training changed is now fixed, and no request will change it.</p>
       <article class="step">
         <h3><span class="sn">5.1</span>Evaluate</h3>
         <p>Capability suites, agentic tasks and dangerous-capability evaluations (cyber, biology, autonomy) run on the final checkpoint. Anthropic publishes the results in a system card.</p>
@@ -510,7 +517,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
     <!-- 06 REQUEST -->
     <section class="station" id="s-6" data-i="5" aria-labelledby="h-6">
       <div class="st-title"><span class="st-num" aria-hidden="true">06</span><h2 id="h-6">Your request arrives.</h2></div>
-      <p class="lead">Months later you ask “What’s the weather in Paris right now?” with a <code>get_weather</code> tool attached. The API is stateless: every call carries the whole conversation.</p>
+      <p class="lead">Months later you ask “What’s the weather in Paris right now?” with a <code>get_weather</code> tool attached. The API is stateless: every call carries the whole conversation. What the call builds is temporary, activations and a KV cache that end with the request, apart from any prefix the prompt cache keeps for reuse, 5 minutes by default.</p>
       <article class="step">
         <h3><span class="sn">6.1</span>One call</h3>
         <pre class="eq"><code>POST /v1/messages
@@ -558,6 +565,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
     <!-- 07 FORWARD PASS -->
     <section class="station" id="s-7" data-i="6" aria-labelledby="h-7">
       <div class="st-title"><span class="st-num" aria-hidden="true">07</span><h2 id="h-7">One pass up the tower.</h2></div>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no internals</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— every figure, marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">This is the engine. The token’s vector rides a residual stream up 61 layers; each layer reads from the stream and writes back to it. Anthropic doesn’t publish Claude’s internals, so this stage uses DeepSeek‑V4‑Pro’s published design as a representative frontier architecture.</p>
       <article class="step">
         <h3><span class="sn">7.1</span>Look up a vector</h3>
@@ -600,7 +608,7 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
-        <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. DeepSeek‑V4 widens the stream into several parallel lanes mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections).</p>
+        <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. The drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections)<span class="rep">*</span>.</p>
         <pre class="eq"><code>for layer in layers:
     h = h + layer.attn(rmsnorm(h))
     h = h + layer.moe(rmsnorm(h))</code></pre>
