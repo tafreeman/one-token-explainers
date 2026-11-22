@@ -1243,10 +1243,10 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "DeepSeek-V4-Pro: 33T tokens · Muon + AdamW · FP8 training, FP4 experts (QAT)",
         keyFactSource: "DeepSeek-V4 paper",
         what: 'The main training press that builds the initial "Base Model"—a giant file of tunable float parameters (weights) forged from trillions of tokens.',
-        doing: "Feeds token packages into the center Model Core to guess the next token at every position in parallel (teacher forcing), measures how wrong the guesses were (cross-entropy loss), and sends error signals backward so Muon (with AdamW for embeddings, head and norms) nudges the weights for faster convergence and stability. DeepSeek-V4-Pro also trains a multi-token-prediction (MTP) objective (`num_nextn_predict_layers: 1`) predicting one token further ahead.",
+        doing: "The model predicts the next token at each position and backpropagates the cross-entropy loss. Muon uses hybrid Newton–Schulz iterations to bring the singular values of a 2D hidden matrix’s momentum update near one. AdamW scales each coordinate of the embedding table, LM head, RMSNorm gains, and mHC static biases and gating factors using its own gradient history. DeepSeek-V4-Pro also trains a multi-token-prediction objective (`num_nextn_predict_layers: 1`) one token further ahead.",
         narrative: 'Think of pretraining as a gigantic self-grading autocomplete loop. Over trillions of tokens, the model guesses the next word, compares it to the real text, and tweaks billions of floats to reduce its error—compressing grammar, facts, and coding patterns into the Base Model box.',
-        equation: "loss = cross_entropy( model(tokens), next_tokens );  weights = muon_step(weights, grad(loss))   // + MTP extra-token loss",
-        subs: ["Next-Token Guessing (Cross-Entropy)", "Calls Center Core (Fwd + Backprop)", "MTP Extra-Token Objective", "Muon + AdamW", "FP8 Training, FP4 Experts"]
+        equation: "Muon direction ≈ U Vᵀ, for momentum input U Σ Vᵀ\nAdamW update Δθₖ = −η m̂ₖ / (√v̂ₖ + ε) − ηλθₖ",
+        subs: ["Next-Token Guessing (Cross-Entropy)", "Calls Center Core (Fwd + Backprop)", "MTP Extra-Token Objective", "Muon matrix updates", "AdamW coordinate updates", "FP8 Training, FP4 Experts"]
       },
       {
         id: 'TR-4', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
