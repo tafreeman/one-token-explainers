@@ -38,7 +38,7 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 | Drawer, focus and scrolling | Pass. All six chapters expanded using the original canvas. Escape restored the exact scroll offset and Expand focus in each chapter. Pointer dragging and wheel input changed the camera pose. |
 | Reduced motion and visibility | Pass. Drawer animation duration was zero and no camera flight occurred. Backgrounding the tab suspended the iframe and its frame count held steady. |
 | Guided navigation | Pass. All 30 stops had the correct hash, heading, diagram and detail fields. Home, End, numeric chapter jumps, Escape, free roam, direct hash navigation, the full text view and 31-entry index were checked. |
-| Content geometry | Pass. Tested eight routed slots, a separate shared expert, clear sight lines to all eight selected cells from the room camera and one visible additional decode slice per token for counts 0–5. |
+| Content geometry | Pass. Tested six routed slots (of 384) plus one shared expert, clear sight lines to all six selected cells from the room camera and one visible additional decode slice per token for counts 0–5. Matches `MOE_N = 384` and `MOE_BASE_LIT` (length 6) in `obs-core.html`; `node tools/check-facts.mjs` asserts both. |
 | Core API and sharpness | Pass. Tested the complete public API and spatial projection. All 12 settled states used DPR 2 and MSAA. The explicit aa=0 path initialized FXAA. The observed motion floor was DPR 1. |
 
 **2026-11-21 V4-Pro refresh, checked in Chrome:**
