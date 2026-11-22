@@ -1130,7 +1130,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         <button class="btn btn--emerald is-active" id="btnIsolatedDemo" aria-pressed="true" title="Animate this component's physical mechanics even while global simulation is paused">
           ⚙ Isolated Component Demo: ON
         </button>
-        <button class="btn btn--teal is-active" id="btnGqaMlaToggle" aria-pressed="true" style="display:none;" title="Switch between Heavily Compressed Attention (HCA 128x) and Compressed Sparse Attention (CSA 4x)">
+        <button class="btn btn--teal is-active" id="btnCsaHcaToggle" aria-pressed="true" style="display:none;" title="Switch between Heavily Compressed Attention (HCA 128x) and Compressed Sparse Attention (CSA 4x)">
           Mode: HCA 128× Compressed KV
         </button>
       </div>
@@ -1354,7 +1354,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFactSource: "DeepSeek-V4 paper",
         what: 'A 3-way projection block with a wide Query manifold and a visibly narrower brass Key/Value cylinder beside it.',
         doing: "Projects each token into Q/K/V (with Q low-rank 1,536 and Q/KV RMSNorm) and compresses KV memory using two interleaved layer types: CSA (4× compression + Lightning Indexer selecting top-1,024 blocks + 128-tok window) and HCA (128× compression + dense summary attention).",
-        narrative: "At 1M tokens, even MLA KV caches grow large. DeepSeek-V4-Pro interleaves CSA (fine-grained 4× compression + sparse top-1,024 selection) with HCA (aggressive 128× compression read densely), cutting 1M-context inference FLOPs to 27% and KV cache to 10% of DeepSeek-V3.2. Toggle HCA vs. CSA below to see the compression cylinder resize.",
+        narrative: "At 1M tokens, even DeepSeek-V3.2's MLA latent KV cache grows large. DeepSeek-V4-Pro interleaves CSA (fine-grained 4× compression + sparse top-1,024 selection) with HCA (aggressive 128× compression read densely), cutting 1M-context inference FLOPs to 27% and KV cache to 10% of DeepSeek-V3.2. Toggle HCA vs. CSA below to see the compression cylinder resize.",
         equation: "CSA: kv_4x = compress_4x(x);  idx = lightning_indexer_top1024(q, kv_4x) + win_128\nHCA: kv_128x = compress_128x(x);  out = dense_attn_with_sinks(q, kv_128x)",
         subs: ["CSA: 4× KV + Top-1,024 Sparse", "HCA: 128× Compressed Summaries", "Q/KV RMSNorm + Attention Sinks", "10% KV Cache at 1M Context"]
       },
@@ -1592,7 +1592,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.6, 5.8, 8.6],
         labelY: 2.7,
         assembly: '6-Lane Parallel Stamping Press + KV Rack',
-        keyFact: "NVIDIA GB200 dense FP4: 10,000 TFLOPS (5,000 FP8; prefill is compute-bound)",
+        keyFact: "NVIDIA GB200 dense FP4: 10,000 TFLOPS per GPU (5,000 FP8; 720 PFLOPS NVL72 rack; prefill is compute-bound)",
         keyFactSource: "NVIDIA GB200 NVL72 spec",
         what: 'A wide 6-lane press that stamps an entire row of prompt tokens in parallel and slides populated KV cache blocks out to the side.',
         doing: "Calls the center Model Core once across all prompt tokens in parallel (weights read-only), writes every token’s Keys/Values into the KV cache (skipping any prefix already cached from an earlier request), and produces the logits for the first output token.",
@@ -1736,7 +1736,7 @@ let gantryShell=null;
     let isolatedDemoActive = !prefersReducedMotion;
     let labelMode = 'AUTO'; // 'AUTO' (progressive zoom LOD) | 'ALL' | 'OFF'
     const zoneLabelRecords = [];
-    let mlaModeActive = true;
+    let hcaModeActive = true;
     let simSpeed = 0.65;
     let simTime = 0;
     let isolatedTime = 0;
@@ -3104,7 +3104,7 @@ let gantryShell=null;
         }
 
         case 'MD-2b': {
-          // Q/K/V Splitter: Incoming ring splits into 4 parallel Query rods (left) + Compressed Brass KV Latent Pucks (right, resizes for MLA vs GQA!)
+          // Q/K/V Splitter: Incoming ring splits into 4 parallel Query rods (left) + Compressed Brass KV Latent Pucks (right, resizes for CSA 4x sparse vs HCA 128x dense)
           const base = addShadow(new THREE.Mesh(new THREE.BoxGeometry(3.64, 0.22, 2.24), P.walnutGraphite()));
           grp.add(base);
 
@@ -4880,8 +4880,8 @@ let gantryShell=null;
       'IN-3':  { tier: 2, dx:  1.6, dy: 3.3, dz: 0,    sub: 'CHAT + MCP SCHEMAS' },
       'IN-4':  { tier: 2, dx:  1.6, dy: 3.3, dz: 0,    sub: 'FAST BPE ENCODE' },
       'IN-5':  { tier: 1, dx:  1.6, dy: 2.9, dz: 0,    sub: 'PD DISAGG BATCHING' },
-      'IN-6':  { tier: 1, dx:  1.6, dy: 3.4, dz: 0,    sub: '10K TFLOPS FP4 · TTFT' },
-      'IN-7':  { tier: 1, dx:  1.6, dy: 4.0, dz: 0,    sub: '8.0 TB/S HBM3E · <THINK>' },
+      'IN-6':  { tier: 1, dx:  1.6, dy: 3.4, dz: 0,    sub: '10K TFLOPS/GPU FP4 · TTFT' },
+      'IN-7':  { tier: 1, dx:  1.6, dy: 4.0, dz: 0,    sub: '8.0 TB/S/GPU HBM3E · <THINK>' },
       'IN-8':  { tier: 1, dx:  1.6, dy: 3.7, dz: 0,    sub: 'SOFTMAX · TOP-P · JSON' },
       'IN-9':  { tier: 2, dx:  1.6, dy: 3.1, dz: 0,    sub: 'UTF-8 + THINK SPLIT' },
       'IN-10': { tier: 1, dx:  1.6, dy: 3.2, dz: 0,    sub: 'GUARDRAIL · SSE' },
@@ -5424,9 +5424,9 @@ let gantryShell=null;
         subsEl.appendChild(sp);
       });
 
-      // Context-sensitive GQA / MLA toggle visible specifically on MD-2b
-      const gqaBtn = document.getElementById('btnGqaMlaToggle');
-      gqaBtn.style.display = (d.id === 'MD-2b') ? 'inline-flex' : 'none';
+      // Context-sensitive CSA (4x sparse) / HCA (128x dense) toggle visible specifically on MD-2b
+      const attnModeBtn = document.getElementById('btnCsaHcaToggle');
+      attnModeBtn.style.display = (d.id === 'MD-2b') ? 'inline-flex' : 'none';
 
       // Open Detail Panel & hide showcase banner to keep viewport uncluttered
       document.getElementById('detailPanel').classList.add('open');
@@ -5760,10 +5760,10 @@ let gantryShell=null;
         e.currentTarget.textContent = isolatedDemoActive ? '⚙ Isolated Component Demo: ON' : '⚙ Isolated Component Demo: OFF';
       });
 
-      document.getElementById('btnGqaMlaToggle').addEventListener('click', (e) => {
-        mlaModeActive = !mlaModeActive;
-        e.currentTarget.setAttribute('aria-pressed', String(mlaModeActive));
-        e.currentTarget.textContent = mlaModeActive ? 'Mode: HCA 128× Compressed KV' : 'Mode: CSA 4× Sparse KV';
+      document.getElementById('btnCsaHcaToggle').addEventListener('click', (e) => {
+        hcaModeActive = !hcaModeActive;
+        e.currentTarget.setAttribute('aria-pressed', String(hcaModeActive));
+        e.currentTarget.textContent = hcaModeActive ? 'Mode: HCA 128× Compressed KV' : 'Mode: CSA 4× Sparse KV';
       });
 
       // Showcase Buttons
@@ -6798,9 +6798,9 @@ let gantryShell=null;
       tr7GaugeSurge *= Math.exp(-3.0 * rawDt);
       in7DecodeTickBoost = 1.0;
 
-      // Smoothly resize MD-2b MLA/GQA cylinder even when global simulation is paused
+      // Smoothly resize MD-2b CSA/HCA KV cylinder even when global simulation is paused (HCA 128x = narrow, CSA 4x = wide)
       if (md2bKvCyl && md2bKvCollar && md2bKvPuck) {
-        const targetScaleXZ = mlaModeActive ? 0.62 : 1.18;
+        const targetScaleXZ = hcaModeActive ? 0.62 : 1.18;
         const kvK = 1 - Math.exp(-8 * rawDt);
         md2bKvCyl.scale.x += (targetScaleXZ - md2bKvCyl.scale.x) * kvK;
         md2bKvCyl.scale.z += (targetScaleXZ - md2bKvCyl.scale.z) * kvK;
@@ -7922,7 +7922,7 @@ let gantryShell=null;
         setPlaying(on){isPaused=!on||prefersReducedMotion;kvAuto=moeAuto=!isPaused;requestRender()},
         setControls(on){controlEnabled=!!on;renderer.domElement.style.cursor=on?'grab':'default'},
         setKV(n){modelKVCount=n;kvAuto=false;in7Kv?.setCount(n);modelKV?.(n);requestRender()},
-        setBackprop(on){backprop=!!on;requestRender()},setMode(m){const inf=m==='infer';backprop=!inf;modelKVCount=inf?4:0;kvAuto=false;in7Kv?.setCount(modelKVCount);modelKV?.(modelKVCount);requestRender(2)},setAttentionMode(m){mlaModeActive=(m!=='csa');requestRender(2)},setMoeOffset(n){moeAuto=false;setMoeOffset(((n|0)%MOE_N+MOE_N)%MOE_N);requestRender()},
+        setBackprop(on){backprop=!!on;requestRender()},setMode(m){const inf=m==='infer';backprop=!inf;modelKVCount=inf?4:0;kvAuto=false;in7Kv?.setCount(modelKVCount);modelKV?.(modelKVCount);requestRender(2)},setAttentionMode(m){/* 'csa' = 4x sparse; anything else = 128x dense HCA (default) */hcaModeActive=(m!=='csa');requestRender(2)},setMoeOffset(n){moeAuto=false;setMoeOffset(((n|0)%MOE_N+MOE_N)%MOE_N);requestRender()},
         getComponent(id){return COMPONENTS[COMP_BY_ID[id]]},components(){return COMPONENTS.slice()},
         textView(el){buildTextView(el)},project:projectPoint,conduitPoint,
         requestRender,suspend(){suspended=true;cancelAnimationFrame(rafId);rafId=0;perf.lastRendered=false},
