@@ -86,7 +86,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .ov b{font-weight:600;color:var(--ink)}
 .ov:hover,.ov.on{color:var(--ink)}
 .ov.on b{color:var(--token-ink)}
-.lb{position:absolute;left:0;top:0;transform:translate(-9999px,0);opacity:0;transition:opacity .25s var(--ease-out);font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;color:var(--ink);white-space:nowrap;padding:2px 5px 2px 11px;background:color-mix(in srgb,var(--paper) 84%,transparent);translate:0 -50%}
+.lb{position:absolute;left:0;top:0;transform:translate(-9999px,0);opacity:0;transition:opacity .25s var(--ease-out);font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;color:var(--ink);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;padding:2px 5px 2px 11px;background:color-mix(in srgb,var(--paper) 84%,transparent);translate:0 -50%}
 .lb::before{content:"";position:absolute;left:0;top:50%;width:7px;height:1px;background:var(--ink)}
 .lb.on{opacity:1}
 .lb.tok{color:var(--token-ink);font-weight:600;padding:2px 6px;translate:-50% 0;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--token);border-radius:2px}
@@ -182,7 +182,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .ticks li{position:absolute;left:var(--x);top:0}
 .ticks li::before{content:"";position:absolute;left:0;top:0;width:1px;height:11px;background:var(--rule-2)}
 .ticks li.done::before{background:var(--ink)}
-.ticks a{position:absolute;top:22px;left:0;translate:-50% 0;pointer-events:auto;display:flex;gap:6px;align-items:baseline;white-space:nowrap;text-decoration:none;color:var(--ink-3);font:500 11px/1 var(--mono);font-variation-settings:"wdth" 80;letter-spacing:.05em;text-transform:uppercase}
+.ticks a{position:absolute;top:22px;left:0;translate:calc(-50% + var(--tx, 0px)) 0;pointer-events:auto;display:flex;gap:6px;align-items:baseline;white-space:nowrap;text-decoration:none;color:var(--ink-3);font:500 11px/1 var(--mono);font-variation-settings:"wdth" 80;letter-spacing:.05em;text-transform:uppercase;transition:opacity .18s var(--ease-out)}
 .ticks a b{font-weight:600}
 .ticks li.done a{color:var(--ink)}
 .ticks li.cur a{color:var(--token-ink)}
@@ -190,7 +190,8 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .ticks a span{display:none}
 .ticks li.cur{z-index:2}
 .ticks li.cur a{background:var(--paper);padding:0 6px}
-.ticks li.cur a span,.ticks a:hover span{display:inline}
+.ticks li.cur a span,.ticks a:hover span,.ticks a:focus-visible span{display:inline}
+.ticks li.crowded a{opacity:0;pointer-events:none}
 .rail-out{padding-top:15px;font:600 11px/1.25 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.06em;text-transform:uppercase;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- responsive ---------- */
@@ -231,6 +232,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
   .hero h1{font-size:1.75rem}
   .standfirst{margin-bottom:.9em}
   .hero-gl{min-height:clamp(190px,28svh,240px)}
+  .lb{font-size:10px;max-width:calc(100% - 24px)}
   .sources ol{columns:1}
   .spec div{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .spec dd.src{grid-column:1/-1;text-align:left}
@@ -893,6 +895,35 @@ const pad=n=>String(n).padStart(2,'0');
 const ticks=$('#ticks');
 STAGES.forEach((s,i)=>{const li=document.createElement('li');li.style.setProperty('--x',((i+0.5)/12*100).toFixed(3)+'%');li.innerHTML=`<a href="#s-${i+1}"><b>${pad(i+1)}</b><span>${s.name}</span></a>`;ticks.appendChild(li);});
 const tickLis=$$('li',ticks);
+let hoverTick=null;
+function layoutTicks(){
+  tickLis.forEach(li=>{li.classList.remove('crowded');const a=li.firstElementChild;if(a) a.style.setProperty('--tx','0px');});
+  const tr=railTrack.getBoundingClientRect();
+  if(!tr.width) return;
+  const focusLi=hoverTick||tickLis.find(li=>li.classList.contains('cur'));
+  if(!focusLi) return;
+  const fa=focusLi.firstElementChild;
+  if(!fa||!fa.offsetWidth) return;
+  let fr=fa.getBoundingClientRect();
+  let tx=0;
+  if(fr.left<tr.left+4) tx=(tr.left+4)-fr.left;
+  else if(fr.right>tr.right-4) tx=(tr.right-4)-fr.right;
+  if(tx){fa.style.setProperty('--tx',tx.toFixed(1)+'px');fr=fa.getBoundingClientRect();}
+  const padGap=20;
+  tickLis.forEach(li=>{
+    if(li===focusLi) return;
+    const a=li.firstElementChild;
+    if(!a||!a.offsetWidth) return;
+    const nr=a.getBoundingClientRect();
+    if(nr.right+padGap>fr.left&&nr.left-padGap<fr.right) li.classList.add('crowded');
+  });
+}
+tickLis.forEach(li=>{
+  li.addEventListener('pointerenter',()=>{hoverTick=li;layoutTicks();});
+  li.addEventListener('pointerleave',()=>{if(hoverTick===li){hoverTick=null;layoutTicks();}});
+  li.addEventListener('focusin',()=>{hoverTick=li;layoutTicks();});
+  li.addEventListener('focusout',()=>{if(hoverTick===li){hoverTick=null;layoutTicks();}});
+});
 
 /* ---------------- scroll model ---------------- */
 const stEls=$$('.station'), finaleEl=$('#line'), heroGLEl=$('#heroGL');
@@ -903,6 +934,7 @@ function layout(){
   const y0=scrollY;
   LAY=stEls.map(el=>{const r=el.getBoundingClientRect(),top=r.top+y0,bottom=r.bottom+y0;const stepEls=$$('.step',el);const steps=stepEls.map(s=>s.getBoundingClientRect().top+y0);const n=steps.length,W=(1-A0)/n;const knots=[{y:top,t:0}];steps.forEach((y,k)=>knots.push({y,t:A0+W*k}));knots.push({y:bottom,t:1});return {el,top,bottom,stepEls,n,W,knots};});
   const fr=finaleEl.getBoundingClientRect();LAY.finale={top:fr.top+y0,bottom:fr.bottom+y0};
+  layoutTicks();
 }
 const probeY=()=>scrollY+innerHeight*0.55;
 function gFromScroll(){
@@ -964,7 +996,9 @@ function setRail(g){
   const ariaTxt=sub?`${txt} · step ${sub}`:txt;
   if(railOut.textContent!==txt) railOut.textContent=txt;
   if(axis.getAttribute('aria-valuetext')!==ariaTxt) axis.setAttribute('aria-valuetext',ariaTxt);
-  tickLis.forEach((li,k)=>{const done=g>=k+1-0.001,cur=!done&&g>k+0.004;li.classList.toggle('done',done);li.classList.toggle('cur',cur);});
+  let curChanged=false;
+  tickLis.forEach((li,k)=>{const done=g>=k+1-0.001,cur=!done&&g>k+0.004;li.classList.toggle('done',done);if(li.classList.contains('cur')!==cur){li.classList.toggle('cur',cur);curChanged=true;}});
+  if(curChanged) layoutTicks();
 }
 let curStep=null;
 function setSteps(g){
@@ -1897,7 +1931,7 @@ function initGL(){
       cams:[{t:0,c:cam(-12.5,0,-2.8,14.2,9.6,2.7,-22,20)}],
       labels:[
         ['your code runs get_weather',V(-3.6,2.9,0),0.04,0.3],
-        ['tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.22,0.46],
+        [()=>innerWidth<520?'tool_result · {"temp_c": 18, "clear"}':'tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.22,0.46],
         [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok · reuse KV':'prefix cache miss · $8.00 / MTok · full prefill',V(2.0,1.4,1.2),0.48,0.74],
         ['150K compaction → summary',V(CX0,1.55,CZ),0.78,1],
         [t=>ANS.filter((_,k)=>t>ta(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.7,0),0.67,1],
@@ -2059,11 +2093,12 @@ function initGL(){
   function hit(r,rs){for(const s of rs){if(r.x<s.x+s.w+4&&r.x+r.w+4>s.x&&r.y<s.y+s.h+2&&r.y+r.h+2>s.y) return true;}return false;}
   function putLabel(v,el,p,rs,center,above){
     _p.copy(p).project(v.cam);const x=(_p.x+1)/2*v.w;let y=(1-_p.y)/2*v.h;
-    if(above){if(el._wt!==el.textContent){el._w=el.offsetWidth||60;el._h=el.offsetHeight||16;el._wt=el.textContent;}y-=el._h+4;}
+    const padX=12,padY=8;
+    if(el._wt!==el.textContent||el._vw!==v.w){el._w=Math.min(el.offsetWidth||60,Math.max(24,v.w-padX*2));el._h=el.offsetHeight||16;el._wt=el.textContent;el._vw=v.w;}
+    if(above) y-=el._h+4;
     if(!(x>-80&&x<v.w+80&&y>-30&&y<v.h+30)||(center&&!above&&(x<v.w*0.02||x>v.w*0.98))){hide(el);return false;}
-    if(el._wt!==el.textContent){el._w=el.offsetWidth||60;el._h=el.offsetHeight||16;el._wt=el.textContent;}
-    const w=el._w,h=el._h;
-    for(const d of [0,-18,18,-36,36]){let rx=center?x-w/2:x;const ry=(center?y:y-h/2)+d;if(rx+w>v.w-12) rx=v.w-12-w;if(rx<12) rx=12;if(ry<4||ry+h>v.h-4) continue;const r={x:rx,y:ry,w,h};if(!hit(r,rs)){rs.push(r);el.style.transform=`translate(${(center?rx+w/2:rx).toFixed(1)}px,${(center?ry:ry+h/2).toFixed(1)}px)`;el._vis=true;return true;}}
+    const w=el._w,h=el._h,maxX=Math.max(padX,v.w-padX-w);
+    for(const d of [0,-18,18,-36,36]){let rx=clamp(center?x-w/2:x,padX,maxX);const ry=(center?y:y-h/2)+d;if(ry<padY||ry+h>v.h-padY) continue;const r={x:rx,y:ry,w,h};if(!hit(r,rs)){rs.push(r);el.style.transform=`translate(${(center?rx+w/2:rx).toFixed(1)}px,${(center?ry:ry+h/2).toFixed(1)}px)`;el._vis=true;return true;}}
     hide(el);return false;
   }
   function setLb(o,on){if(o.on!==on){o.on=on;o.el.classList.toggle('on',on);}}

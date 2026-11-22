@@ -1,0 +1,5 @@
+{
+  "name": "One Token Explainers",
+  "description": "Scroll-driven 3D explainers that follow one token through a large language model: how it is built and how it answers you.",
+  "requestFramePermissions": []
+}

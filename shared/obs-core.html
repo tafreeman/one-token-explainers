@@ -7834,22 +7834,30 @@ let gantryShell=null;
     }
 
     // ---- camera poses ----
+    const SUBPOSES = {
+      'TR-5:grpo':     { center: [-0.62,  0.78,  0.00], offset: [-4.6, 4.8,  4.4], pad: 1.80, zoom: 0.76 },
+      'TR-5:verifier': { center: [ 1.15, -0.45, -0.45], offset: [ 5.6, 2.7, -3.0], pad: 1.65, zoom: 0.72 },
+      'TR-5:opd':      { center: [ 0.35, -0.30,  0.72], offset: [ 1.2, 3.1,  6.4], pad: 1.75, zoom: 0.78 }
+    };
     function v3(a) { return new THREE.Vector3(a[0], a[1], a[2]); }
     function poseFor(ids, opts) {
       opts = opts || {};
       const idxs = (Array.isArray(ids) ? ids : [ids]).map(id => COMP_BY_ID[id]).filter(i => i !== undefined);
       if (!idxs.length) return null;
+      const sub = opts.subpose ? SUBPOSES[COMPONENTS[idxs[0]].id + ':' + opts.subpose] : null;
       const center = new THREE.Vector3();
       idxs.forEach(i => { const p = COMPONENTS[i].pos; center.x += p[0]; center.y += p[1] + 1.65; center.z += p[2]; });
       center.multiplyScalar(1 / idxs.length);
       let spread = 0;
       idxs.forEach(i => idxs.forEach(j => { spread = Math.max(spread, v3(COMPONENTS[i].pos).distanceTo(v3(COMPONENTS[j].pos))); }));
-      const off = v3(opts.offset || COMPONENTS[idxs[0]].camOffset);
+      const off = v3(opts.offset || (sub && sub.offset) || COMPONENTS[idxs[0]].camOffset);
       const aspect = Math.max(0.3, camera.aspect);
       const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-      const need = (spread * 0.5 + (opts.pad || 3.0)) / (tanH * Math.min(1, aspect));
-      const dist = Math.max(off.length(), need) * (opts.zoom || 1);
-      if (opts.center) center.add(v3(opts.center));
+      const pad = opts.pad ?? (sub ? sub.pad : 3.0);
+      const need = (spread * 0.5 + pad) / (tanH * Math.min(1, aspect));
+      const dist = Math.max(off.length(), need) * (opts.zoom || 1) * (sub ? sub.zoom : 1);
+      const cOff = opts.center || (sub && sub.center);
+      if (cOff) center.add(v3(cOff));
       const pos = center.clone().add(off.normalize().multiplyScalar(dist));
       const target = center.clone();
       // frameX/frameY: where the subject sits on screen (-1..1); shifts the aim the opposite way
