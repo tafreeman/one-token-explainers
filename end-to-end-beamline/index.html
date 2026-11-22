@@ -223,7 +223,7 @@ h1{font-size:clamp(48px,6.6vw,96px);font-stretch:125%;font-weight:760;letter-spa
       <h3>Cut into tokens</h3>
       <p>A byte-level BPE tokenizer cuts text into pieces from a fixed vocabulary. Frequent words become one piece, and the leading space travels with the word, so our token is <span class="tokref">“ Paris”</span>, space included. Rare words split into several pieces, which is why the tiles have different lengths. Each piece becomes one integer ID.</p>
       <code class="eq">ids = tokenizer.encode(" Paris")    # one token, one ID</code>
-      <table class="spec"><tr><td>Vocabulary</td><td>129,280</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 tokenizer</td><td>same as Opus 4.8</td><td><i class="src">Anthropic</i></td></tr><tr><td>ID of “ Paris”</td><td>12,474</td><td><i class="src ill">Illustrative</i></td></tr></table>
+      <table class="spec"><tr><td>Vocabulary</td><td>129,280</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 tokenizer</td><td>introduced with Opus 4.7</td><td><i class="src">Anthropic</i></td></tr><tr><td>ID of “ Paris”</td><td>12,474</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="1d">
@@ -257,8 +257,8 @@ h1{font-size:clamp(48px,6.6vw,96px);font-stretch:125%;font-weight:760;letter-spa
 
     <article class="step beat" data-beat="2c">
       <h3>Spread across a cluster</h3>
-      <p>No single chip holds the model, so layers, experts and data are split across a cluster of accelerators that work in lockstep. Matrix math runs in 8-bit floating point, and the routed experts are stored in 4 bits, to save memory and bandwidth.</p>
-      <table class="spec"><tr><td>Weights</td><td>FP8 (E4M3)</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Routed experts</td><td>FP4</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 cluster</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
+      <p>No single chip holds the model, so layers, experts and data are split across a cluster of accelerators that work in lockstep. Training runs its matrix math in 8-bit floating point. Quantization-aware training then lets the released model store its routed experts in 4 bits, to save memory and bandwidth.</p>
+      <table class="spec"><tr><td>Weights</td><td>FP8 (E4M3)</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Routed experts, as released</td><td>FP4 (QAT)</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 cluster</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="2d">
@@ -385,7 +385,7 @@ h1{font-size:clamp(48px,6.6vw,96px);font-stretch:125%;font-weight:760;letter-spa
       <h3>At a million tokens, look selectively</h3>
       <p>Scoring a million keys for every new token is too slow. So older keys are compressed into blocks, a small lightning indexer picks the blocks that matter, and a sliding window keeps the most recent 128 tokens exact. The KV cache stores the compressed entries.</p>
       <code class="eq">keys = window(128) ∪ top_k( indexer(q), k = 1,024 )</code>
-      <table class="spec"><tr><td>Indexer top-k</td><td>1,024</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Sliding window</td><td>128 tokens</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>KV cache at 1M, vs V3.2</td><td>10%</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 attention</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
+      <table class="spec"><tr><td>Indexer top-k</td><td>1,024</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Sliding window</td><td>128 tokens</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>KV cache at 1M, sparse + heavily compressed layers, vs V3.2</td><td>10%</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 attention</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="5e">
@@ -443,13 +443,13 @@ output_config: { effort: "high" }</code>
       <h3>Pick the next token</h3>
       <p>The sampler turns probabilities into one choice, and on Fable 5.2 its settings are Anthropic’s, not yours. Once thinking is done, the model writes a tool call. To fill in the city, it attends straight back to <span class="tokref">“ Paris”</span> in your prompt and writes <span class="tokref">Paris</span>, with no leading space after the quote mark, which makes it a different token ID.</p>
       <code class="eq">{"type":"tool_use","name":"get_weather","input":{"city":"Paris"}}</code>
-      <table class="spec"><tr><td>temperature · top_p · top_k</td><td>rejected (HTTP 400)</td><td><i class="src">Anthropic</i></td></tr></table>
+      <table class="spec"><tr><td>temperature · top_p · top_k</td><td>non-default values rejected (HTTP 400)</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="6e">
       <h3>Stream it, and say why it stopped</h3>
       <p>Tokens are turned back into text and streamed as server-sent events. Output classifiers watch the stream and can end it with a refusal. This reply ends because the model wants a tool, and the stop reason says so.</p>
-      <code class="eq">stop_reason: "tool_use"    # or "end_turn", "max_tokens", "refusal"</code>
+      <code class="eq">stop_reason: "tool_use"    # others include "end_turn", "max_tokens", "refusal", "pause_turn"</code>
       <table class="spec"><tr><td>Transport</td><td>server-sent events</td><td><i class="src">Anthropic</i></td></tr><tr><td>Refusal</td><td>stop_reason + category</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
   </section>
@@ -515,15 +515,15 @@ output_config: { effort: "high" }</code>
         <tr><td>Thinking</td><td>Always on; effort low to max; raw chain never returned</td><td>Trained with verifiable-reward RL</td></tr>
         <tr><td>Layers and size</td><td>Not published</td><td><span class="num">61</span> layers, <span class="num">1.6T</span> parameters, <span class="num">49B</span> active</td></tr>
         <tr><td>Experts</td><td>Not published</td><td><span class="num">384</span> routed + <span class="num">1</span> shared, <span class="num">6</span> active</td></tr>
-        <tr><td>Attention</td><td>Not published</td><td>Compressed sparse attention, top-k <span class="num">1,024</span>, window <span class="num">128</span></td></tr>
-        <tr><td>Vocabulary</td><td>Same tokenizer as Opus 4.8; size not published</td><td><span class="num">129,280</span> entries</td></tr>
-        <tr><td>Pretraining</td><td>Mix described; size not published</td><td><span class="num">33T</span> tokens, FP8 with FP4 experts, Muon</td></tr>
+        <tr><td>Attention</td><td>Not published</td><td>Compressed sparse attention, top-k <span class="num">1,024</span>, window <span class="num">128</span>, plus heavily compressed layers</td></tr>
+        <tr><td>Vocabulary</td><td>Tokenizer introduced with Opus 4.7; size not published</td><td><span class="num">129,280</span> entries</td></tr>
+        <tr><td>Pretraining</td><td>Mix described; size not published</td><td><span class="num">33T</span> tokens, FP8, Muon + AdamW; FP4 experts via QAT in the released model</td></tr>
         <tr><td>Post-training</td><td>Constitutional AI and RL; recipe not published</td><td>SFT and GRPO per domain, then on-policy distillation</td></tr>
         <tr><td>Serving</td><td>Tool use, prompt caching, safety classifiers, compaction (beta)</td><td>Continuous batching, KV cache, speculative decoding</td></tr>
       </tbody>
     </table>
     <ul class="sources">
-      <li><b>Claude API documentation</b><span>Models, adaptive thinking and effort, tool use, prompt caching, streaming, stop reasons. Model table as of 2026-11-03. </span><a href="https://platform.claude.com/docs">platform.claude.com/docs</a></li>
+      <li><b>Claude API documentation</b><span>Models, adaptive thinking and effort, tool use, prompt caching, streaming, stop reasons. Model table as of 2026-11-22. </span><a href="https://platform.claude.com/docs">platform.claude.com/docs</a></li>
       <li><b>Anthropic system cards</b><span>Training-data description, pre-deployment evaluations.</span></li>
       <li><b>Responsible Scaling Policy</b><span>Anthropic. </span><a href="https://www.anthropic.com/responsible-scaling-policy">anthropic.com/responsible-scaling-policy</a></li>
       <li><b>Constitutional AI: Harmlessness from AI Feedback</b><span>Bai et al., 2022. </span><a href="https://arxiv.org/abs/2212.08073">arXiv:2212.08073</a></li>
