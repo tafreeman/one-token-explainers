@@ -196,6 +196,7 @@ html.rm .modes .knob{ transition:background .3s ease }
 .sv .ln{ fill:none; stroke:var(--sv-line); stroke-width:var(--sw,1.25px) }
 .sv .ln.strong{ stroke:var(--sv-strong) }
 .sv .ln.faint{ stroke:var(--sv-faint) }
+.card:has([data-eq-target="mask"]:is(:hover,:focus-visible)) .room-diagram rect[data-mark="mask"]{ fill:var(--c-acc); fill-opacity:.45 }
 .sv .ln.dash{ stroke-dasharray:6 5 }
 .sv .ln.cons{ stroke:rgba(255,255,255,.13); stroke-dasharray:2 6 }
 .sv .gl{ fill:none; stroke-width:var(--sw,1.25px) }
@@ -416,7 +417,7 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}
           <p class="ch-meta dyn">Chapter 4 of 6 · Inside the model</p>
         </header>
         <article class="step"><div class="card skin-bp"><h3>An ID becomes a vector</h3><p>At the base of the tower, the token ID indexes one row of the embedding table: a lookup, not a calculation. Out comes a vector of 7,168 numbers that enters the 4-stream mHC residual bus.</p><code class="eq">vector = EMBEDDING_TABLE[token_id]   // O(1) array lookup -> float[7168]</code><p class="fact"><span>Hidden size <span class="num">7,168</span> · <span class="num">4</span>-stream mHC residual</span><cite>DeepSeek-V4-Pro config</cite></p></div></article>
-        <article class="step"><div class="card skin-bp"><h3>Normalize, then look back</h3><p>RMSNorm rescales a copy of the vector (and Q/KV before core attention). Attention lets “&nbsp;sat” score earlier tokens while a causal mask hides later ones, with learnable attention sinks so heads can abstain.</p><code class="eq">scores = causal_mask( (Q_h @ K_h.T) / sqrt(d) );  out_h = softmax_with_sinks(scores) @ V_h</code></div></article>
+        <article class="step"><div class="card skin-bp"><h3>Normalize, then look back</h3><p>RMSNorm rescales a copy of the vector (and Q/KV before core attention). Attention lets “&nbsp;sat” score earlier tokens while <span id="mask-meaning" data-mark="mask">a causal mask hides later ones</span>, with learnable attention sinks so heads can abstain.</p><code class="eq">scores = <span tabindex="0" data-eq-target="mask" aria-describedby="mask-meaning">causal_mask</span>( (Q_h @ K_h.T) / sqrt(d) );  out_h = softmax_with_sinks(scores) @ V_h</code></div></article>
         <article class="step"><div class="card skin-bp"><h3>Hybrid CSA + HCA compression</h3><p>DeepSeek-V4-Pro interleaves Compressed Sparse Attention (CSA: 4× KV compression + Lightning Indexer top-1,024 + 128-tok window) with Heavily Compressed Attention (HCA: 128× dense summaries) and 64-dim decoupled RoPE. Switch the drawing to Inference to watch it fill.</p><p class="fact"><span>At 1M ctx: <span class="num">27%</span> FLOPs &amp; <span class="num">10%</span> KV cache vs V3.2</span><cite>DeepSeek-V4 paper</cite></p></div></article>
         <article class="step"><div class="card skin-bp"><h3>Merge via mHC hyper-connections</h3><p>Attention’s output is projected back to 7,168 and mixed across the 4-stream Manifold-Constrained Hyper-Connections (mHC) residual bus, keeping deep signal propagation stable without over-amplifying.</p><code class="eq">H_stream = mHC_mix(H_stream, linear_project(concat(heads)))   // 4-stream residual</code></div></article>
         <article class="step"><div class="card skin-bp"><h3>The router picks 6 of 384</h3><p>A router scores 384 routed FP4 experts via sqrt(softplus) and keeps the top 6, while 1 shared expert always runs. That is why only 49B of the 1.6T parameters work on each token.</p><code class="eq">s = sqrt(softplus(u @ W_router));  top6 = top_k(s + load_bias, k=6);  out = shared_ffn(u) + sum(g_j * ffn_j(u))</code><p class="fact"><span><span class="num">6</span> of <span class="num">384</span> routed experts (+1 shared) · <span class="num">49B</span> active</span><cite>DeepSeek-V4-Pro config</cite></p></div></article>
@@ -826,7 +827,7 @@ function buildS4(svg) {
   const TK = ['The', 'cat', 'sat', 'on']; const attRow = [];
   for (let i = 0; i < 4; i++) { X(204, 846 + i * 26 + 18, TK[i], 'w-tiny', 'end');
     for (let j = 0; j < 4; j++) { const x = 210 + j * 26, y = 846 + i * 26; if (j <= i) { E('rect', { x, y, width: 26, height: 26, class: 'ln', fill: 'rgba(255,255,255,.05)' }, base); if (i === 2) attRow.push(E('rect', { x: x + 2, y: y + 2, width: 22, height: 22, rx: 2, fill: 'url(#gAccF)', opacity: 0 }, base)); }
-      else { E('rect', { x, y, width: 26, height: 26, class: 'ln faint' }, base); L(`M${x} ${y + 26} L${x + 26} ${y}`, 'ln faint'); } } }
+      else { E('rect', { x, y, width: 26, height: 26, class: 'ln faint', 'data-mark': 'mask' }, base); L(`M${x} ${y + 26} L${x + 26} ${y}`, 'ln faint'); } } }
   X(172, 994, 'causal mask', 'w-tiny');
   X(386, 990, 'x', 'w-sm', 'middle'); L('M386 978 V974'); R(346, 950, 80, 24); X(386, 967, 'W_down', 'w-tiny', 'middle'); L('M386 950 V934');
   R(350, 908, 72, 26); X(386, 926, '4×/128×', 'w-tiny', 'middle'); L('M386 908 V890'); R(346, 866, 80, 24); X(386, 883, 'W_up', 'w-tiny', 'middle'); X(386, 856, 'K, V', 'w-tiny', 'middle');

@@ -92,6 +92,15 @@ test('the local sampling probe identifies each non-default parameter', () => {
   assert.deepEqual(lab.sampling(null, .5).rejected, ['top_p']);
 });
 
+test('Guided Tour and Story offer the same component labs at all ten lab stops', () => {
+  const expected = {
+    3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
+    16: ['mix'], 17: ['moe'], 24: ['roof'], 25: ['roof'], 26: ['stream']
+  };
+  assert.deepEqual(lab.tourStops, expected);
+  assert.deepEqual(lab.storyStops, expected);
+});
+
 test('lab code and offline bridge stay below 40 KB together; Swiss stays independent', () => {
   const size = ['micro-labs.js', 'obs-file-bridge.js'].reduce((sum, f) =>
     sum + statSync(path.join(root, 'shared', f)).size, 0);

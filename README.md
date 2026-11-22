@@ -33,7 +33,7 @@ Don't add anything else to those two folders.
 
 ## Run locally
 
-Open [the router at Tour stop 17](journey-tour/index.html?rm=1&lab=moe#stop-17), [attention in Story](journey-story/index.html?rm=1&lab=attention), or [the Beamline Study sampling probe](end-to-end-beamline/index.html?study=1&lab=sample). Local copies of these pages can open directly from disk with their sibling folders in place. To serve all pages over HTTP, run this from the repository root.
+Local copies of these pages can open directly from disk with their sibling folders in place. To serve all pages over HTTP, run this from the repository root.
 
 ```powershell
 python -m http.server 8000
@@ -42,6 +42,14 @@ python -m http.server 8000
 Then open <http://localhost:8000/>.
 
 Story, Tour, the Observatory and Beamline bundle their 3D renderer. Swiss uses a CDN. The pages use system fallback fonts offline.
+
+### Component labs
+
+- **Guided Tour** — [byte-pair merges](journey-tour/index.html?rm=1&lab=bpe#stop-3), [expert routing](journey-tour/index.html?rm=1&lab=moe#stop-17), [the B200 roofline](journey-tour/index.html?rm=1&lab=roof#stop-24), and [UTF-8 streaming](journey-tour/index.html?rm=1&lab=stream#stop-26). Each lab opens under **More detail** at its stop.
+- **Story** — [the KL penalty](journey-story/index.html?rm=1&lab=kl), [causal attention](journey-story/index.html?rm=1&lab=attention), [rotary position encoding](journey-story/index.html?rm=1&lab=rope), [KV cache sizes](journey-story/index.html?rm=1&lab=kv), and [the four residual streams](journey-story/index.html?rm=1&lab=mix).
+- **Beamline Study** — [the sampling contract](end-to-end-beamline/index.html?rm=1&study=1&lab=sample).
+
+The [3D Observatory](shared/obs-core.html?rm=1) also opens on its own.
 
 ## Credits
 

@@ -134,9 +134,11 @@
     return {status: rejected.length ? 400 : 200, rejected};
   }
 
-  const math = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope,
-    kvFootprints, maxContext, routeExperts, roofline, sampling};
-  if (typeof module !== 'undefined' && module.exports) module.exports = math;
+  const stopLabs = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
+    16: ['mix'], 17: ['moe'], 24: ['roof'], 25: ['roof'], 26: ['stream']};
+  const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope,
+    kvFootprints, maxContext, routeExperts, roofline, sampling, storyStops: stopLabs, tourStops: stopLabs};
+  if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
 
   const el = (tag, text, cls) => {
@@ -464,9 +466,6 @@
     mix: ['Follow the four residual streams', box => couplingLab(box, 'mix')],
     kl: ['Inspect the KL penalty', box => couplingLab(box, 'kl')]
   };
-  const storyStops = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
-    16: ['mix'], 17: ['moe'], 24: ['roof'], 25: ['roof'], 26: ['stream']};
-  const tourStops = {3: ['bpe'], 4: ['bpe'], 17: ['moe'], 24: ['roof'], 25: ['roof'], 26: ['stream']};
   const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'],
     'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe']};
   function dock(parent, names = [], options = {}) {
@@ -537,5 +536,5 @@
     }
     requestAnimationFrame(() => lab.querySelector('summary').scrollIntoView({block: 'center', behavior: 'instant'}));
   }
-  window.MicroLabs = Object.freeze({...math, dock, storyStops, tourStops, components, routing, routerDrawing, routerCenter, reveal});
+  window.MicroLabs = Object.freeze({...core, dock, components, routing, routerDrawing, routerCenter, reveal});
 })();

@@ -39,3 +39,6 @@
 .ml-weight {display:grid;grid-template-columns:4ch 1fr 5ch;align-items:center;gap:.5rem}
 .ml-weight i {height:5px;min-width:2px}
 .ml-weight span:last-child {text-align:right}
+.eq [data-eq-target]:is(:hover,:focus-visible),
+.step:has(.eq [data-eq-target="mask"]:is(:hover,:focus-visible)) p [data-mark="mask"] { text-decoration: underline; text-underline-offset: .16em }
+.eq [data-eq-target]:focus-visible { outline: 1px solid currentColor; outline-offset: 2px }
