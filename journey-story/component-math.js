@@ -95,11 +95,11 @@ const JourneyMath = (() => {
     const drawer = document.createElement('details');
     drawer.className = 'component-math vector-drawer';
     drawer.innerHTML = `
-      <summary>Inside the 7,168-Dim Vector</summary>
+      <summary>Inside the 7,168-Dim Streams</summary>
       <div class="vector-sections">
         <section>
           <h4>Linear representation &amp; superposition</h4>
-          <svg viewBox="0 0 282 96" role="img" aria-label="Two active feature directions add to a residual vector h. Dashed directions are inactive in this example.">
+          <svg viewBox="0 0 282 96" role="img" aria-label="Two active feature directions add to h, one of the token’s four 7,168-dimensional mHC residual streams. Dashed directions are inactive in this example.">
             <g transform="translate(63 76)" fill="none" stroke="currentColor">
               <path class="math-guide" d="M-46 -22L0 0L-30 15 M0 0L13 -66"/>
               <path class="math-guide" d="M58 -10L38 -55L-20 -45"/>
@@ -112,7 +112,7 @@ const JourneyMath = (() => {
             <text x="167" y="43">h ≈ Σᵢ aᵢdᵢ</text>
             <text x="167" y="64">h ∈ ℝ⁷¹⁶⁸</text>
           </svg>
-          <p>In this 2D projection, two active features add their directions to one token’s vector. Sparse activity lets more than 7,168 possible features share 7,168 coordinates, with some interference.</p>
+          <p>The token travels as four 7,168-wide mHC streams. In this 2D projection of one stream, h, two active features add their directions. Sparse activity lets more than 7,168 possible features share its 7,168 coordinates, with some interference.</p>
         </section>
         <section>
           <h4>A two-layer induction head circuit</h4>
@@ -133,7 +133,7 @@ const JourneyMath = (() => {
         </section>
         <section>
           <h4>Illustrative logit lens</h4>
-          <p>After “The cat”, read the current layer through the final normalization and vocabulary head, then apply softmax. These probabilities are a constructed example.</p>
+          <p>After “The cat”, combine the four mHC streams at the current layer, read the result through the final normalization and vocabulary head, then apply softmax. These probabilities are a constructed example.</p>
           <label class="lens-slider">Layer <span data-layer>1</span> of 61
             <input type="range" min="1" max="61" step="1" value="1" aria-label="Illustrative logit lens layer">
           </label>
