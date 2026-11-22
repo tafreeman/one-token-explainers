@@ -33,7 +33,7 @@ Don't add anything else to those two folders.
 
 ## Run locally
 
-Serve over HTTP, not `file://`: the journey pages embed `shared/obs-core.html` in an iframe and fetch their narration manifest. From the repository root:
+Open [the router at Tour stop 17](journey-tour/index.html?rm=1&lab=moe#stop-17), [attention in Story](journey-story/index.html?rm=1&lab=attention), or [the Beamline Study sampling probe](end-to-end-beamline/index.html?study=1&lab=sample). Local copies of these pages can open directly from disk with their sibling folders in place. To serve all pages over HTTP, run this from the repository root.
 
 ```powershell
 python -m http.server 8000
@@ -41,15 +41,15 @@ python -m http.server 8000
 
 Then open <http://localhost:8000/>.
 
-Three.js and the fonts load from CDNs, so you need an internet connection on first load.
+Story, Tour, the Observatory and Beamline bundle their 3D renderer. Swiss uses a CDN. The pages use system fallback fonts offline.
 
 ## Credits
 
 - **Narration** voiced with [ElevenLabs](https://elevenlabs.io/) (`eleven_v4`), on a paid plan. Voices: Sylvie (Beamline), Jade (journey pages), and ElevenLabs voice `TYKLc7ViOIGE13dSZYlK` (Swiss).
 - **3D** by [Three.js](https://threejs.org/):
   - The Swiss page uses r128 from cdnjs, with unpkg and jsDelivr as fallbacks.
-  - The shared engine uses r128 from cdnjs.
-  - Beamline uses 0.160 as an ES module from jsDelivr.
+  - The shared engine uses the bundled r128 build.
+  - Beamline uses the bundled r160 build. The upstream MIT license is in `shared/vendor/THREE-LICENSE.txt`.
 - **Fonts** from [Google Fonts](https://fonts.google.com/).
 
 ## Fact sources

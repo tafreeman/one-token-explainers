@@ -1016,11 +1016,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght@8..144,75..125,300..700&family=Google+Sans+Code:wght@400..700&display=swap" rel="stylesheet" />
 
-  <!-- Three.js r128 loaded directly from cdnjs (guaranteed sandbox-safe) with fallback guard -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js r128 bundled locally with fallback guard -->
+  <script src="vendor/three-r128.min.js"></script>
   <script>
-window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolve=resolve;window.__obsReject=reject});window.obs.ready.catch(()=>{});window.__threeReady=window.THREE?.REVISION==='128'?Promise.resolve():Promise.reject(new Error('Three.js r128 could not load from cdnjs.'));window.__threeReady.catch(e=>window.__obsReject(e));
+window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolve=resolve;window.__obsReject=reject});window.obs.ready.catch(()=>{});window.__threeReady=window.THREE?.REVISION==='128'?Promise.resolve():Promise.reject(new Error('Three.js r128 could not load from the local bundle.'));window.__threeReady.catch(e=>window.__obsReject(e));
   </script>
+<link rel="stylesheet" href="micro-labs.css">
+<script src="micro-labs.js"></script>
+<script src="obs-file-bridge.js"></script>
 </head><body>
   <div id="stage">
     <!-- Main 3D WebGL Canvas -->
@@ -1107,6 +1110,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         <div>
           <div class="detail-block-lbl">Core Logic &amp; Data Shape</div>
           <div class="equation-strip tabular" id="detEquation"></div>
+          <div id="componentLabs"></div>
         </div>
 
         <div>
@@ -1720,7 +1724,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
     let waveTargetsBuf = new Float32Array(64);
     const MOE_N = 384;
     const MOE_BASE_LIT = [12, 74, 141, 206, 279, 348];
-    const moeLit = new Set();
+    const moeLit = new Map();
+    let routedK = 6, loadBias = 1;
     const moeViews = [];
     let moeOffset = -1, moeAuto = true;
     let in7Kv = null, kvAuto = true;
@@ -3342,14 +3347,15 @@ let gantryShell=null;
             boxes.length = 0;
             for (let i = 0; i < MOE_N; i++) {
               const a = (i / MOE_N) * Math.PI * 2;
-              const on = lit.has(i);
+              const weight = lit.get(i) || 0;
+              const strength = Math.sqrt(weight);
               const r = 1.98;
-              dummy.position.set(Math.cos(a) * r, on ? -0.02 : -0.08, Math.sin(a) * r);
+              dummy.position.set(Math.cos(a) * r, -0.08 + .15 * strength, Math.sin(a) * r);
               dummy.rotation.set(0, Math.PI / 2 - a, 0);
-              dummy.scale.set(on ? 1.6 : 1, on ? 3.0 : 1, on ? 1.25 : 1);
+              dummy.scale.set(1 + .9 * strength, 1 + 4 * strength, 1 + .6 * strength);
               dummy.updateMatrix();
               slots.setMatrixAt(i, dummy.matrix);
-              if (on) boxes.push({ m: dummy.matrix.clone(), w: 0.022, h: 0.06, d: 0.28 });
+              if (weight) boxes.push({ m: dummy.matrix.clone(), w: 0.022, h: 0.06, d: 0.28 });
             }
             slots.instanceMatrix.needsUpdate = true;
             slotEdges.geometry.dispose();
@@ -3358,7 +3364,12 @@ let gantryShell=null;
           moeViews.push({
             layout: layoutDial,
             paint: (lit, idleHex, litHex) => {
-              for (let i = 0; i < MOE_N; i++) slots.setColorAt(i, tmpSkinColor.setHex(lit.has(i) ? litHex : idleHex).convertSRGBToLinear());
+              const activeColor = new THREE.Color(litHex);
+              for (let i = 0; i < MOE_N; i++) {
+                const w = lit.get(i) || 0;
+                tmpSkinColor.setHex(idleHex).lerp(activeColor, w ? .55 + .45 * Math.sqrt(w) : 0);
+                slots.setColorAt(i, tmpSkinColor.convertSRGBToLinear());
+              }
               slots.instanceColor.needsUpdate = true;
             }
           });
@@ -3411,13 +3422,14 @@ let gantryShell=null;
             boxes.length = 0;
             for (let i = 0; i < MOE_N; i++) {
               const row = Math.floor(i / 24), col = i % 24;
-              const on = lit.has(i);
-              dummy.position.set(-1.22 + col * 0.106, 0.24 + row * 0.122, on ? 0.07 : 0.0);
+              const weight = lit.get(i) || 0;
+              const strength = Math.sqrt(weight);
+              dummy.position.set(-1.22 + col * 0.106, 0.24 + row * 0.122, .16 * strength);
               dummy.rotation.set(0, 0, 0);
-              dummy.scale.set(on ? 1.18 : .83, on ? 1.18 : .78, on ? 2.8 : 1);
+              dummy.scale.set(.83 + .62 * strength, .78 + .68 * strength, 1 + 4.1 * strength);
               dummy.updateMatrix();
               cells.setMatrixAt(i, dummy.matrix);
-              if(on) boxes.push({ m: dummy.matrix.clone(), w: 0.088, h: 0.092, d: 0.07 });
+              if(weight) boxes.push({ m: dummy.matrix.clone(), w: 0.088, h: 0.092, d: 0.07 });
             }
             cells.instanceMatrix.needsUpdate = true;
             cellEdges.geometry.dispose();
@@ -3426,7 +3438,12 @@ let gantryShell=null;
           moeViews.push({
             layout: layoutBank,
             paint: (lit, idleHex, litHex) => {
-              for (let i = 0; i < MOE_N; i++) cells.setColorAt(i, tmpSkinColor.setHex(lit.has(i) ? litHex : idleHex).convertSRGBToLinear());
+              const activeColor = new THREE.Color(litHex);
+              for (let i = 0; i < MOE_N; i++) {
+                const w = lit.get(i) || 0;
+                tmpSkinColor.setHex(idleHex).lerp(activeColor, w ? .55 + .45 * Math.sqrt(w) : 0);
+                cells.setColorAt(i, tmpSkinColor.convertSRGBToLinear());
+              }
               cells.instanceColor.needsUpdate = true;
             }
           });
@@ -5412,6 +5429,9 @@ let gantryShell=null;
       document.getElementById('detDoing').textContent = d.doing;
       document.getElementById('detNarrative').textContent = d.narrative;
       document.getElementById('detEquation').textContent = d.equation;
+      const labs = document.getElementById('componentLabs');
+      labs.replaceChildren();
+      MicroLabs.dock(labs, MicroLabs.components[d.id], {onRoute: (k, bias) => window.obs.setRouting(k, bias)});
       document.getElementById('detKeyFact').textContent = d.keyFact;
       document.getElementById('detKeyFactSrc').textContent = 'Source: ' + d.keyFactSource;
 
@@ -5681,6 +5701,7 @@ let gantryShell=null;
           eq.textContent = c.equation;
           art.appendChild(eq);
           art.appendChild(textViewPara('Key fact', c.keyFact + ' (Source: ' + c.keyFactSource + ')'));
+          MicroLabs.dock(art, MicroLabs.components[c.id], {onRoute: (k, bias) => window.obs.setRouting?.(k, bias)});
           container.appendChild(art);
         });
       });
@@ -7580,12 +7601,14 @@ let gantryShell=null;
       setMoeOffset(0, true);
     }
 
-    // ---- MoE: exactly 6 of 384 routed experts lit (one colour) + 1 shared ----
+    // ---- Normalized routed weights, plus a separate always-on shared expert ----
     function setMoeOffset(offset, force) {
       if (!force && offset === moeOffset) return;
       moeOffset = offset;
       moeLit.clear();
-      for (let k = 0; k < MOE_BASE_LIT.length; k++) moeLit.add((MOE_BASE_LIT[k] + offset) % MOE_N);
+      for (const {id, weight} of MicroLabs.routeExperts(routedK, loadBias, offset, MOE_BASE_LIT)) {
+        moeLit.set(id, weight);
+      }
       for (let v = 0; v < moeViews.length; v++) moeViews[v].layout(moeLit);
       paintMoe();
       shadowDirty = true;
@@ -7923,13 +7946,21 @@ let gantryShell=null;
         setControls(on){controlEnabled=!!on;renderer.domElement.style.cursor=on?'grab':'default'},
         setKV(n){modelKVCount=n;kvAuto=false;in7Kv?.setCount(n);modelKV?.(n);requestRender()},
         setBackprop(on){backprop=!!on;requestRender()},setMode(m){const inf=m==='infer';backprop=!inf;modelKVCount=inf?4:0;kvAuto=false;in7Kv?.setCount(modelKVCount);modelKV?.(modelKVCount);requestRender(2)},setAttentionMode(m){/* 'csa' = 4x sparse; anything else = 128x dense HCA (default) */hcaModeActive=(m!=='csa');requestRender(2)},setMoeOffset(n){moeAuto=false;setMoeOffset(((n|0)%MOE_N+MOE_N)%MOE_N);requestRender()},
+        setRouting(k, bias) {
+          if (!Number.isFinite(k) || !Number.isFinite(bias)) return;
+          routedK = Math.max(1, Math.min(8, Math.round(k)));
+          loadBias = Math.max(0, Math.min(1, bias));
+          moeAuto = false;
+          setMoeOffset(0, true);
+          requestRender(2);
+        },
         getComponent(id){return COMPONENTS[COMP_BY_ID[id]]},components(){return COMPONENTS.slice()},
         textView(el){buildTextView(el)},project:projectPoint,conduitPoint,
         requestRender,suspend(){suspended=true;cancelAnimationFrame(rafId);rafId=0;perf.lastRendered=false},
         resume(){if(suspended){suspended=false;clock.getDelta()}requestRender()},
         renderNow(){if(suspended||document.hidden)return false;cancelAnimationFrame(rafId);rafId=0;perf.renderRequests++;animate();return true},
         resize(w,h){if(w>0&&h>0){camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);perf.viewW=w;perf.viewH=h;requestRender()}},
-        stats(){return {...perfInfo(),frames:frameCount,skin:SKIN,realm:currentRealm,flight:camFlight.active,playing:!isPaused,suspended,lit:moeLit.size}}
+        stats(){return {...perfInfo(),frames:frameCount,skin:SKIN,realm:currentRealm,flight:camFlight.active,playing:!isPaused,suspended,lit:moeLit.size,gateWeights:Object.fromEntries(moeLit)}}
       });
       if(EMBED){isPaused=true;isolatedDemoActive=false;controlEnabled=false;moeAuto=kvAuto=false}
       compRecords.forEach(r=>r.animHooks.forEach(h=>h(1,.016)));

@@ -9,9 +9,9 @@ This tells the same story as [`end-to-end-swiss/`](../end-to-end-swiss/), drawn 
   - **Sound** speaks the beat you've settled on. **Watch** plays the narration and moves the page along.
   - "Or run it end to end" replays the whole line with the camera on the token.
 - **Depends on:**
-  - Three.js 0.160 as an ES module from jsDelivr (importmap).
+  - Three.js r160 bundled in `../shared/vendor/`.
   - Archivo and Azeret Mono from Google Fonts.
-  - Nothing outside this folder.
+  - Study mode mounts the math labs from `../shared/micro-labs.js`. [Open the sampling probe](index.html?study=1&lab=sample).
 - **Narration:**
   - 45 clips, one per `data-beat`, 9:41 in total, ElevenLabs voice Sylvie on `eleven_v4`.
   - The clips are in `assets/narration/<beat-id>.mp3`.
@@ -37,6 +37,5 @@ This tells the same story as [`end-to-end-swiss/`](../end-to-end-swiss/), drawn 
   - FP8 training is kept separate from the FP4 experts that quantization-aware training produces in the released model.
   - The ledger optimizer reads Muon + AdamW.
 - **Known limits:**
-  - Three.js loads from one CDN, with no fallback.
   - The page needs WebGL. Without it, a note appears and every step still reads as text.
   - It hasn't had the Swiss page's multi-viewport visual audit.

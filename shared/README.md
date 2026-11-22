@@ -5,19 +5,27 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 | Path | What it is | Used by |
 |---|---|---|
 | `obs-core.html` | The LLM Systems Observatory, the Three.js engine. The journey pages embed it with `?embed=1`. It also opens on its own. | journey-story, journey-tour, landing footer link |
+| `micro-labs.js` and `micro-labs.css` | Offline, on-demand math labs. Run `node --test` at the repository root. | Story, Tour, standalone Observatory, Beamline Study |
+| `obs-file-bridge.js` | Connects local-file journey pages to the Observatory when the browser isolates their origins. | Story, Tour, Observatory |
 | `journey-narration/` | 32 MP3s (an intro, one per tour stop, an outro), `manifest.json` and `narration-script.md` | journey-story, journey-tour |
 
 ## Engine: `obs-core.html`
 
 - **Open on its own:** [`obs-core.html?embed=1&skin=blueprint&realm=MODEL&focus=MD-2g,MD-2h`](obs-core.html?embed=1&skin=blueprint&realm=MODEL&focus=MD-2g,MD-2h) shows the router and the experts.
 - **Query options passed through from the pages:** `perf`, `rm`, `quality`, `pr`, `aa`.
-- **Depends on:** Three.js r128 from cdnjs, and Google Sans Flex and Inter Tight from Google Fonts.
+- **Depends on:** Three.js r128 bundled in `vendor/`, and Google Sans Flex and Inter Tight from Google Fonts.
 - **Lineage:**
   - The audit IDs are **O1/O3** in `Downloads\animations\ANIMATIONS-ANALYSIS-2026-11-21.md`.
   - Source: `Downloads\animations\observatory\llm-observatory-merge\final\obs-core.html` (V4-Pro).
 - **Known limits:**
-  - Three.js loads from one CDN, and there's no WebGL context-loss handling.
+  - The 3D scene has no WebGL context-loss handling.
   - A ghost label shows behind the toolbar.
+
+## Component labs
+
+- Test the router at [Tour stop 17](../journey-tour/index.html?rm=1&lab=moe#stop-17). Both the component drawing and the Observatory use the same normalized affinities. The load correction affects selection only.
+- The BPE vocabulary, query/key vectors, load history and single-layer roofline are teaching examples. The KV comparison fits its illustrative V4 curve to the [DeepSeek-V4 report](https://arxiv.org/abs/2606.19348) at 1M. The reported 27% FLOP ratio applies at that endpoint.
+- The roofline uses the [GB200 specifications](https://www.nvidia.com/en-us/data-center/gb200-nvl72/) per GPU. The sampling probe implements the [Fable 5.2 parameter contract](https://platform.claude.com/docs/en/models/fable-5-2/overview) locally.
 
 ## Narration: `journey-narration/`
 

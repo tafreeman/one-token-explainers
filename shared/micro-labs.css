@@ -1,0 +1,41 @@
+.micro-lab { --ml-accent: var(--c-acc, #347398); --ml-line: color-mix(in srgb, currentColor 24%, transparent); color: inherit; margin: .8rem 0 .3rem; border-block-start: 1px solid var(--ml-line); font: 400 .88rem/1.45 system-ui,sans-serif; text-align: left; min-width: 0 }
+.micro-lab > summary { cursor: pointer; padding: .62rem .1rem; font-size: .87rem; line-height: 1.35; font-weight: 600; }
+.micro-lab :is(summary,button,input,textarea,select):focus-visible { outline: 2px solid currentColor; outline-offset: 2px }
+.ml-body { display: grid; gap: .65rem; padding: .25rem .15rem .8rem; min-width: 0 }
+.micro-lab .ml-note { font: inherit; font-size: .77rem; line-height: 1.5; opacity: .88; margin: 0; color: inherit }
+.ml-control { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: .15rem .5rem }
+.ml-control input { width: 100%; grid-column: 1/-1; accent-color: var(--ml-accent); margin: 0; cursor: pointer }
+.ml-value,.ml-weights,.ml-gloss,.ml-readout,.ml-wire,.ml-equation,.ml-pieces,.ml-merges,.ml-body td {font-family: ui-monospace,Consolas,monospace; font-variant-numeric: tabular-nums}
+.ml-value,.ml-merges,.ml-weight {font-size: .77rem}
+.ml-field {display: grid; gap: .3rem}
+.ml-body :is(textarea,select) {font: inherit; border: 1px solid var(--ml-line); border-radius: 4px; padding: .45rem; max-width: 100%; box-sizing: border-box}
+.ml-body textarea { width: 100%; resize: vertical }
+.ml-pieces,.ml-tokens { display: flex; flex-wrap: wrap; gap: .3rem; overflow-wrap: anywhere }
+.ml-pieces > span { display: grid; padding: .2rem .4rem; border: 1px solid var(--ml-line); border-radius: 3px; font-size: .84rem; white-space: pre-wrap }
+.ml-pieces small { opacity: .74; font-size: .68rem }
+.ml-readout,.micro-lab .ml-wire { font-size: .79rem; padding: .5rem; background: color-mix(in srgb, currentColor 6%, transparent); color: inherit; border-radius: 3px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 }
+.ml-equation { display: flex; align-items: baseline; flex-wrap: wrap; gap: .2rem; font-size: .88rem }
+.ml-equation button,.ml-tokens button { color: inherit; background: transparent; font: inherit; cursor: pointer; padding: .15rem .3rem; border: 1px solid var(--ml-line); border-radius: 3px }
+.ml-equation button { border: 0; border-bottom: 1px dotted currentColor }
+.ml-tokens button[aria-pressed=true] { outline: 2px solid var(--ml-accent) }
+.ml-gloss { font-size: .76rem; line-height: 1.4 }
+.ml-gloss:empty { display:none }
+.micro-lab .ml-graphic { display: block; width: 100%; height: auto; position: static; overflow: visible; max-height: 210px; color: inherit }
+.ml-graphic text { fill: currentColor; font: 11px ui-monospace,monospace }
+.ml-graphic .ml-idle {fill: currentColor; opacity: .22}
+.ml-graphic .ml-active,.ml-graphic .ml-cell,.ml-weight i {fill: var(--ml-accent); background: var(--ml-accent)}
+.ml-graphic .ml-masked { fill: currentColor }
+.ml-graphic .ml-outline,.ml-graphic .ml-guide {fill: none; stroke: currentColor; opacity: .45}
+.ml-graphic .ml-guide,.ml-graphic .ml-key {stroke-dasharray: 3 2}
+.ml-graphic .ml-vector,.ml-graphic .ml-curve {fill: none; stroke: var(--ml-accent); stroke-width: 2.5}
+.ml-graphic .ml-key {stroke: currentColor; fill: none}
+.ml-graphic .ml-lit {stroke: #df8500; stroke-width: 2; opacity: 1}
+.ml-weight .ml-lit {outline: 2px solid #df8500}
+.ml-body table {width:100%;border-collapse:collapse;color:inherit;font:inherit}
+.ml-body th,.ml-body td {border-bottom:1px solid var(--ml-line);padding:.24rem .1rem}
+.ml-body th {text-align:left;font-weight:500}
+.ml-body td {text-align:right;white-space:nowrap}
+.ml-weights {display:grid;gap:.12rem}
+.ml-weight {display:grid;grid-template-columns:4ch 1fr 5ch;align-items:center;gap:.5rem}
+.ml-weight i {height:5px;min-width:2px}
+.ml-weight span:last-child {text-align:right}
