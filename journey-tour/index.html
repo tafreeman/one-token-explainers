@@ -1,0 +1,705 @@
+<!doctype html><html lang="en"><head><title>Guided tour · One Token’s Journey</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="data:,"><style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --display:"Bricolage Grotesque","Inter Tight",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --sans:"Inter Tight",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --ink:#121522; --ink2:#454C5E; --acc-ink:#2A5BEF;
+  --rail-bg:rgba(255,255,255,.94); --rail-line:rgba(18,21,34,.12); --rail-ink:#121522;
+  --r-card:16px; --r-node:10px; --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.3,1.45,.5,1);
+  --gutL:max(16px,env(safe-area-inset-left)); --gutR:max(16px,env(safe-area-inset-right));
+  color-scheme:light;
+}/* svg text + lines */
+.sv text{ font-family:var(--mono); font-variant-numeric:tabular-nums }
+.sv .ln{ fill:none; stroke:var(--sv-line); stroke-width:var(--sw,1.25px) }
+.sv .ln.strong{ stroke:var(--sv-strong) }
+.sv .ln.faint{ stroke:var(--sv-faint) }
+.sv .ln.dash{ stroke-dasharray:6 5 }
+.sv .ln.cons{ stroke:rgba(255,255,255,.13); stroke-dasharray:2 6 }
+.sv .gl{ fill:none; stroke-width:var(--sw,1.25px) }
+.sv .acc{ fill:none; stroke-width:calc(var(--sw,1.25px) * 1.7); stroke-linecap:round; stroke-linejoin:round }
+.sv .lab{ font-family:var(--sans); font-weight:500; font-size:15px; fill:var(--sv-ink) }
+.sv .disp{ font-family:var(--display); font-weight:600; fill:var(--sv-ink) }
+.sv .mono{ font-size:12px; fill:var(--sv-ink2) }
+.sv .mono-i{ font-size:12px; fill:var(--sv-ink) }
+.sv .tiny{ font-size:10px; fill:var(--sv-ink2); letter-spacing:.03em }
+.sv .chip{ fill:var(--sv-chip) }
+.sv .w-lab{ font-size:18px; fill:#fff; letter-spacing:.04em }
+.sv .w-sm{ font-size:15px; fill:rgba(255,255,255,.88) }
+.sv .w-tiny{ font-size:14px; fill:rgba(255,255,255,.84) }
+.sv .w-ov{ fill:#fff; letter-spacing:.02em }
+.skin-bp .sv text, .skin-key .sv text{ paint-order:stroke; stroke-width:calc(var(--sw,1.25px) * 3.2); stroke-linejoin:round }
+.skin-bp .sv text{ stroke:#123A63 } .skin-key .sv text{ stroke:#10131C }
+.sv text.nh{ stroke:none }
+.sv .w-big{ font-family:var(--display); font-weight:600; font-size:34px; fill:#fff }
+.sv .w-huge{ font-size:40px; fill:#fff; letter-spacing:.02em }
+:root{--r-card:12px;--rail-bg:#f7f5ee;--ink:#202936;--ink2:#445063;--acc-ink:#79551d;--spring:cubic-bezier(.3,1.32,.5,1)}
+html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}.tblock span{ padding:6px 8px; border-top:1px solid rgba(255,255,255,.35) } .tblock span:nth-child(odd){ color:rgba(255,255,255,.72); border-right:1px solid rgba(255,255,255,.35) }
+.tblock span:nth-child(-n+2){ border-top:0 }
+.tblock b{ font-weight:500 }
+.modes{ position:relative; align-self:flex-start; display:inline-grid; grid-template-columns:1fr 1fr; padding:4px; border-radius:999px; background:rgba(10,36,64,.92); border:1.25px solid rgba(255,255,255,.55); isolation:isolate }
+.modes .knob{ position:absolute; z-index:-1; top:4px; left:4px; width:calc(50% - 4px); height:calc(100% - 8px); border-radius:999px; background:linear-gradient(90deg,#2F6BFF,#7C4DEB); transition:transform .5s var(--spring), background .4s ease; box-shadow:0 6px 14px -6px rgba(47,107,255,.8) }
+.modes[data-mode="infer"] .knob{ transform:translateX(100%) }
+.modes[data-mode="train"] .knob{ background:linear-gradient(90deg,#E5672F,#F2A65A); box-shadow:0 6px 14px -6px rgba(229,103,47,.8) }
+.modes button{ appearance:none; border:0; background:transparent; color:#fff; font:500 13px/1 var(--sans); letter-spacing:.01em; padding:0 12px; min-height:38px; min-width:78px; border-radius:999px; cursor:pointer; transition:color .2s ease, transform .15s var(--ease) }
+.modes button[aria-checked="false"]{ color:rgba(255,255,255,.78) }
+.modes button:hover{ color:#fff } .modes button[aria-checked="false"]:hover{ background:rgba(255,255,255,.08) }
+.modes button:active{ transform:scale(.96) }
+.modes button:focus-visible{ outline-offset:1px }
+
+/* bridges */
+.bridge{ min-height:100svh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:24px; padding-block:8svh; box-sizing:border-box }
+.bridge-cap{ font-family:var(--display); font-weight:600; font-size:clamp(1.75rem,3.6vw,2.75rem); letter-spacing:-.02em; line-height:1.1; max-width:17ch; margin:0; color:var(--ink); text-wrap:balance }
+.bridge svg{ width:min(600px,100%); height:auto; aspect-ratio:480/220; display:block }
+.obs-pill{display:inline-flex;align-items:center;justify-content:center;gap:.6em;min-height:40px;border-radius:24px;border:1px solid #bdc4d0;background:#fff;color:#192638;padding:6px 15px;font:600 14px/1.25 var(--sans);cursor:pointer;text-decoration:none}.obs-pill.primary{background:#233e65;border-color:#233e65;color:white}.obs-pill:disabled{opacity:.45;cursor:default}.obs-pill:hover{border-color:#6481b3}.obs-kicker{font:500 11px/1.4 var(--mono);letter-spacing:.065em;text-transform:uppercase;color:inherit;opacity:.8}.obs-panel{color:#182435;background:#f8f7f2;font:16px/1.52 var(--sans);border:1px solid #ccd0ce;border-radius:20px;box-shadow:0 18px 60px -30px #182a49aa}.obs-panel h2,.obs-panel h3{font-family:var(--display);line-height:1.1;letter-spacing:-.03em}.obs-panel h2{font-size:clamp(26px,2.7vw,44px);margin:.35em 0}.obs-panel h3{font-size:clamp(18px,1.5vw,25px);margin:.8em 0 .3em}.obs-panel p{margin:.65em 0}.obs-panel .fields h4,.obs-panel .fields dt{font:600 12px/1.4 var(--mono);margin:1.15em 0 .3em;color:#52677a}.obs-panel pre{background:#e9edf0;color:#122743;border:1px solid #c8d2d8;border-radius:10px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;font:500 13px/1.5 var(--mono)}.obs-panel ul{padding-left:1.2em}.obs-panel cite{font:12px var(--mono);display:block;margin-top:5px}.obs-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.obs-diagram{position:relative;display:block;overflow:hidden;border-radius:12px;border:1px solid #7c91a380;margin:.9em 0;background:white}.obs-diagram.skin-bp{background:#0f3358}.obs-diagram.skin-key{background:#131722}.obs-diagram svg{width:100%;display:block;max-height:260px}.obs-diagram .sv{--sw:1.35px}.obs-diagram .legend-token{font-family:var(--mono);font-size:13px;fill:#fff}.obs-panel summary{font-weight:600;cursor:pointer;padding:.5em 0}.obs-panel [hidden],[hidden]{display:none!important}.obs-panel :focus-visible,.obs-pill:focus-visible{outline:3px solid #7398ff;outline-offset:2px}
+
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}body{font-family:var(--sans);background:#f8f7f2;color:#192638}#tourStage{position:fixed;inset:0;width:100%;height:100%;border:0}.tour-top{position:fixed;inset:0 0 auto;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:12px clamp(16px,3vw,48px);border-bottom:1px solid #98a6ac;background:#f8f7f2;color:#182435;gap:10px}.tour-brand{font:650 clamp(15px,1.4vw,21px) var(--display);display:flex;align-items:center;gap:12px}.tour-brand svg{width:29px;height:29px}.tour-top .obs-actions{justify-content:flex-end}.tour-top a,.tour-top button{color:#24364a;font:550 13px var(--sans);text-decoration:underline;text-underline-offset:4px;border:0;background:none;cursor:pointer;padding:6px}.tour-card{position:fixed;right:clamp(16px,3vw,48px);top:50%;transform:translateY(-46%);width:clamp(310px,27vw,460px);max-height:calc(100dvh - 100px);overflow:auto;overscroll-behavior:contain;padding:clamp(18px,2.3vw,35px);z-index:2}.tour-card.start h1{font:650 clamp(40px,4.1vw,72px)/.94 var(--display);letter-spacing:-.067em;margin:.34em 0 .3em}.tour-card h2{font-size:clamp(28px,2.45vw,43px)}.tour-card .obs-actions:last-child{padding-top:12px;border-top:1px solid #c3cbd0;margin-top:18px}.tour-card .fact{font-size:14px}.tour-card .eq{white-space:pre-wrap;font:12px var(--mono)}.tour-card details{border-top:1px solid #c3cbd0;margin-top:12px;padding-top:5px}.tour-card .obs-diagram{margin:14px 0}.tour-card .obs-diagram svg{max-height:215px}.tour-card .tour-step-state{display:flex;align-items:center;justify-content:space-between}.tour-progress{display:flex;gap:3px;height:3px;margin-top:9px}.tour-progress i{flex:1;background:#ccd2d5}.tour-progress i.fill{background:#866d40}.tour-rail{position:fixed;left:16px;top:50%;transform:translateY(-50%);display:grid;gap:4px;padding:5px;background:#f8f7f2;border:1px solid #bac4ca;border-radius:25px;z-index:3}.tour-rail button{position:relative;border:0;border-radius:50%;width:35px;height:35px;font:500 13px var(--mono);background:transparent;color:#36475a;cursor:pointer}.tour-rail button[aria-current=true]{color:white;background:#243f65}.tour-rail button span{display:none;position:absolute;left:42px;top:0;white-space:nowrap;padding:8px 12px;background:#f8f7f2;border:1px solid #ccd2d5;border-radius:16px;color:#26374d;font:500 14px var(--sans)}.tour-rail button:hover span,.tour-rail button:focus-visible span{display:block}.tour-card.free{top:auto;bottom:24px;transform:none;width:auto;max-width:380px}.tour-card.free h2{font-size:24px}.tour-card.free p{font-size:14px}dialog{width:min(720px,94vw);max-height:84dvh;padding:24px;color:#192638;background:#f8f7f2;border:1px solid #a6b4bc;border-radius:18px;overflow:auto}dialog::backdrop{background:#13233865}dialog h2{font:600 32px var(--display);margin:.3em 0}dialog header{display:flex;align-items:center;justify-content:space-between}dialog ul{list-style:none;padding:0}dialog li button{display:block;width:100%;text-align:left;padding:8px;border:0;border-bottom:1px solid #ccd3d8;background:none;color:#20354d;cursor:pointer}dialog article{border-top:1px solid #ccd3d8;margin-top:15px}#reading article h3{font:600 22px var(--display)}.skin-key .tour-card,.skin-bp .tour-card{border-color:#aebdc8}.stop-select{max-width:100%;padding:6px 9px;border-radius:8px;margin-top:10px}
+@media(max-width:767px){.tour-top{padding:8px 10px;align-items:flex-start}.tour-brand{gap:5px;font-size:13px;max-width:135px}.tour-brand svg{flex:none;width:22px}.tour-top .obs-actions{gap:1px}.tour-top button,.tour-top a{font-size:11px;padding:4px}.tour-card,.tour-card.free{inset:auto 0 0;transform:none;width:100%;max-width:none;height:46dvh;max-height:52dvh;border-radius:18px 18px 0 0;padding:14px 18px 20px}.tour-card.start h1{font-size:42px}.tour-card h2{font-size:27px}.tour-rail{top:57px;left:8px;transform:none;display:flex;border-radius:22px;gap:1px;padding:3px}.tour-rail button{width:27px;height:27px;font-size:11px}.tour-rail button span{top:30px;left:0}.tour-card.free{height:auto;max-height:36dvh}#tourStage{height:58dvh}body.free #tourStage{height:82dvh}.tour-card .obs-diagram svg{max-height:140px}}
+.skin-light{ --c-bg:#fff; --c-ink:#141824; --c-ink2:#454C5E; --c-line:#E1E5EE; --c-code:#F3F5F9; --c-acc:#7C8CFF; --c-shadow:0 14px 34px -22px rgba(20,30,60,.32),0 1px 2px rgba(20,30,60,.04); --c-shadow-act:0 24px 50px -26px rgba(47,107,255,.5),0 1px 2px rgba(20,30,60,.04);
+  --sv-ink:#141824; --sv-ink2:#4A5163; --sv-line:#B9C1D0; --sv-strong:#3A4254; --sv-chip:#EEF1F7; --sv-faint:#DCE1EA; }
+.skin-key{ --c-bg:#131722; --c-ink:#F3F5FA; --c-ink2:#B5BDCE; --c-line:#262C3D; --c-code:#0D1018; --c-acc:#6C7DFF; --c-shadow:none; --c-shadow-act:none;
+  --sv-ink:#F3F5FA; --sv-ink2:#AEB6C8; --sv-line:rgba(255,255,255,.16); --sv-strong:rgba(255,255,255,.5); --sv-chip:#1A1F2C; --sv-faint:rgba(255,255,255,.07); }
+.skin-bp{ --c-bg:#0F3358; --c-ink:#FFFFFF; --c-ink2:#C9D8EA; --c-line:rgba(255,255,255,.4); --c-code:rgba(255,255,255,.07); --c-acc:#9DB4FF; --c-shadow:0 18px 40px -26px rgba(3,15,30,.65); --c-shadow-act:0 22px 48px -26px rgba(3,15,30,.8);
+  --sv-ink:#FFFFFF; --sv-ink2:rgba(255,255,255,.8); --sv-line:rgba(255,255,255,.88); --sv-strong:#fff; --sv-chip:rgba(255,255,255,.06); --sv-faint:rgba(255,255,255,.3); }
+/* Keep Previous/Next reachable when a long step card scrolls inside the fixed panel. */
+#tourCard .obs-actions{position:sticky;bottom:-1px;z-index:2;background:inherit;padding-block:10px 4px;box-shadow:0 -14px 14px -14px rgba(0,0,0,.35)}
+
+/* Narration (Jade, eleven_v4): button + captions. */
+.narr-cap{position:fixed;z-index:60;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(44rem,calc(100vw - 32px));padding:8px 14px;border-radius:6px;background:rgba(14,18,24,.93);color:#f4f1e8;font:500 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.narr-cap[hidden],#narrTour[hidden],#narrRun[hidden]{display:none!important}
+.narr-dur{opacity:.7;font-variant-numeric:tabular-nums}
+
+@media (min-width:900px){#narrCap{left:max(16px,env(safe-area-inset-left,0px));transform:none;text-align:left;max-width:min(40rem,calc(100vw - 480px))}}
+@media (max-width:899px){#narrCap{top:calc(64px + env(safe-area-inset-top,0px));bottom:auto}}@media (max-width:767px){#narrCap{top:calc(112px + env(safe-area-inset-top,0px));left:12px;right:12px;transform:none;max-width:none}}
+#narrTour[aria-pressed="true"]{outline:2px solid currentColor;outline-offset:1px}
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="gAccF" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2F6BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>
+    <linearGradient id="gCuF" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E5672F"/><stop offset="1" stop-color="#F2A65A"/></linearGradient>
+    <marker id="mW" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#FFFFFF"/></marker>
+    <marker id="mD" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#7D8597"/></marker>
+    <filter id="fBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+</svg><iframe id="tourStage" title="3D LLM Observatory" tabindex="-1"></iframe><header class="tour-top"><div class="tour-brand"><svg viewBox="0 0 30 30" fill="none" stroke-width="1.7" aria-hidden="true"><path stroke="#976f2f" d="m3 9 12-6 12 6-12 6z"/><path stroke="#376879" d="m3 14 12 6 12-6M3 19l12 6 12-6"/></svg>LLM Systems Observatory</div><nav class="obs-actions"><a href="../journey-story/">Scrolling story</a><button id="allParts">All components</button><button id="readTour">Text view</button><button id="narrTour" type="button" aria-pressed="false" hidden><span class="narr-lbl">Narrated tour</span> <span class="narr-dur"></span></button></nav></header><nav class="tour-rail" id="tourRail" aria-label="Jump to chapter"></nav><main class="obs-panel tour-card" id="tourCard" aria-live="polite"></main><div class="narr-cap" id="narrCap" aria-live="polite" hidden></div><dialog id="catalogDialog"><header><h2>All components</h2><button class="obs-pill" data-dismiss>Close ×</button></header><ul id="partList"></ul></dialog><dialog id="reading"><header><h2>One token’s journey</h2><button class="obs-pill" data-dismiss>Close ×</button></header><div id="readingBody"></div></dialog><!-- Inline copy of ../shared/journey-narration/manifest.json so narration also works from file://. Regenerate when the manifest changes. -->
+<script type="application/json" id="narration-manifest">{"version":1,"voice":"tfvhQIydLdGEZP6h00c5","voiceName":"Jade","model":"eleven_v4","totalDuration":384.88,"clips":[{"id":"00-intro","title":"Intro","src":"../shared/journey-narration/00-intro.mp3","dur":14.08,"stop":null,"cues":[{"t":0.0,"s":"Follow one token through a frontier model."},{"t":3.04,"s":"The token is \"sat\", with its leading space, in the sentence: the cat sat on the mat."},{"t":9.72,"s":"The model is DeepSeek V4 Pro, whose design is published."}]},{"id":"01-sources","title":"Sources from everywhere","src":"../shared/journey-narration/01-sources.mp3","dur":13.84,"stop":0,"cues":[{"t":0.0,"s":"Chapter one: data and tokens."},{"t":2.47,"s":"Web pages, code, books, math and synthetic reasoning traces are pooled into a single stream, thirty-three trillion tokens of it."}]},{"id":"02-dedupe","title":"Duplicates out, quality in","src":"../shared/journey-narration/02-dedupe.mp3","dur":11.44,"stop":1,"cues":[{"t":0.0,"s":"Copies are hashed and removed, so nothing is learned twice."},{"t":4.37,"s":"Filters drop low-quality text and personal data, and the mix is rebalanced so no source dominates."}]},{"id":"03-bpe","title":"Byte-pair encoding cuts the sentence","src":"../shared/journey-narration/03-bpe.mp3","dur":13.52,"stop":2,"cues":[{"t":0.0,"s":"The tokenizer cuts text into pieces from a fixed vocabulary."},{"t":4.54,"s":"Common words become one token, and the leading space travels with the word."},{"t":9.67,"s":"So our token is \"sat\", space included."}]},{"id":"04-ids","title":"Every token becomes an ID","src":"../shared/journey-narration/04-ids.mp3","dur":15.44,"stop":3,"cues":[{"t":0.0,"s":"Rare words split into several pieces, each an integer ID, from a vocabulary of one hundred twenty-nine thousand, two hundred and eighty."},{"t":10.16,"s":"Images take another road: their patches become vectors, not IDs."}]},{"id":"05-streams","title":"Streams rise through the tower","src":"../shared/journey-narration/05-streams.mp3","dur":10.8,"stop":4,"cues":[{"t":0.0,"s":"Chapter two: pretraining."},{"t":1.3,"s":"Batches of sequences flow up through every layer at once, and a causal mask makes sure no position can peek at the future."}]},{"id":"06-loss","title":"Score the guess, send gradients down","src":"../shared/journey-narration/06-loss.mp3","dur":13.2,"stop":5,"cues":[{"t":0.0,"s":"After \"the cat\", the model spreads probability over the whole vocabulary."},{"t":5.36,"s":"The loss measures how surprised it was by \"sat\"."},{"t":9.11,"s":"Gradients flow back down, and every weight takes a small step."}]},{"id":"07-racks","title":"Sharded across racks, trained in FP8","src":"../shared/journey-narration/07-racks.mp3","dur":14.0,"stop":6,"cues":[{"t":0.0,"s":"The one point six trillion parameter model is split across racks of accelerators, using several kinds of parallelism at once."},{"t":8.27,"s":"It trains in eight-bit precision, and the released model stores its experts in four bits."}]},{"id":"08-context","title":"Then, a million-token memory","src":"../shared/journey-narration/08-context.mp3","dur":13.12,"stop":7,"cues":[{"t":0.0,"s":"Then the memory stretches."},{"t":2.47,"s":"Pretraining lengthens the context in stages, from four thousand tokens to sixteen thousand, then sixty-four thousand, and finally one million."}]},{"id":"09-specialists","title":"First, specialist SFT and RL","src":"../shared/journey-narration/09-specialists.mp3","dur":12.88,"stop":8,"cues":[{"t":0.0,"s":"Chapter three: post-training."},{"t":2.83,"s":"First, separate specialists for math, code, agents and instructions are trained on worked examples, and then with reinforcement learning."}]},{"id":"10-attempts","title":"Draw a group of attempts","src":"../shared/journey-narration/10-attempts.mp3","dur":9.84,"stop":9,"cues":[{"t":0.0,"s":"For a prompt with a checkable answer, the policy, which is the same tower, samples a group of attempts."},{"t":6.38,"s":"The group of eight in the drawing is illustrative."}]},{"id":"11-grade","title":"Grade against the group","src":"../shared/journey-narration/11-grade.mp3","dur":10.88,"stop":10,"cues":[{"t":0.0,"s":"Verifiers grade code and math, and rubrics grade open-ended answers."},{"t":4.64,"s":"Each score is compared with the group's average, so no separate value model is needed."}]},{"id":"12-distill","title":"Distill specialists into one model","src":"../shared/journey-narration/12-distill.mp3","dur":10.96,"stop":11,"cues":[{"t":0.0,"s":"Winning attempts are reinforced, with a penalty that keeps each specialist close to where it started."},{"t":6.6,"s":"Then distillation merges all the specialists into one model."}]},{"id":"13-embed","title":"An ID becomes a vector","src":"../shared/journey-narration/13-embed.mp3","dur":14.16,"stop":12,"cues":[{"t":0.0,"s":"Chapter four: inside the model."},{"t":2.3,"s":"The token ID picks one row of the embedding table, a lookup, not a calculation."},{"t":8.3,"s":"Out comes a vector of seven thousand, one hundred and sixty-eight numbers."}]},{"id":"14-attention","title":"Normalize, then look back","src":"../shared/journey-narration/14-attention.mp3","dur":9.68,"stop":13,"cues":[{"t":0.0,"s":"A normalized copy of the vector goes into attention."},{"t":3.56,"s":"\"Sat\" can score every earlier token, while a causal mask hides the ones that come later."}]},{"id":"15-compressed","title":"Hybrid compressed attention","src":"../shared/journey-narration/15-compressed.mp3","dur":12.32,"stop":14,"cues":[{"t":0.0,"s":"To reach a million tokens, attention compresses its memory."},{"t":4.48,"s":"Some layers read a sparse selection of compressed blocks plus a recent window."},{"t":9.61,"s":"Others read heavily compressed summaries."}]},{"id":"16-mhc","title":"Merge via hyper-connections","src":"../shared/journey-narration/16-mhc.mp3","dur":11.36,"stop":15,"cues":[{"t":0.0,"s":"Attention's output is added back to the residual stream, which here runs as four parallel lanes, mixed by learned connections that keep the signal stable through the depth of the tower."}]},{"id":"17-router","title":"The router picks 6 of 384","src":"../shared/journey-narration/17-router.mp3","dur":14.8,"stop":16,"cues":[{"t":0.0,"s":"A router scores three hundred and eighty-four experts and keeps the top six, while one shared expert always runs."},{"t":7.91,"s":"That is why only forty-nine billion of the one point six trillion parameters work on each token."}]},{"id":"18-layers","title":"Sixty-one distinct layers","src":"../shared/journey-narration/18-layers.mp3","dur":11.28,"stop":17,"cues":[{"t":0.0,"s":"The block repeats sixty-one times, each layer with its own weights: a stack, not a loop."},{"t":6.04,"s":"The first three layers route tokens by hash instead of a learned router."}]},{"id":"19-vocab","title":"Score the whole vocabulary","src":"../shared/journey-narration/19-vocab.mp3","dur":10.88,"stop":18,"cues":[{"t":0.0,"s":"At the top, a final norm and the output head turn the vector into one score for every token in the vocabulary."},{"t":7.73,"s":"A second head guesses one token further ahead."}]},{"id":"20-training","title":"Training: loss up top, gradients down","src":"../shared/journey-narration/20-training.mp3","dur":12.32,"stop":19,"cues":[{"t":0.0,"s":"In training, the top score is compared with the real next token, \"on\"."},{"t":5.21,"s":"The loss flows back down as gradients."},{"t":8.06,"s":"There is no K V cache, because the whole sequence runs at once."}]},{"id":"21-inference","title":"Inference: the same tower, frozen","src":"../shared/journey-narration/21-inference.mp3","dur":12.0,"stop":20,"cues":[{"t":0.0,"s":"In serving, the same tower is frozen, and the pass only goes up."},{"t":4.35,"s":"Each attention layer writes its compressed memory into the K V cache, and the top output goes to a sampler."}]},{"id":"22-gate","title":"Through the gate","src":"../shared/journey-narration/22-gate.mp3","dur":11.68,"stop":21,"cues":[{"t":0.0,"s":"Chapter five: serving your request."},{"t":2.45,"s":"The gateway checks your key, your rate limits and your reasoning setting, screens for abuse, and routes you to a warm replica."}]},{"id":"23-batching","title":"Disaggregated and continuously batched","src":"../shared/journey-narration/23-batching.mp3","dur":11.44,"stop":22,"cues":[{"t":0.0,"s":"Modern engines split the work."},{"t":2.37,"s":"One pool of accelerators reads prompts and another writes replies, and requests join the batch at every step instead of waiting their turn."}]},{"id":"24-prefill","title":"Prefill: read it all at once","src":"../shared/journey-narration/24-prefill.mp3","dur":11.2,"stop":23,"cues":[{"t":0.0,"s":"Prefill reads your whole prompt in one parallel pass."},{"t":3.96,"s":"It is compute-bound, it fills the K V cache, \"sat\" included, and it sets the time to the first token."}]},{"id":"25-decode","title":"Decode: one token per tick","src":"../shared/journey-narration/25-decode.mp3","dur":14.24,"stop":24,"cues":[{"t":0.0,"s":"Decode writes one token per step: first hidden reasoning, then the reply."},{"t":5.17,"s":"Each step streams the weights and the cache through memory, so it is memory-bound."},{"t":11.5,"s":"Drafting a few tokens ahead speeds it up."}]},{"id":"26-sample","title":"Sample, check, stream","src":"../shared/journey-narration/26-sample.mp3","dur":11.52,"stop":25,"cues":[{"t":0.0,"s":"The sampler picks the next token, and keeps tool calls in valid JSON."},{"t":5.01,"s":"Text is decoded into a buffer, checked by output guardrails, and only then streamed to you."}]},{"id":"27-toolcall","title":"The model stops with a tool call","src":"../shared/journey-narration/27-toolcall.mp3","dur":10.64,"stop":26,"cues":[{"t":0.0,"s":"Chapter six: the tool loop."},{"t":1.34,"s":"Instead of more text, the model can stop with a tool call, a name and its arguments, and hand control back to your app."}]},{"id":"28-runtool","title":"Your app or an MCP server runs it","src":"../shared/journey-narration/28-runtool.mp3","dur":11.36,"stop":27,"cues":[{"t":0.0,"s":"Your app, or an M C P server, runs the tool and keeps the result."},{"t":5.44,"s":"Treat that result as untrusted input: it is where prompt injection usually arrives."}]},{"id":"29-newrequest","title":"A brand-new request","src":"../shared/journey-narration/29-newrequest.mp3","dur":8.96,"stop":28,"cues":[{"t":0.0,"s":"The API remembers nothing between calls, so your app sends the whole conversation again, with the tool call and its result appended."}]},{"id":"30-prefixcache","title":"Prefix cache: prefill only what's new","src":"../shared/journey-narration/30-prefixcache.mp3","dur":11.92,"stop":29,"cues":[{"t":0.0,"s":"The server recognizes the unchanged prefix, \"sat\" included, and reuses its cached memory."},{"t":6.39,"s":"Only the new tokens are read, and decoding continues to the final answer."}]},{"id":"31-outro","title":"Outro","src":"../shared/journey-narration/31-outro.mp3","dur":9.12,"stop":null,"cues":[{"t":0.0,"s":"Thirty stops, one token."},{"t":1.17,"s":"From a page of training text to the answer on your screen, it is the same tower, used two ways."}]}]}</script>
+<script>(()=>{const NS = 'http://www.w3.org/2000/svg';
+const doc = document.documentElement;
+doc.classList.add('js');
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const clamp = (v, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const expo = t => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
+const sstep = t => t * t * (3 - 2 * t);
+const lin = (p, a, b) => clamp((p - a) / (b - a));
+const seg = (p, a, b) => expo(lin(p, a, b));
+const sseg = (p, a, b) => sstep(lin(p, a, b));
+const bump = (p, a, b, e = 0.03) => clamp((p - a) / e) * clamp((b - p) / e);
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mixC = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const toLin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+const toSrgb = v => { v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(Math.max(0, v), 1 / 2.4) - 0.055; return clamp(v) * 255; };
+function rgb2ok(c) { const r = toLin(c[0]), g = toLin(c[1]), b = toLin(c[2]); const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b); return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; }
+function ok2rgb(o) { const l = Math.pow(o[0] + 0.3963377774 * o[1] + 0.2158037573 * o[2], 3), m = Math.pow(o[0] - 0.1055613458 * o[1] - 0.0638541728 * o[2], 3), s = Math.pow(o[0] - 0.0894841775 * o[1] - 1.291485548 * o[2], 3); return [toSrgb(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), toSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), toSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)]; }
+const ACC_DIR = (() => { const o = rgb2ok([94, 96, 250]), h = Math.hypot(o[1], o[2]); return [o[1] / h, o[2] / h]; })();
+/* perceptual mix; `tint` bows the midpoint toward the accent hue so dark<->light blends never pass through flat grey */
+function mixOK(a, b, t, tint) { const A = rgb2ok(a), B = rgb2ok(b), o = A.map((v, i) => v + (B[i] - v) * t); if (tint) { const k = tint * Math.sin(Math.PI * t); o[1] += ACC_DIR[0] * k; o[2] += ACC_DIR[1] * k; } return ok2rgb(o); }
+const blendOf = t => sstep(clamp((t - 0.3) / 0.4));
+function cubicBez(x1, y1, x2, y2) { const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by; const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx; return x => { let t = x; for (let i = 0; i < 8; i++) { const d = dX(t); if (Math.abs(d) < 1e-6) break; t = clamp(t - (X(t) - x) / d); } return Y(t); }; }
+const MODE_EASE = cubicBez(0.3, 1.32, 0.5, 1), MODE_DUR = 0.5; /* same curve as the CSS knob (--spring) */
+const rgb = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a.toFixed(3)})`;
+const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+const cr = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+function E(tag, attrs, parent) { const n = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+function T(parent, x, y, str, cls, extra) { const ex = Object.assign({}, extra || {}); const fs = ex['font-size']; delete ex['font-size']; const n = E('text', Object.assign({ x, y, class: cls || '' }, ex), parent); if (fs) n.style.fontSize = fs + 'px'; n.textContent = str; return n; }
+function grad(svg, id, x1, y1, x2, y2, c1, c2) { let d = svg.querySelector('defs'); if (!d) d = E('defs', null, svg); const g = E('linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1, y1, x2, y2 }, d); E('stop', { offset: 0, 'stop-color': c1 }, g); E('stop', { offset: 1, 'stop-color': c2 }, g); return `url(#${id})`; }
+const op = (n, v) => { n.style.opacity = v < 0.002 ? 0 : v > 0.998 ? 1 : v.toFixed(3); };
+const tr = (n, s) => n.setAttribute('transform', s);
+const WHITE = [255, 255, 255], NAVY = [18, 58, 99], DARKI = [29, 36, 51];
+
+const qs = new URLSearchParams(location.search);
+const SHOT = qs.get('shot');
+let RM = matchMedia('(prefers-reduced-motion: reduce)').matches || qs.get('rm') === '1';
+doc.classList.toggle('rm', RM);
+
+/* polyline track: segments [p0,p1,[[x,y]...]] with eased motion per segment */
+function makeTrack(segs) {
+  const S = segs.map(([p0, p1, pts]) => { const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return { p0, p1, pts, cum, len: cum[cum.length - 1] }; });
+  let off = 0; S.forEach(s => { s.off = off; off += s.len; });
+  const all = [S[0].pts[0]]; S.forEach(s => { for (let i = 1; i < s.pts.length; i++) all.push(s.pts[i]); });
+  const poly = makePoly(all);
+  function atSeg(s, dist) { let i = 1; while (i < s.cum.length - 1 && s.cum[i] < dist) i++; const a = s.pts[i - 1], b = s.pts[i], l = (s.cum[i] - s.cum[i - 1]) || 1, f = clamp((dist - s.cum[i - 1]) / l); return { x: lerp(a[0], b[0], f), y: lerp(a[1], b[1], f), L: s.off + dist }; }
+  function at(p) {
+    for (let k = 0; k < S.length; k++) { const s = S[k]; if (p < s.p0) return atSeg(s, 0); if (p < s.p1) return atSeg(s, sstep((p - s.p0) / (s.p1 - s.p0)) * s.len); }
+    const s = S[S.length - 1]; return atSeg(s, s.len);
+  }
+  return { at, total: off, d: poly.d, poly, pts: all };
+}
+function makePoly(pts) {
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = cum[cum.length - 1];
+  function at(L) { L = clamp(L, 0, total); let i = 1; while (i < cum.length - 1 && cum[i] < L) i++; const a = pts[i - 1], b = pts[i], l = (cum[i] - cum[i - 1]) || 1, f = clamp((L - cum[i - 1]) / l); return { x: lerp(a[0], b[0], f), y: lerp(a[1], b[1], f), ang: Math.atan2(b[1] - a[1], b[0] - a[0]) }; }
+  return { at, total, d: 'M' + pts.map(q => q[0] + ' ' + q[1]).join(' L') };
+}
+function cubicPts(a, b, c, d, n) { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * u * a[0] + 3 * u * u * t * b[0] + 3 * u * t * t * c[0] + t * t * t * d[0], u * u * u * a[1] + 3 * u * u * t * b[1] + 3 * u * t * t * c[1] + t * t * t * d[1]]); } return out; }
+function anchorRect(parent, w, h, k) { return E('rect', { x: 0, y: 0, width: w, height: h, fill: 'transparent', 'data-u': w, 'data-k': k }, parent); }
+function place(a, x, y) { a.setAttribute('x', (x - a.width.baseVal.value / 2).toFixed(2)); a.setAttribute('y', (y - a.height.baseVal.value / 2).toFixed(2)); }
+/* the recurring tower glyph: LM head cap, n plates, embedding base, residual bus */
+function tower(parent, x, y, w, h, stroke, n) {
+  const g = E('g', null, parent); n = n || 6;
+  const capH = h * 0.12, baseH = h * 0.14, gap = h * 0.045, bx = x + w * 0.2, bw = w * 0.8;
+  E('rect', { x: bx, y, width: bw, height: capH, rx: 2, class: 'gl', stroke }, g);
+  const top = y + capH + gap, bot = y + h - baseH - gap, st = (bot - top) / n;
+  for (let i = 0; i < n; i++) E('rect', { x: bx, y: top + i * st + st * 0.18, width: bw, height: st * 0.64, rx: 1.5, class: 'gl', stroke }, g);
+  E('rect', { x: bx, y: y + h - baseH, width: bw, height: baseH, rx: 2, class: 'gl', stroke }, g);
+  E('line', { x1: x + w * 0.07, y1: y + h, x2: x + w * 0.07, y2: y, class: 'gl', stroke }, g);
+  return g;
+}
+const CHEV = 'M-5 -3.5 L0 2.5 L5 -3.5';
+
+/* ---------- Chapter 1: data & tokens ---------- */
+function buildS1(svg) {
+  const acc = grad(svg, 'acc-s1', 40, 0, 440, 0, '#2F6BFF', '#8B5CF6');
+  const r = E('g', null, svg);
+  const SX = [36, 144, 252, 360], NAMES = ['web', 'code', 'books', 'math'];
+  const curves = SX.map(x => E('path', { d: `M${x + 42} 72 C${x + 42} 114 240 106 240 150`, class: 'acc', stroke: acc, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r));
+  const fr = [];
+  for (let i = 0; i < 12; i++) { const s = i % 4; fr.push({ n: E('rect', { width: 22, height: 10, rx: 5, fill: i % 3 === 0 ? 'url(#gAccF)' : '#C9D3EA' }, r), s, j: ((i * 7) % 5 - 2) * 6, dup: i === 3 || i === 8 }); }
+  SX.forEach((x, i) => { E('rect', { x, y: 36, width: 84, height: 36, rx: 18, class: 'chip' }, r); T(r, x + 42, 59, NAMES[i], 'lab', { 'text-anchor': 'middle' }); });
+  E('rect', { x: 126, y: 150, width: 228, height: 34, rx: 17, fill: '#F6F7FA', stroke: '#E1E5EE' }, r);
+  const words = [['dedupe', 178], ['filter', 240], ['mix', 296]].map(([w, x]) => T(r, x, 172, w, 'mono', { 'text-anchor': 'middle' }));
+  const corpus = T(r, 36, 236, '33T-token corpus', 'mono-i');
+  const W = [64, 72, 72, 58], LB = ['The', 'cat', 'sat', 'on'];
+  const chips = W.map((w, i) => { const g = E('g', null, r); const bgR = E('rect', { x: 0, y: 262, width: w, height: 36, rx: 18, fill: i === 2 ? 'none' : '#EEF1F7', stroke: 'none' }, g); let t = null, dot = null;
+    if (i !== 2) { t = T(g, w / 2, 286, '', 'disp', { 'text-anchor': 'middle', 'font-size': 20 }); if (i > 0) { dot = E('tspan', { fill: '#7C8CFF', 'font-size': 12 }, t); dot.textContent = '␣'; } const ts = E('tspan', null, t); ts.textContent = LB[i]; }
+    return { g, bgR, t, dot, w }; });
+  const bpe = E('g', null, r);
+  T(bpe, 36, 348, 'Architecting', 'disp', { 'font-size': 17 }); E('path', { d: 'M150 343 H178', class: 'ln strong', 'marker-end': 'url(#mD)' }, bpe);
+  E('rect', { x: 186, y: 328, width: 92, height: 28, rx: 14, fill: '#EEF1F7' }, bpe); T(bpe, 232, 347, 'Architect', 'mono-i', { 'text-anchor': 'middle' });
+  E('rect', { x: 284, y: 328, width: 44, height: 28, rx: 14, fill: '#EEF1F7' }, bpe); T(bpe, 306, 347, 'ing', 'mono-i', { 'text-anchor': 'middle' });
+  T(bpe, 232, 374, '4182', 'mono', { 'text-anchor': 'middle' }); T(bpe, 306, 374, '287', 'mono', { 'text-anchor': 'middle' }); T(bpe, 340, 374, 'illustrative IDs', 'tiny');
+  const vocab = T(r, 444, 236, '129,280-token vocabulary', 'mono-i', { 'text-anchor': 'end' });
+  const a = anchorRect(r, 72, 36, 1);
+  const bez = (s, t) => { const x = SX[s] + 42; return [Math.pow(1 - t, 3) * x + 3 * Math.pow(1 - t, 2) * t * x + 3 * (1 - t) * t * t * 240 + t * t * t * 240, Math.pow(1 - t, 3) * 54 + 3 * Math.pow(1 - t, 2) * t * 114 + 3 * (1 - t) * t * t * 106 + t * t * t * 167]; };
+  return { anchor: a, render(p) {
+    curves.forEach((c, i) => { c.style.strokeDashoffset = (1 - seg(p, i * 0.02, 0.17 + i * 0.02)).toFixed(4); });
+    fr.forEach((f, i) => {
+      const u1 = sseg(p, 0.02 + i * 0.014, 0.2 + i * 0.014), u2 = sseg(p, 0.3 + i * 0.006, 0.44 + i * 0.006);
+      let x, y; if (u2 > 0) { const m = [240 + f.j * 0.3, 167], e = [120 + (i % 4) * 80, 280]; x = lerp(m[0], e[0], u2); y = lerp(m[1], e[1], u2); } else { const q = bez(f.s, u1); x = q[0] + f.j * (1 - u1); y = q[1]; }
+      let o = u1 > 0.01 ? 1 - u2 : 0; if (f.dup) o *= 1 - lin(p, 0.27, 0.32);
+      tr(f.n, `translate(${(x - 11).toFixed(1)} ${(y - 5).toFixed(1)})`); op(f.n, o);
+    });
+    words.forEach((w, i) => { const b = bump(p, 0.25 + i * 0.05, 0.31 + i * 0.05, 0.02); w.style.fill = b > 0.5 ? '#2A5BEF' : ''; w.style.fontWeight = b > 0.5 ? 500 : ''; });
+    op(corpus, seg(p, 0.05, 0.14)); op(vocab, seg(p, 0.8, 0.92));
+    const sa = seg(p, 0.32, 0.46), sp = seg(p, 0.5, 0.66), gap = 16 * sp;
+    const tot = W.reduce((s, w) => s + w, 0) + gap * 3; let x = 240 - tot / 2;
+    chips.forEach((c, i) => { tr(c.g, `translate(${x.toFixed(2)} 0)`); op(c.bgR, i === 2 ? 0 : sp); if (c.t) op(c.t, sa); if (c.dot) op(c.dot, sp); if (i === 2) place(a, x + c.w / 2, 280); x += c.w + gap; });
+    const q = seg(p, 0.75, 0.88); op(bpe, q); tr(bpe, `translate(0 ${(10 * (1 - q)).toFixed(2)})`);
+  } };
+}
+
+/* ---------- Chapter 2: pretraining keynote ---------- */
+const P2 = { COLX: i => 60 + i * 31, PLANES: [66, 114, 162, 210, 258, 306] };
+function buildS2(svg) {
+  const r = E('g', null, svg);
+  E('rect',{x:16,y:29,width:258,height:285,fill:'transparent','data-port':''},r);
+  P2.field = E('rect', { x: 24, y: 34, width: 238, height: 272, fill: 'transparent' }, r);
+  for (let i = 0; i < 7; i++) E('line', { x1: P2.COLX(i), y1: 40, x2: P2.COLX(i), y2: 306, class: 'ln faint' }, r);
+  P2.PLANES.forEach((y, k) => { E('path', { d: `M24 ${y + 6} L40 ${y - 6} L262 ${y - 6} L246 ${y + 6} Z`, class: 'ln', fill: 'rgba(255,255,255,.02)' }, r); });
+  T(r, 24, 24, 'LM head → loss', 'tiny'); T(r, 24, 324, 'embedding', 'tiny');
+  T(r, 268, 64, 'L61', 'tiny'); T(r, 268, 304, 'L1', 'tiny');
+  // gradient wave glimpse (copper, descending)
+  const cu = grad(svg, 'cu-s2', 24, 0, 262, 0, '#E5672F', '#F2A65A');
+  const wave = E('g', null, r); const wl = E('rect', { x: 24, y: 0, width: 238, height: 2, rx: 1, fill: cu }, wave);
+  const wg = E('rect', { x: 24, y: 0, width: 238, height: 16, fill: cu, opacity: 0.1 }, wave);
+  const lf = T(r, 250, 120, 'forward ↑', 'tiny', { 'text-anchor': 'end', fill: '#9DB4FF' }); lf.style.fill = '#9DB4FF';
+  const lg = T(r, 250, 136, 'gradients ↓', 'tiny', { 'text-anchor': 'end' }); lg.style.fill = '#F2A65A';
+  E('line', { x1: 280, y1: 34, x2: 280, y2: 306, class: 'ln faint' }, r);
+  // group A: prediction
+  const A = E('g', null, r);
+  T(A, 292, 52, '“The cat” → next?', 'mono-i');
+  const TOK = ['sat', 'is', 'was', 'ran'], FR = [0.45, 0.35, 0.2];
+  const bars = TOK.map((t, i) => { const y = 70 + i * 26; { const tx = T(A, 292, y + 10, '', 'mono'); const sp = E('tspan', { 'font-size': 9, fill: '#7C8CFF' }, tx); sp.textContent = '␣'; const ts = E('tspan', null, tx); ts.textContent = t; } E('rect', { x: 336, y, width: 116, height: 12, rx: 6, fill: 'rgba(255,255,255,.06)' }, A); return E('rect', { x: 336, y, width: 4, height: 12, rx: 6, fill: i === 0 ? 'url(#gAccF)' : 'rgba(255,255,255,.28)' }, A); });
+  const readout = T(A, 292, 190, '', 'mono');
+  // group B: GPUs
+  const B = E('g', null, r); T(B, 292, 52, 'accelerator racks', 'lab');
+  const cells = []; for (let i = 0; i < 128; i++) cells.push(E('rect', { x: 292 + (i % 16) * 10.4, y: 66 + Math.floor(i / 16) * 10.4, width: 8, height: 8, rx: 1.5, fill: 'rgba(255,255,255,.1)' }, B));
+  const lit = []; for (let i = 0; i < 128; i++) lit.push(E('rect', { x: 292 + (i % 16) * 10.4, y: 66 + Math.floor(i / 16) * 10.4, width: 8, height: 8, rx: 1.5, fill: 'url(#gAccF)', opacity: 0 }, B));
+  T(B, 292, 168, 'illustrative cluster', 'tiny'); T(B, 292, 184, 'Muon + AdamW', 'tiny'); T(B, 292, 198, 'FP8 train · FP4 QAT', 'tiny');
+  // group C: context
+  const C = E('g', null, r); T(C, 292, 52, 'context window', 'lab');
+  const ctx = [[10, '4K'], [28, '16K'], [64, '64K'], [128, '1M']].map(([k, l], i) => { const y = 76 + i * 28; T(C, 292, y - 6, l, 'mono'); E('rect', { x: 292, y, width: 160, height: 10, rx: 5, fill: 'rgba(255,255,255,.06)' }, C); return { r: E('rect', { x: 292, y, width: 0.1, height: 10, rx: 5, fill: 'url(#gAccF)' }, C), w: 160 * k / 128 }; });
+  T(C, 292, 196, 'sparse attention from 64K', 'tiny');
+  // loss chart
+  E('path', { d: 'M292 216 V300 H458', class: 'ln' }, r); T(r, 458, 226, 'loss · illustrative', 'tiny', { 'text-anchor': 'end' });
+  let d = ''; for (let k = 0; k <= 48; k++) { const u = k / 48; d += (k ? ' L' : 'M') + (292 + 166 * u).toFixed(1) + ' ' + (292 - 66 * Math.exp(-3.2 * u) - 3 * Math.sin(u * 37) * Math.exp(-2.2 * u)).toFixed(1); }
+  const loss = E('path', { d, class: 'acc', stroke: 'url(#gAccF)', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+  const PILLS = [['33T tokens', 24, 124], ['Muon + AdamW', 158, 116], ['FP4 + FP8', 284, 112]];
+  const pills = PILLS.map(([s, x, w]) => { E('rect', { x, y: 336, width: w, height: 34, rx: 17, fill: '#1A1F2C', stroke: 'rgba(255,255,255,.14)' }, r); const hl = E('rect', { x, y: 336, width: w, height: 34, rx: 17, fill: 'none', stroke: 'url(#gAccF)', 'stroke-width': 1.5, opacity: 0 }, r); T(r, x + w / 2, 358, s, 'mono-i', { 'text-anchor': 'middle', 'font-size': 13 }); return hl; });
+  const a = anchorRect(r, 14, 14, 14 / 12);
+  return { anchor: a, timeAnim: true, render(p, time) {
+    const ps = lerp(0.03, 0.58, seg(p, 0.27, 0.46));
+    bars.forEach((b, i) => { const v = i === 0 ? ps : (1 - ps) * FR[i - 1]; b.setAttribute('width', Math.max(4, 116 * v).toFixed(1)); });
+    readout.textContent = `loss = −log p(sat) = ${(-Math.log(ps)).toFixed(2)}`;
+    const oA = 1 - seg(p, 0.5, 0.56), oB = seg(p, 0.5, 0.56) * (1 - seg(p, 0.74, 0.8)), oC = seg(p, 0.74, 0.8);
+    op(A, oA); op(B, oB); op(C, oC);
+    const g = lin(p, 0.52, 0.66); lit.forEach((c, i) => op(c, clamp(g * 1.3 - i / 128 * 1.0 * 1.0 + 0.0)));
+    ctx.forEach((c, i) => c.r.setAttribute('width', Math.max(0.1, c.w * seg(p, 0.78 + i * 0.04, 0.86 + i * 0.04)).toFixed(1)));
+    loss.style.strokeDashoffset = (1 - lin(p, 0.04, 0.98)).toFixed(4);
+    op(pills[0], bump(p, 0, 0.25)); op(pills[1], bump(p, 0.5, 0.75)); op(pills[2], bump(p, 0.5, 0.75));
+    // gradient wave glimpse: visible in step 2 (and lingering into step 3)
+    const wv = RM ? (p > 0.25 && p < 0.5 ? 1 : 0) : bump(p, 0.27, 0.56, 0.04);
+    op(wave, wv); op(lf, Math.max(wv, 0.0)); op(lg, wv);
+    const ph = RM ? 0.45 : (time / 2.2) % 1, wy = 40 + 262 * ph;
+    wl.setAttribute('y', wy.toFixed(1)); wg.setAttribute('y', (wy - 14).toFixed(1));
+    // dot rides the forward stream, then to the probability bar, then back to the top
+    const cx = P2.COLX(3);
+    let x = cx, y;
+    if (p < 0.27) y = lerp(306, 40, sseg(p, 0.02, 0.24));
+    else { const hx = 336 + Math.max(4, 116 * ps), hy = 76; const u1 = sseg(p, 0.28, 0.4), u2 = sseg(p, 0.54, 0.64); x = lerp(lerp(cx, hx, u1), cx, u2); y = lerp(lerp(40, hy, u1), 40, u2); }
+    place(a, x, y);
+  } };
+}
+
+/* ---------- Chapter 3: post-training blueprint ---------- */
+function buildS3(svg) {
+  const acc = grad(svg, 'acc-s3', 140, 0, 300, 0, '#2F6BFF', '#8B5CF6');
+  const r = E('g', null, svg);
+  for (const y of [20, 150, 214, 300]) E('line', { x1: 0, y1: y, x2: 480, y2: y, class: 'ln cons' }, r);
+  E('rect', { x: 300, y: 350, width: 168, height: 38, class: 'ln' }, r); E('line', { x1: 300, y1: 369, x2: 468, y2: 369, class: 'ln faint' }, r);
+  T(r, 308, 364, 'SHEET 3 · POST-TRAINING', 'tiny'); T(r, 308, 383, 'GROUP SIZE ILLUSTRATIVE', 'tiny');
+  const P = [['SFT', 24, 72], ['RL · GRPO', 120, 120], ['OPD · MERGE', 264, 168]];
+  const pip = P.map(([s, x, w]) => { const f = E('rect', { x, y: 20, width: w, height: 28, rx: 4, fill: 'url(#gAccF)', opacity: 0 }, r); E('rect', { x, y: 20, width: w, height: 28, rx: 4, class: 'ln' }, r); T(r, x + w / 2, 38, s, 'mono-i', { 'text-anchor': 'middle', 'font-size': 11 }); return f; });
+  E('path', { d: 'M96 34 H118', class: 'ln', 'marker-end': 'url(#mW)' }, r); E('path', { d: 'M240 34 H262', class: 'ln', 'marker-end': 'url(#mW)' }, r);
+  const pglow = E('rect', { x: 24, y: 150, width: 120, height: 64, rx: 4, fill: 'url(#gAccF)', opacity: 0 }, r);
+  E('rect', { x: 24, y: 150, width: 120, height: 64, rx: 4, class: 'ln' }, r);
+  E('rect',{x:26,y:152,width:41,height:59,fill:'transparent','data-port':''},r);
+  tower(r, 30, 156, 30, 52, 'rgba(255,255,255,.9)', 5);
+  T(r, 102, 180, 'POLICY', 'mono-i', { 'text-anchor': 'middle', 'font-size': 12 }); T(r, 102, 196, 'the tower', 'tiny', { 'text-anchor': 'middle' });
+  const upd = T(r, 24, 138, 'GRPO + OPD distill', 'tiny');
+  E('rect', { x: 24, y: 300, width: 120, height: 40, rx: 4, class: 'ln dash' }, r); T(r, 84, 318, 'REFERENCE', 'mono-i', { 'text-anchor': 'middle', 'font-size': 11 }); T(r, 84, 332, 'frozen copy', 'tiny', { 'text-anchor': 'middle' });
+  const kl = E('path', { d: 'M84 214 V228 L94 234 L74 246 L94 258 L74 270 L94 282 L84 288 V300', class: 'ln', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+  const klT = E('g', null, r); T(klT, 100, 254, 'KL anchor', 'mono-i', { 'font-size': 11 }); T(klT, 100, 268, 'near the reference model', 'tiny');
+  const SC = [0, 1, 0, 1, 0, 0, 1, 0]; const mean = SC.reduce((a, b) => a + b, 0) / SC.length; const sd = Math.sqrt(SC.reduce((a, b) => a + (b - mean) * (b - mean), 0) / SC.length) || 1;
+  const AY = i => 92 + i * 28;
+  T(r, 326, 84, 'VERIFY', 'mono-i', { 'text-anchor': 'middle', 'font-size': 11 }); T(r, 410, 84, 'group mean', 'tiny', { 'text-anchor': 'middle' });
+  const axis = E('line', { x1: 410, y1: 90, x2: 410, y2: 318, class: 'ln dash' }, r);
+  E('line', { x1: 310, y1: 90, x2: 310, y2: 318, class: 'ln faint' }, r);
+  // dimension: group of 8
+  E('path', { d: 'M200 92 V316 M196 92 H204 M196 316 H204', class: 'ln faint' }, r);
+  const att = SC.map((s, i) => {
+    const y = AY(i);
+    const fan = E('path', { d: `M144 182 C176 182 182 ${y + 10} 210 ${y + 10}`, class: 'ln faint', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+    const fanA = s ? E('path', { d: `M144 182 C176 182 182 ${y + 10} 210 ${y + 10}`, class: 'acc', stroke: acc, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1, opacity: 0 }, r) : null;
+    const g = E('g', null, r); const ink = E('rect', { x: 210, y, width: 90, height: 20, rx: 3, fill: '#fff', opacity: 0 }, g);
+    E('rect', { x: 210, y, width: 90, height: 20, rx: 3, class: 'ln', 'stroke-dasharray': '4 3' }, g); const lab = T(g, 220, y + 14, 'attempt ' + (i + 1), 'tiny nh');
+    const sc = T(r, 326, y + 14, String(s), 'mono-i', { 'text-anchor': 'middle' });
+    const adv = (s - mean) / sd; const len = Math.abs(adv) * 34;
+    const bar = E('rect', { x: adv >= 0 ? 410 : 410 - len, y: y + 4, width: len, height: 12, rx: 2, fill: s ? 'url(#gAccF)' : 'rgba(255,255,255,.38)' }, r);
+    return { fan, fanA, g, ink, lab, sc, bar, adv, len, s };
+  });
+  const a = anchorRect(r, 30, 30, 1);
+  const path1 = cubicPts([144, 182], [176, 182], [182, AY(1) + 10], [210, AY(1) + 10], 16).filter(q => q[0] <= 190).concat([[192, AY(1) + 10]]);
+  const trk = makeTrack([[0.3, 0.45, path1]]);
+  return { anchor: a, render(p) {
+    op(pip[0], 0.35 * bump(p, 0, 0.13)); op(pip[1], 0.35 * bump(p, 0.12, 0.25)); op(pip[2], 0.35 * seg(p, 0.24, 0.28));
+    const ink = seg(p, 0.77, 0.86);
+    att.forEach((t, i) => {
+      const d = seg(p, 0.27 + i * 0.015, 0.4 + i * 0.015); t.fan.style.strokeDashoffset = (1 - d).toFixed(4); op(t.g, d);
+      if (t.fanA) { t.fanA.style.strokeDashoffset = (1 - d).toFixed(4); op(t.fanA, ink); }
+      op(t.sc, seg(p, 0.52 + i * 0.012, 0.58 + i * 0.012));
+      const bw = t.len * seg(p, 0.62 + i * 0.01, 0.72 + i * 0.01); t.bar.setAttribute('width', bw.toFixed(2)); if (t.adv < 0) t.bar.setAttribute('x', (410 - bw).toFixed(2));
+      if (t.s) { op(t.ink, ink); t.lab.style.fill = ink > 0.5 ? '#123A63' : ''; } else op(t.g, d * (1 - 0.28 * ink));
+    });
+    op(axis, seg(p, 0.6, 0.66));
+    kl.style.strokeDashoffset = (1 - seg(p, 0.82, 0.92)).toFixed(4); op(klT, seg(p, 0.86, 0.94)); op(upd, seg(p, 0.84, 0.92)); op(pglow, 0.3 * seg(p, 0.84, 0.9));
+    const q = trk.at(p); place(a, q.x, q.y);
+  } };
+}
+
+/* ---------- Chapter 4: the tower (training / inference) ---------- */
+function offsetPoly(pts, o) {
+  const P = pts.filter((q, i) => i === 0 || q[0] !== pts[i - 1][0] || q[1] !== pts[i - 1][1]); const n = P.length, out = [];
+  const nrm = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l]; };
+  for (let i = 0; i < n; i++) {
+    const n1 = i > 0 ? nrm(P[i - 1], P[i]) : nrm(P[0], P[1]), n2 = i < n - 1 ? nrm(P[i], P[i + 1]) : n1;
+    let mx = n1[0] + n2[0], my = n1[1] + n2[1]; const ml = Math.hypot(mx, my); if (ml < 1e-6) { mx = n1[0]; my = n1[1]; } else { mx /= ml; my /= ml; }
+    const d = Math.max(0.4, mx * n1[0] + my * n1[1]); out.push([P[i][0] + mx * o / d, P[i][1] + my * o / d]);
+  }
+  return out;
+}
+function buildS4(svg) {
+  const acc = grad(svg, 'acc-s4', 0, 1400, 0, 0, '#2F6BFF', '#8B5CF6');
+  const cuG = grad(svg, 'cu-s4', 0, 0, 0, 1400, '#F2A65A', '#E5672F');
+  const W = E('g', null, svg);
+  const base = E('g', null, W), flow = E('g', null, W), DET = E('g', null, W), OV = E('g', { class: 'ov' }, W), TG = E('g', null, W);
+  const L = (d, c, g) => E('path', { d, class: c || 'ln' }, g || base);
+  const R = (x, y, w, h, c, rx) => E('rect', { x, y, width: w, height: h, rx: rx == null ? 4 : rx, class: c || 'ln' }, base);
+  const X = (x, y, s, c, a, g) => T(g || DET, x, y, s, c || 'w-lab', a ? { 'text-anchor': a } : null);
+  const oplus = (cx, cy) => { E('circle', { cx, cy, r: 12, class: 'ln' }, base); L(`M${cx - 7} ${cy} H${cx + 7} M${cx} ${cy - 7} V${cy + 7}`); };
+  // construction lines + dimensions (drafting)
+  for (const y of [20, 110, 370, 800, 1100, 1250]) L(`M-40 ${y} H640`, 'ln cons');
+  for (const x of [110, 160, 440]) L(`M${x} -10 V1420`, 'ln cons');
+  L('M594 254 V1222 M586 254 H602 M586 1222 H602', 'ln');
+  X(614, 738, '61 layers · each its own weights', 'w-sm', 'middle').setAttribute('transform', 'rotate(90 614 738)');
+  L('M160 1324 V1340 M440 1324 V1340 M160 1332 H440', 'ln faint'); X(370, 1358, 'd_model 7,168', 'w-tiny', 'middle');
+  // top box: loss (training) / sampler (inference). Labels sit left; the token lane runs at x=410.
+  R(160, 20, 280, 60);
+  const topT = E('g', null, DET), topI = E('g', null, DET);
+  T(topT, 176, 46, 'LOSS', 'w-lab'); T(topT, 176, 68, 'vs real next token “ on”', 'w-sm');
+  T(topI, 176, 46, 'TO SAMPLER', 'w-lab'); T(topI, 176, 68, 'picks the next token', 'w-sm');
+  L('M410 110 V80');
+  R(160, 110, 280, 46); X(176, 131, 'LM HEAD'); X(176, 149, '7,168 → 129,280 logits', 'w-tiny');
+  L('M410 186 V156'); R(160, 186, 280, 34); X(176, 208, 'RMSNorm · final', 'w-sm');
+  L('M110 370 V240 H410 V220');
+  const plates = []; const plate = y => { R(160, y, 280, 10, 'ln', 2); L(`M110 ${y + 5} H160`, 'ln faint'); plates.push(y); };
+  for (let k = 0; k < 6; k++) plate(254 + k * 16);
+  X(96, 300, 'layers i+1 … 61', 'w-sm', 'end');
+  // the detailed decoder block
+  R(140, 370, 320, 730, 'ln dash', 8); X(152, 394, 'LAYER i · ONE DECODER BLOCK', 'w-tiny');
+  L('M110 1100 V370'); X(96, 1010, 'mHC 4-stream', 'w-tiny', 'end');
+  L('M110 1080 H300 V1064'); R(200, 1030, 200, 34); X(212, 1052, 'RMSNorm', 'w-sm'); L('M300 1030 V1004');
+  R(160, 800, 280, 204); X(172, 824, 'CSA / HCA'); X(428, 824, 'hybrid attn', 'w-tiny', 'end');
+  R(222, 858, 104, 104, 'ln faint', 2); R(216, 852, 104, 104, 'ln faint', 2);
+  const TK = ['The', 'cat', 'sat', 'on']; const attRow = [];
+  for (let i = 0; i < 4; i++) { X(204, 846 + i * 26 + 18, TK[i], 'w-tiny', 'end');
+    for (let j = 0; j < 4; j++) { const x = 210 + j * 26, y = 846 + i * 26; if (j <= i) { E('rect', { x, y, width: 26, height: 26, class: 'ln', fill: 'rgba(255,255,255,.05)' }, base); if (i === 2) attRow.push(E('rect', { x: x + 2, y: y + 2, width: 22, height: 22, rx: 2, fill: 'url(#gAccF)', opacity: 0 }, base)); }
+      else { E('rect', { x, y, width: 26, height: 26, class: 'ln faint' }, base); L(`M${x} ${y + 26} L${x + 26} ${y}`, 'ln faint'); } } }
+  X(172, 994, 'causal mask', 'w-tiny');
+  X(386, 990, 'x', 'w-sm', 'middle'); L('M386 978 V974'); R(346, 950, 80, 24); X(386, 967, 'W_down', 'w-tiny', 'middle'); L('M386 950 V934');
+  R(350, 908, 72, 26); X(386, 926, '4×/128×', 'w-tiny', 'middle'); L('M386 908 V890'); R(346, 866, 80, 24); X(386, 883, 'W_up', 'w-tiny', 'middle'); X(386, 856, 'K, V', 'w-tiny', 'middle');
+  const latA = E('rect', { x: 350, y: 908, width: 72, height: 26, rx: 4, fill: 'url(#gAccF)', opacity: 0 }, base);
+  L('M300 800 V790 H122'); oplus(110, 780); X(316, 790, 'W_o → 7,168', 'w-tiny');
+  L('M110 760 H300 V746'); R(200, 712, 200, 34); X(212, 734, 'RMSNorm', 'w-sm'); L('M300 712 V704');
+  R(160, 572, 280, 132); X(172, 692, 'ROUTER'); X(428, 692, 'top-6 of 384', 'w-tiny', 'end');
+  const LIT = [12, 74, 141, 206, 279, 348], CX = i => 166 + (i % 32) * 8.5, CY = i => 580 + Math.floor(i / 32) * 7.6;
+  for (let i = 0; i < 384; i++) E('rect', { x: CX(i), y: CY(i), width: 6.2, height: 5.8, rx: 1, fill: 'rgba(255,255,255,.16)' }, base);
+  const litR = LIT.map(i => E('rect', { x: CX(i), y: CY(i), width: 6.2, height: 5.8, rx: 1, fill: 'url(#gAccF)', opacity: 0 }, base));
+  R(160, 500, 56, 44); X(188, 527, 'shared', 'w-tiny', 'middle'); L('M188 572 V544', 'ln faint');
+  const expA = [], expL = [];
+  for (let k = 0; k < 6; k++) { const x = 230 + k * 35; R(x, 500, 28, 44); expA.push(E('rect', { x: x + 2, y: 502, width: 24, height: 40, rx: 2, fill: 'url(#gAccF)', opacity: 0 }, base));
+    const ci = LIT[k]; expL.push(E('path', { d: `M${CX(ci) + 3} ${CY(ci) + 3} L${x + 14} 544`, class: 'acc', stroke: acc, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, base));
+    L(`M${x + 14} 500 L300 476`, 'ln faint'); }
+  L('M188 500 L300 476', 'ln faint');
+  E('circle', { cx: 300, cy: 462, r: 14, class: 'ln' }, base); X(322, 466, 'Σ weighted sum', 'w-tiny');
+  L('M300 448 V420 H122'); oplus(110, 410);
+  for (let k = 0; k < 6; k++) plate(1132 + k * 16);
+  X(96, 1150, 'layers 4 … i−1 · MoE', 'w-sm', 'end'); X(96, 1220, 'layers 1–3 · Hash-MoE', 'w-sm', 'end');
+  L('M110 1240 V1100');
+  R(160, 1250, 280, 56); for (let y = 1258; y < 1306; y += 8) L(`M160 ${y} H440`, 'ln faint');
+  const embA = E('rect', { x: 161, y: 1274, width: 278, height: 8, fill: 'url(#gAccF)', opacity: 0 }, base);
+  X(172, 1271, 'EMBEDDING'); X(428, 1271, '129,280 rows', 'w-tiny', 'end');
+  L('M300 1250 V1240 H110');
+  X(318, 1396, 'token id · “ sat”', 'w-sm');
+  // KV cache (inference only): beside attention and beside every plate
+  const kvG = E('g', null, base); E('path', { d: 'M426 921 H470', class: 'ln', 'marker-end': 'url(#mW)' }, kvG);
+  const kvCells = []; for (let i = 0; i < 6; i++) { E('rect', { x: 476, y: 836 + i * 26, width: 84, height: 20, rx: 3, class: 'ln' }, kvG); kvCells.push(E('rect', { x: 478, y: 838 + i * 26, width: 0.1, height: 16, rx: 2, fill: 'url(#gAccF)' }, kvG)); }
+  const kvPl = plates.map(y => { E('rect', { x: 452, y, width: 40, height: 10, rx: 2, class: 'ln faint' }, kvG); return E('rect', { x: 453, y: y + 1, width: 0.1, height: 8, rx: 1.5, fill: 'url(#gAccF)' }, kvG); });
+  const kvT = X(476, 826, 'KV cache · c', 'w-sm');
+  // Δw update tags (training only)
+  const TAGS = [[448, 138], [448, 208], [448, 300], [448, 526], [448, 640], [408, 734], [448, 900], [408, 1052], [448, 1176], [448, 1282]];
+  const tags = TAGS.map(([x, y]) => { const t = T(TG, x, y, 'Δw', 'w-sm'); t.style.fill = '#F2A65A'; return { t, f: (y - 20) / 1380 }; });
+  // overview callouts (legible when the whole tower is in frame)
+  const ovLoss = T(OV, 96, 58, 'LOSS', 'w-ov', { 'text-anchor': 'end' }), ovSamp = T(OV, 96, 58, 'SAMPLER', 'w-ov', { 'text-anchor': 'end' });
+  T(OV, 96, 142, 'LM head', 'w-ov', { 'text-anchor': 'end' }); T(OV, 96, 306, '61 layers', 'w-ov', { 'text-anchor': 'end' });
+  T(OV, 96, 760, 'one block', 'w-ov', { 'text-anchor': 'end' }); T(OV, 96, 1288, 'embedding', 'w-ov', { 'text-anchor': 'end' });
+  const ovF = T(OV, 96, 560, 'forward ↑', 'w-ov', { 'text-anchor': 'end' }); ovF.style.fill = '#9DB4FF';
+  const ovB = T(OV, 478, 470, 'gradients ↓', 'w-ov'); ovB.style.fill = '#F2A65A';
+  const ovK = T(OV, 478, 820, 'KV cache', 'w-ov'); ovK.style.fill = '#9DB4FF';
+  // flows
+  const fwd = makeTrack([
+    [0.02, 0.06, [[300, 1390], [300, 1306], [300, 1278]]],
+    [0.07, 0.1, [[300, 1278], [300, 1240], [110, 1240]]],
+    [0.12, 0.17, [[110, 1240], [110, 1080], [300, 1080], [300, 1047]]],
+    [0.18, 0.22, [[300, 1047], [300, 1004], [275, 911]]],
+    [0.34, 0.39, [[275, 911], [300, 800], [300, 790], [110, 790], [110, 780]]],
+    [0.4, 0.43, [[110, 780], [110, 760], [300, 760], [300, 729]]],
+    [0.45, 0.49, [[300, 729], [300, 704], [CX(141) + 3, CY(141) + 3]]],
+    [0.5, 0.53, [[CX(141) + 3, CY(141) + 3], [314, 522]]],
+    [0.535, 0.56, [[314, 522], [300, 462]]],
+    [0.57, 0.62, [[300, 462], [300, 420], [110, 420], [110, 240], [410, 240]]],
+    [0.68, 0.72, [[410, 240], [410, 203], [410, 133]]],
+    [0.73, 0.76, [[410, 133], [410, 50]]]
+  ]);
+  const fPath = E('path', { d: fwd.d, class: 'acc', stroke: acc }, flow);
+  const rev = fwd.pts.slice().reverse();
+  const bPath = E('path', { d: '', class: 'acc', stroke: cuG }, flow);
+  const SPC = 200, NF = Math.ceil(fwd.total / SPC) + 1, NB = NF + 2, fChev = [], bChev = [];
+  const chev = col => E('path', { d: CHEV, fill: 'none', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', stroke: col }, flow);
+  for (let i = 0; i < NF; i++) fChev.push(chev('#9DB4FF'));
+  for (let i = 0; i < NB; i++) bChev.push(chev('#F2A65A'));
+  const a = anchorRect(W, 30, 30, 1); a.dataset.lab = '0';
+  const KF = [[0, 300, 700, 0], [0.06, 290, 1290, 420], [0.11, 280, 1180, 440], [0.2, 300, 960, 420], [0.27, 360, 910, 470], [0.33, 360, 910, 470], [0.4, 280, 790, 420], [0.47, 300, 640, 420], [0.55, 300, 540, 420], [0.6, 300, 700, 0], [0.66, 300, 700, 0], [0.71, 320, 160, 420], [0.765, 320, 130, 420], [0.8, 300, 700, 0], [1, 300, 700, 0]];
+  let bw = null, bwZoom = -1;
+  const self = { anchor: a, timeAnim: true, m: 0, mt: 0, aspect: 2, mobile: false, cw: 400 };
+  self.render = function (p, time) {
+    let k = 0; while (k < KF.length - 2 && p > KF[k + 1][0]) k++;
+    const A0 = KF[k], A1 = KF[k + 1], u = RM ? (p >= A1[0] - 1e-6 ? 1 : 0) : sstep(lin(p, A0[0], A1[0]));
+    const wFull = Math.max(840, 1480 / self.aspect), w = lerp(A0[3] || wFull, A1[3] || wFull, u);
+    const h = w * self.aspect, cx = lerp(A0[1], A1[1], u), cy = lerp(A0[2], A1[2], u);
+    svg.setAttribute('viewBox', `${(cx - w / 2).toFixed(1)} ${(cy - h / 2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
+    const zoom = self.cw / w; svg.style.setProperty('--sw', (1.25 / zoom).toFixed(3) + 'px');
+    const det = clamp((zoom - 0.62) / 0.1); op(DET, det); op(OV, 1 - det); OV.style.fontSize = Math.max(30, 12.5 / zoom).toFixed(1) + 'px';
+    const m = clamp(self.m), trainA = 1 - m;
+    const q = fwd.at(p); place(a, q.x, q.y);
+    fPath.style.strokeDasharray = `${q.L.toFixed(1)} ${(fwd.total + 10).toFixed(1)}`;
+    const top = p >= 0.76;
+    if (!bw || Math.abs(zoom - bwZoom) / zoom > 0.01) { bwZoom = zoom; bw = makePoly(offsetPoly(rev, 6 / zoom)); bPath.setAttribute('d', bw.d); }
+    const ph = RM ? 0.5 : (time * 0.55) % 1, cs = (1 / zoom * 1.1).toFixed(3);
+    for (let i = 0; i < NF; i++) { const L0 = (i + ph) * SPC, c = fChev[i]; if (L0 > q.L || L0 > fwd.total) { op(c, 0); continue; } const s = fwd.poly.at(L0); tr(c, `translate(${s.x.toFixed(1)} ${s.y.toFixed(1)}) rotate(${(s.ang * 57.2958 - 90).toFixed(1)}) scale(${cs})`); op(c, top ? 0.95 : 0.55); }
+    const wf = RM ? (p >= 0.8 ? 1 : 0) : seg(p, 0.8, 0.88), bwL = wf * bw.total, bwOn = top ? trainA : 0;
+    bPath.style.strokeDasharray = `${bwL.toFixed(1)} ${(bw.total + 10).toFixed(1)}`; op(bPath, bwOn);
+    for (let i = 0; i < NB; i++) { const L0 = (i + ph) * SPC, c = bChev[i]; if (L0 > bwL || L0 > bw.total) { op(c, 0); continue; } const s = bw.at(L0); tr(c, `translate(${s.x.toFixed(1)} ${s.y.toFixed(1)}) rotate(${(s.ang * 57.2958 - 90).toFixed(1)}) scale(${cs})`); op(c, bwOn); }
+    const tfs = (Math.max(11, Math.min(15, 12 * zoom)) / zoom).toFixed(2) + 'px';
+    tags.forEach(t => { op(t.t, bwOn * clamp((wf - t.f) * 12)); t.t.style.fontSize = tfs; });
+    op(ovB, bwOn * clamp(wf * 3)); op(ovLoss, trainA); op(ovSamp, m); op(ovK, m); op(ovF, 1);
+    op(embA, seg(p, 0.04, 0.07)); attRow.forEach((n, j) => op(n, seg(p, 0.19 + j * 0.012, 0.23 + j * 0.012))); op(latA, 0.5 * seg(p, 0.25, 0.3));
+    litR.forEach((n, i) => op(n, seg(p, 0.45 + i * 0.004, 0.49 + i * 0.004))); expL.forEach(n => { n.style.strokeDashoffset = (1 - seg(p, 0.495, 0.525)).toFixed(4); }); expA.forEach(n => op(n, 0.8 * seg(p, 0.51, 0.535)));
+    op(topT, trainA); op(topI, m);
+    const kvF = m * (p < 0.88 ? 1 : (RM ? 1 : seg(p, 0.89, 0.96)));
+    op(kvG, m); op(kvT, m); kvCells.forEach((c, i) => c.setAttribute('width', Math.max(0.1, 80 * clamp(kvF * 6 - i)).toFixed(1))); kvPl.forEach((c, i) => c.setAttribute('width', Math.max(0.1, 38 * clamp(kvF * 1.2 - i * 0.015)).toFixed(1)));
+  };
+  return self;
+}
+
+/* ---------- Chapter 5: serving schematic ---------- */
+const P5 = { LOOP: [[66, 80], [402, 80], [402, 290], [66, 290], [66, 80]], NODES: [] };
+function buildS5(svg) {
+  const r = E('g', null, svg);
+  const d = E('defs', null, svg); const pat = E('pattern', { id: 'dots5', width: 24, height: 24, patternUnits: 'userSpaceOnUse' }, d); E('circle', { cx: 12, cy: 12, r: 1, fill: '#CDD3DF' }, pat);
+  E('rect', { x: -480, y: -400, width: 1440, height: 1200, fill: 'url(#dots5)' }, r);
+  const segs = [[108, 80, 134, 80], [220, 80, 246, 80], [332, 80, 358, 80], [402, 100, 402, 268], [358, 290, 332, 290], [246, 290, 220, 290], [134, 290, 110, 290], [66, 270, 66, 102]];
+  segs.forEach(([x1, y1, x2, y2]) => E('path', { d: `M${x1} ${y1} L${x2} ${y2}`, class: 'ln strong', 'marker-end': 'url(#mD)' }, r));
+  E('path', { d: 'M332 182 H400', class: 'ln strong', 'marker-end': 'url(#mD)', 'marker-start': 'url(#mD)' }, r); T(r, 366, 172, 'forward ↑', 'tiny', { 'text-anchor': 'middle' });
+  E('path', { d: 'M290 270 C290 240 380 240 380 268', class: 'ln strong', 'marker-end': 'url(#mD)' }, r); T(r, 335, 234, 'next token', 'tiny', { 'text-anchor': 'middle' });
+  T(r, 402, 50, 'compute-bound', 'tiny', { 'text-anchor': 'middle' });
+  const NODES = [['client', 24, 60], ['gate', 136, 60], ['batch', 248, 60], ['prefill', 360, 60], ['decode', 360, 270], ['sampler', 248, 270], ['guardrail', 136, 270], ['stream', 24, 270]];
+  P5.NODES = NODES.map(([, x, y]) => [x - 3, y - 3, x + 87, y + 43]);
+  const nodes = {}; NODES.forEach(([n, x, y]) => { const g = E('g', null, r); E('rect', { x, y, width: 84, height: 40, rx: 10, fill: '#fff', stroke: '#CFD5E1' }, g); const hl = E('rect', { x, y, width: 84, height: 40, rx: 10, fill: 'url(#gAccF)', opacity: 0 }, g); const t = T(g, x + 42, y + 25, n, 'lab', { 'text-anchor': 'middle', 'font-size': 14 }); nodes[n] = { hl, t }; });
+  // model node = the same tower, in inference mode; it zooms open during prefill/decode
+  const mG = E('g', null, r);
+  const mShadow = E('rect', { x: 172, y: 156, width: 156, height: 62, rx: 12, fill: 'rgba(18,58,99,.22)', filter: 'url(#fBlur)', opacity: 0 }, mG);
+  E('rect', { x: 170, y: 148, width: 160, height: 68, rx: 12, fill: '#fff', stroke: '#123A63' }, mG);
+  const mHl = E('rect', { x: 170, y: 148, width: 160, height: 68, rx: 12, fill: 'none', stroke: 'url(#gAccF)', 'stroke-width': 2, opacity: 0 }, mG);
+  E('rect',{x:174,y:150,width:52,height:63,fill:'transparent','data-port':''},mG);
+  tower(mG, 180, 154, 30, 56, '#123A63', 5);
+  const mBus = E('line', { x1: 182.1, y1: 210, x2: 182.1, y2: 154, stroke: '#2F6BFF', 'stroke-width': 1.6, 'stroke-dasharray': '3 5', opacity: 0 }, mG);
+  T(mG, 276, 182, 'MODEL', 'disp', { 'text-anchor': 'middle', 'font-size': 16 }); const mSub = T(mG, 276, 200, '61 layers', 'tiny', { 'text-anchor': 'middle' });
+  const inset = E('g', { opacity: 0 }, mG);
+  for (let i = 0; i < 5; i++) E('rect', { x: 216, y: 163 + i * 8.4, width: 10, height: 5, rx: 1, fill: 'none', stroke: '#8B9BC4', 'stroke-width': 0.6 }, inset);
+  const insetKV = []; for (let i = 0; i < 5; i++) insetKV.push(E('rect', { x: 216.5, y: 163.5 + i * 8.4, width: 0.1, height: 4, rx: 1, fill: 'url(#gAccF)' }, inset));
+  T(inset, 221, 159, 'KV', 'tiny', { 'text-anchor': 'middle', 'font-size': 6 });
+  T(inset, 276, 208, 'inference · frozen', 'tiny', { 'text-anchor': 'middle', 'font-size': 6.5 });
+  // prompt strip
+  const PW = [44, 50, 50, 42], PL = ['The', 'cat', '', 'on']; let px = 24; const pchips = [];
+  PW.forEach((w, i) => { const c = E('rect', { x: px, y: 12, width: w, height: 24, rx: 12, fill: i === 2 ? 'none' : '#EEF1F7' }, r); const h = E('rect', { x: px, y: 12, width: w, height: 24, rx: 12, fill: 'url(#gAccF)', opacity: 0 }, r);
+    if (PL[i]) { const t = T(r, px + w / 2, 28, '', 'mono-i', { 'text-anchor': 'middle' }); if (i > 0) { const sp = E('tspan', { fill: '#7C8CFF', 'font-size': 10 }, t); sp.textContent = '␣'; } const ts = E('tspan', null, t); ts.textContent = PL[i]; }
+    pchips.push({ x: px, w, h }); px += w + 6; });
+  T(r, px + 6, 28, 'prompt', 'tiny');
+  // KV cache box
+  T(r, 256, 326, 'KV CACHE · inference only', 'tiny');
+  E('rect', { x: 250, y: 334, width: 218, height: 48, rx: 10, fill: '#F4F6FA', stroke: '#D5DAE5' }, r);
+  const KVL = ['The', 'cat', '', 'on', 'the', 'mat']; const kv = KVL.map((l, i) => { const x = 254 + i * 35; E('rect', { x, y: 346, width: 32, height: 24, rx: 6, fill: '#E6EAF2' }, r); const f = E('rect', { x, y: 346, width: 32, height: 24, rx: 6, fill: 'url(#gAccF)', opacity: 0 }, r); const t = l ? T(r, x + 16, 362, l, 'tiny', { 'text-anchor': 'middle' }) : null; return { f, t }; });
+  const outs = [['the', 24, 50], ['mat', 80, 50]].map(([s, x, w]) => { const g = E('g', null, r); E('rect', { x, y: 322, width: w, height: 22, rx: 11, fill: 'url(#gAccF)' }, g); const t = T(g, x + w / 2, 337, '', 'mono-i', { 'text-anchor': 'middle' }); t.style.fill = '#fff'; const sp = E('tspan', { 'font-size': 10, opacity: 0.8 }, t); sp.textContent = '␣'; const ts = E('tspan', null, t); ts.textContent = s; return g; });
+  const check = E('path', { d: 'M200 262 l4 4 l9 -9', fill: 'none', stroke: '#2F6BFF', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+  const lefts = [T(r, 24, 370, 'PD disagg · decode memory-bound', 'tiny'), T(r, 24, 390, 'TTFT 0.2 s · 180 tok/s (illustrative)', 'tiny')];
+  const a = anchorRect(r, 50, 24, 50 / 72);
+  const ptr = makeTrack([[0.42, 0.53, [[155, 24], [470, 24], [470, 392], [340, 392], [340, 358]]]]);
+  const ACT = [['client', 'gate'], ['batch'], ['prefill'], ['decode'], ['sampler', 'guardrail', 'stream']];
+  // phone: a camera pans across the schematic so labels stay >= 10px
+  const MK = [[0, 0, 0], [0.2, 0, 0], [0.3, 80, 0], [0.4, 80, 0], [0.47, 120, 120], [0.6, 120, 120], [0.67, 160, 133], [0.8, 160, 133], [0.87, 0, 133], [1, 0, 133]];
+  const self = { anchor: a, timeAnim: true, mobile: false, aspect: 400 / 480 };
+  self.render = function (p, time) {
+    if (self.mobile) { let k = 0; while (k < MK.length - 2 && p > MK[k + 1][0]) k++; const A0 = MK[k], A1 = MK[k + 1], u = RM ? (p >= A1[0] ? 1 : 0) : sstep(lin(p, A0[0], A1[0])); const w = 320, h = w * self.aspect; const vx = lerp(A0[1], A1[1], u); svg.setAttribute('viewBox', `${vx.toFixed(1)} ${lerp(A0[2], A1[2], u).toFixed(1)} ${w} ${h.toFixed(1)}`); lefts.forEach(n => op(n, clamp(1 - vx / 30))); }
+    else { lefts.forEach(n => op(n, 1)); if (svg.getAttribute('viewBox') !== '0 0 480 400') svg.setAttribute('viewBox', '0 0 480 400'); }
+    const n = 5; const hlv = {};
+    ACT.forEach((names, k) => { const v = RM ? (Math.min(4, Math.floor(p * n)) === k ? 1 : 0) : bump(p, k / n, (k + 1) / n, 0.035); names.forEach(nm => { hlv[nm] = Math.max(hlv[nm] || 0, v); }); });
+    Object.keys(nodes).forEach(nm => { const v = hlv[nm] || 0; op(nodes[nm].hl, v); nodes[nm].t.style.fill = v > 0.5 ? '#fff' : ''; });
+    pchips.forEach((c, i) => op(c.h, i === 2 ? 0 : bump(p, 0.42, 0.58, 0.04)));
+    kv.forEach((c, i) => { const v = i < 4 ? seg(p, 0.46, 0.54) : seg(p, i === 4 ? 0.64 : 0.72, i === 4 ? 0.68 : 0.76); op(c.f, v); if (c.t) c.t.style.fill = v > 0.5 ? '#fff' : ''; });
+    op(outs[0], seg(p, 0.84, 0.88)); op(outs[1], seg(p, 0.9, 0.94)); check.style.strokeDashoffset = (1 - seg(p, 0.85, 0.9)).toFixed(4);
+    const z = RM ? (p >= 0.4 && p < 0.8 ? 1 : 0) : seg(p, 0.4, 0.47) * (1 - seg(p, 0.77, 0.83));
+    const s = 1 + 0.78 * z; tr(mG, `translate(250 182) scale(${s.toFixed(4)}) translate(-250 -182)`);
+    op(inset, z); op(mShadow, z); op(mSub, 1 - z); op(mHl, Math.max(hlv.prefill || 0, hlv.decode || 0));
+    op(mBus, z); mBus.style.strokeDashoffset = RM ? 0 : (-(time * 16) % 8).toFixed(2);
+    insetKV.forEach(c => c.setAttribute('width', Math.max(0.1, 9 * seg(p, 0.46, 0.54)).toFixed(2)));
+    const u = sseg(p, 0.42, 0.53), aw = lerp(50, 32, u); a.setAttribute('width', aw.toFixed(1)); a.dataset.u = aw.toFixed(1); a.dataset.k = (aw / 72).toFixed(3);
+    const q = ptr.at(p); place(a, q.x, q.y);
+  };
+  return self;
+}
+
+/* ---------- Chapter 6: agent loop ---------- */
+function buildS6(svg) {
+  const r = E('g', null, svg);
+  const NODES = [['Model', 'server', 28, 64], ['Your app', 'app / MCP', 322, 64], ['Tool', 'client / hosted', 322, 212], ['New request', 'messages + result', 28, 212]];
+  const nodes = NODES.map(([n, s, x, y]) => { const g = E('g', null, r); E('rect', { x, y, width: 130, height: 52, rx: 12, fill: '#fff', stroke: '#CFD5E1' }, g); const hl = E('rect', { x, y, width: 130, height: 52, rx: 12, fill: 'url(#gAccF)', opacity: 0 }, g); const t = T(g, x + 65 + (n === 'Model' ? 8 : 0), y + 24, n, 'lab', { 'text-anchor': 'middle' }); const t2 = T(g, x + 65 + (n === 'Model' ? 8 : 0), y + 41, s, 'tiny', { 'text-anchor': 'middle' }); return { hl, t, t2 }; });
+  tower(r, 38, 72, 14, 36, '#123A63', 4);
+  const arc = E('path', { d: 'M158 90 C200 24 280 24 322 90', class: 'ln strong', 'marker-end': 'url(#mD)', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+  T(r, 240, 106, 'stop_reason: tool_use', 'tiny', { 'text-anchor': 'middle' });
+  E('path', { d: 'M387 118 V210', class: 'ln strong', 'marker-end': 'url(#mD)' }, r); T(r, 352, 162, 'runs it', 'tiny', { 'text-anchor': 'end' });
+  E('path', { d: 'M322 238 H160', class: 'ln strong', 'marker-end': 'url(#mD)' }, r); T(r, 240, 262, '+ tool_call + result', 'tiny', { 'text-anchor': 'middle' });
+  E('path', { d: 'M93 212 V118', class: 'ln strong', 'marker-end': 'url(#mD)' }, r); T(r, 101, 170, 'prefix-cache hit', 'tiny');
+  E('circle', { cx: 240, cy: 166, r: 20, class: 'ln faint', 'stroke-dasharray': '3 4' }, r); T(r, 240, 170, 'loop', 'tiny', { 'text-anchor': 'middle' });
+  T(r, 28, 396, 'turn 2 · the whole conversation is sent again', 'tiny');
+  const CL = [['sys', 28, 26], ['…', 57, 26], ['…', 86, 26], ['…', 115, 26], ['The', 144, 26], ['cat', 173, 26], ['', 202, 26], ['on', 231, 26], ['the', 260, 26], ['mat', 289, 26], ['call', 318, 55], ['result', 376, 55]];
+  const cells = CL.map(([l, x, w], i) => { const isNew = i >= 10; const b = E('rect', { x, y: 310, width: w, height: 26, rx: 6, fill: isNew ? '#fff' : (i === 6 ? 'none' : '#E9EDF5'), stroke: isNew ? '#7C8CFF' : 'none' }, r);
+    const c = E('rect', { x, y: 310, width: w, height: 26, rx: 6, fill: isNew ? 'url(#gAccF)' : '#D8E1FF', opacity: 0 }, r); const t = l ? T(r, x + w / 2, 327, l, 'tiny', { 'text-anchor': 'middle' }) : null; return { b, c, t, isNew }; });
+  const br1 = E('g', null, r); E('path', { d: 'M28 344 V350 H315 V344', class: 'ln' }, br1); T(br1, 28, 366, 'cached prefix · reused', 'tiny');
+  const br2 = E('g', null, r); E('path', { d: 'M318 344 V350 H431 V344', class: 'ln' }, br2); T(br2, 431, 366, 'new · prefill these', 'tiny', { 'text-anchor': 'end' });
+  const a = anchorRect(r, 56, 26, 56 / 72);
+  const trk = makeTrack([
+    [0.08, 0.2, cubicPts([158, 90], [200, 24], [280, 24], [322, 90], 18).slice(0, 10)],
+    [0.28, 0.42, cubicPts([158, 90], [200, 24], [280, 24], [322, 90], 18).slice(9).concat([[322, 132], [387, 132], [387, 174]])],
+    [0.53, 0.66, [[387, 174], [387, 238], [240, 238]]],
+    [0.76, 0.84, [[240, 238], [172, 238], [172, 292]]],
+    [0.86, 0.94, [[172, 292], [215, 292], [215, 323]]]
+  ]);
+  const ACT = [[0], [1, 2], [1, 3], [0]];
+  return { anchor: a, render(p) {
+    arc.style.strokeDashoffset = (1 - seg(p, 0, 0.1)).toFixed(4);
+    const hv = [0, 0, 0, 0]; ACT.forEach((ix, k) => { const v = RM ? (Math.min(3, Math.floor(p * 4)) === k ? 1 : 0) : bump(p, k / 4, (k + 1) / 4, 0.035); ix.forEach(i => { hv[i] = Math.max(hv[i], v); }); });
+    nodes.forEach((n, i) => { op(n.hl, hv[i]); const w = hv[i] > 0.5; n.t.style.fill = w ? '#fff' : ''; n.t2.style.fill = w ? '#fff' : ''; });
+    const nw = seg(p, 0.55, 0.65), hit = seg(p, 0.78, 0.84), pre = seg(p, 0.88, 0.95);
+    cells.forEach(c => { if (c.isNew) { op(c.b, nw); if (c.t) op(c.t, nw); op(c.c, pre); if (c.t) c.t.style.fill = pre > 0.5 ? '#fff' : ''; } else op(c.c, hit); });
+    op(br1, hit); op(br2, Math.max(nw, pre));
+    const sm = sseg(p, 0.86, 0.94), w = lerp(56, 26, sm); a.setAttribute('width', w.toFixed(1)); a.dataset.u = w.toFixed(1); a.dataset.k = (w / 72).toFixed(3);
+    const q = trk.at(p); place(a, q.x, q.y);
+  } };
+}
+const BUILD = { ch1: buildS1, ch2: buildS2, ch3: buildS3, ch4: buildS4, ch5: buildS5, ch6: buildS6 };
+const STOPS=[{"i":0,"ch":0,"step":0,"title":"Sources from everywhere","body":"<p>Web pages, code, books, math, and synthetic reasoning traces are gathered into a single stream of raw text.</p><p class=\"fact\"><span>Pretraining corpus: <span class=\"num\">33T</span> tokens</span><cite>DeepSeek-V4 paper</cite></p>","ids":["TR-1"],"skin":"light","css":"skin-light","realm":"TRAINING","p":0.155},{"i":1,"ch":0,"step":1,"title":"Duplicates out, quality in","body":"<p>Copies are hashed and removed so nothing is learned twice. Filters drop low-quality text and personal data, and the mix is rebalanced so no source dominates.</p><code class=\"eq\">clean_data = balance_mix( filter_pii_and_quality( dedupe_hash(raw_sources) ) )</code>","ids":["TR-1"],"skin":"light","css":"skin-light","realm":"TRAINING","p":0.405},{"i":2,"ch":0,"step":2,"title":"Byte-pair encoding cuts the sentence","body":"<p>The tokenizer splits text into pieces from a fixed vocabulary. Common words become one token, and in byte-level vocabularies like this one the leading space usually travels with the word, so our token is “&nbsp;sat”.</p>","ids":["TR-2"],"skin":"light","css":"skin-light","realm":"TRAINING","p":0.655},{"i":3,"ch":0,"step":3,"title":"Every token becomes an ID","body":"<p>Rare words split into several pieces, each an integer ID. Images take a different road: a vision encoder turns patches into vectors, not IDs.</p><code class=\"eq\">token_ids = bpe_encode(\"Architecting\")   // -> [4182, 287] (illustrative IDs)</code><p class=\"fact\"><span>Vocabulary: <span class=\"num\">129,280</span> tokens</span><cite>DeepSeek-V4-Pro config</cite></p>","ids":["TR-2"],"skin":"light","css":"skin-light","realm":"TRAINING","p":0.905},{"i":4,"ch":1,"step":0,"title":"Streams rise through the tower","body":"<p>Batches of token sequences flow up through every layer of the model. In training each sequence is processed in parallel, with a mask so no position can peek at the future.</p>","ids":["TR-3"],"skin":"keynote","css":"skin-key","realm":"TRAINING","p":0.155},{"i":5,"ch":1,"step":1,"title":"Score the guess, send gradients down","body":"<p>After “The cat”, the model spreads probability over the vocabulary. The loss is the negative log of the probability it gave “&nbsp;sat”. Gradients travel back down the same layers and Muon, with AdamW for embeddings, the head and norms, updates the weights.</p><code class=\"eq\">loss = cross_entropy( model(tokens), next_tokens );  weights = muon_step(weights, grad(loss))   // + MTP extra-token loss</code><p class=\"fact\"><span class=\"ill\">Bars and loss curve are illustrative.</span></p>","ids":["TR-3","MD-4"],"skin":"keynote","css":"skin-key","realm":"ALL","p":0.405},{"i":6,"ch":1,"step":2,"title":"Sharded across racks, trained in FP8","body":"<p>A model this size is sharded across racks of accelerators using several kinds of parallelism at once, including expert parallelism. DeepSeek-V4 trains in FP8 mixed precision; quantization-aware training later stores the routed experts in FP4 for the released model.</p><p class=\"fact\"><span>FP8 training · FP4 experts via QAT · <span class=\"num\">Muon</span> + AdamW</span><cite>DeepSeek-V4 paper</cite></p>","ids":["TR-7"],"skin":"keynote","css":"skin-key","realm":"TRAINING","p":0.655},{"i":7,"ch":1,"step":3,"title":"Then, a million-token memory","body":"<p>Pretraining stretches the context window in stages, from 4K to 16K to 64K and finally one million tokens, switching on sparse CSA/HCA attention from 64K.</p><p class=\"fact\"><span>Context: <span class=\"num\">4K → 16K → 64K → 1M</span> tokens</span><cite>DeepSeek-V4 paper</cite></p>","ids":["TR-4"],"skin":"keynote","css":"skin-key","realm":"TRAINING","p":0.905},{"i":8,"ch":2,"step":0,"title":"First, specialist SFT and RL","body":"<p>DeepSeek-V4 uses a two-stage post-training pipeline. First, domain specialists (math, code, agentic, instruction) are trained independently via SFT followed by RL with GRPO.</p><p class=\"fact\"><span>Stage 1: Domain specialists (SFT + GRPO) → Stage 2: On-Policy Distillation</span><cite>DeepSeek-V4 paper</cite></p>","ids":["TR-5"],"skin":"blueprint","css":"skin-bp","realm":"TRAINING","p":0.155},{"i":9,"ch":2,"step":1,"title":"Draw a group of attempts","body":"<p>For one prompt with a checkable answer, the policy—the same tower—samples a group of candidate reasoning traces. The group of eight here is illustrative.</p>","ids":["TR-5"],"skin":"blueprint","css":"skin-bp","realm":"TRAINING","p":0.405},{"i":10,"ch":2,"step":2,"title":"Grade against the group","body":"<p>Rule verifiers score code and math attempts, while rubric-guided self-judging grades open-ended tasks. Each score is compared with the group’s mean—no separate value model required.</p><code class=\"eq\">advantage_i = (score_i - mean(scores)) / std(scores)</code>","ids":["TR-5"],"skin":"blueprint","css":"skin-bp","realm":"TRAINING","p":0.655},{"i":11,"ch":2,"step":3,"title":"Distill specialists into one model","body":"<p>Winning attempts reinforce each specialist with a KL anchor to the reference model. Then On-Policy Distillation (OPD) merges all domain specialists into one unified model before the release gate.</p><code class=\"eq\">update(policy_weights, advantage, kl_penalty);  student = on_policy_distill(specialists)</code>","ids":["TR-5"],"skin":"blueprint","css":"skin-bp","realm":"TRAINING","p":0.905},{"i":12,"ch":3,"step":0,"title":"An ID becomes a vector","body":"<p>At the base of the tower, the token ID indexes one row of the embedding table: a lookup, not a calculation. Out comes a vector of 7,168 numbers that enters the 4-stream mHC residual bus.</p><code class=\"eq\">vector = EMBEDDING_TABLE[token_id]   // O(1) array lookup -> float[7168]</code><p class=\"fact\"><span>Hidden size <span class=\"num\">7,168</span> · <span class=\"num\">4</span>-stream mHC residual</span><cite>DeepSeek-V4-Pro config</cite></p>","ids":["MD-1"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.07},{"i":13,"ch":3,"step":1,"title":"Normalize, then look back","body":"<p>RMSNorm rescales a copy of the vector (and Q/KV before core attention). Attention lets “&nbsp;sat” score earlier tokens while a causal mask hides later ones, with learnable attention sinks so heads can abstain.</p><code class=\"eq\">scores = causal_mask( (Q_h @ K_h.T) / sqrt(d) );  out_h = softmax_with_sinks(scores) @ V_h</code>","ids":["MD-2a","MD-2d"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.2},{"i":14,"ch":3,"step":2,"title":"Hybrid CSA + HCA compression","body":"<p>DeepSeek-V4-Pro interleaves Compressed Sparse Attention (CSA: 4× KV compression + Lightning Indexer top-1,024 + 128-tok window) with Heavily Compressed Attention (HCA: 128× dense summaries) and 64-dim decoupled RoPE. Switch to Inference to watch the KV cache fill.</p><p class=\"fact\"><span>At 1M ctx: <span class=\"num\">27%</span> FLOPs &amp; <span class=\"num\">10%</span> KV cache vs V3.2</span><cite>DeepSeek-V4 paper</cite></p>","ids":["MD-2b","MD-2c"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.29},{"i":15,"ch":3,"step":3,"title":"Merge via mHC hyper-connections","body":"<p>Attention’s output is projected back to 7,168 and mixed across the 4-stream Manifold-Constrained Hyper-Connections (mHC) residual bus, keeping deep signal propagation stable without over-amplifying.</p><code class=\"eq\">H_stream = mHC_mix(H_stream, linear_project(concat(heads)))   // 4-stream residual</code>","ids":["MD-2e","MD-2f"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.42},{"i":16,"ch":3,"step":4,"title":"The router picks 6 of 384","body":"<p>A router scores 384 routed FP4 experts via sqrt(softplus) and keeps the top 6, while 1 shared expert always runs. That is why only 49B of the 1.6T parameters work on each token.</p><code class=\"eq\">s = sqrt(softplus(u @ W_router));  top6 = top_k(s + load_bias, k=6);  out = shared_ffn(u) + sum(g_j * ffn_j(u))</code><p class=\"fact\"><span><span class=\"num\">6</span> of <span class=\"num\">384</span> routed experts (+1 shared) · <span class=\"num\">49B</span> active</span><cite>DeepSeek-V4-Pro config</cite></p>","ids":["MD-2g","MD-2h"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.54},{"i":17,"ch":3,"step":5,"title":"Sixty-one distinct layers","body":"<p>The block repeats 61 times up the tower, each with its own weights. The first 3 use Hash-routed MoE (replacing V3’s dense FFNs), and the rest use learned-router MoE; layers alternate HCA and CSA attention.</p><p class=\"fact\"><span><span class=\"num\">61</span> layers · first <span class=\"num\">3</span> Hash-MoE · HCA/CSA interleaved</span><cite>DeepSeek-V4-Pro config</cite></p>","ids":["MD-2i"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.62},{"i":18,"ch":3,"step":6,"title":"Score the whole vocabulary","body":"<p>At the top, a final RMSNorm and the LM head turn the vector into one score per vocabulary token (plus an MTP head predicting one token further). What happens next depends on the mode.</p><code class=\"eq\">logits[0..129279] = final_vec @ LM_HEAD.T   // raw unnormalized scores</code><p class=\"fact\"><span><span class=\"num\">7,168 → 129,280</span> logits (+1 MTP layer)</span><cite>DeepSeek-V4-Pro config</cite></p>","ids":["MD-3","MD-4"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.72},{"i":19,"ch":3,"step":7,"title":"Training: loss up top, gradients down","body":"<p>The top output is compared with the real next token, “&nbsp;on”. The loss flows back down the tower as gradients, and Muon, with AdamW for embeddings, the head and norms, updates the weights. There is no KV cache: the whole sequence runs at once.</p><code class=\"eq\">loss = cross_entropy(logits, next_token);  weights = muon_step(weights, grad(loss))</code>","ids":["MD-4"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.85},{"i":20,"ch":3,"step":8,"title":"Inference: the same tower, frozen","body":"<p>Serving uses the identical tower with frozen FP4+FP8 weights. The pass only goes up. Each CSA/HCA layer writes its compressed latent into the KV cache beside it, and the top output goes to a sampler.</p><p class=\"fact\"><span class=\"ill\">Same tower as the training stop before it; only the flows change.</span></p>","ids":["MD-2d"],"skin":"blueprint","css":"skin-bp","realm":"MODEL","p":0.97},{"i":21,"ch":4,"step":0,"title":"Through the gate","body":"<p>The API checks your key, rate limits, and reasoning effort setting (Non-think, Think High, Think Max), screens for abuse, and routes you to a cache-warm replica that encodes messages and tools.</p><code class=\"eq\">POST /v1/messages { model, messages, tools, reasoning_effort: \"high\", stream: true }</code><p class=\"fact\"><span>Stateless APIs re-send history each turn; prefix cache avoids re-prefill</span><cite>2026 frontier APIs</cite></p>","ids":["IN-1","IN-2","IN-3","IN-4"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.124},{"i":22,"ch":4,"step":1,"title":"Disaggregated & continuously batched","body":"<p>Modern engines separate Prefill and Decode onto dedicated GPU pools (PD disaggregation), continuously batching requests each iteration and transferring paged KV blocks over NVLink/RDMA.</p><code class=\"eq\">gpu_batch = active_decode_users + next_prefill_chunk   // PD-disaggregated pools</code><p class=\"fact\"><span>Continuous batching + Prefill-Decode disaggregation</span><cite>Orca 2022 · llm-d 2025</cite></p>","ids":["IN-5","IN-12"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.324},{"i":23,"ch":4,"step":2,"title":"Prefill: read it all at once","body":"<p>The model node opens onto the same tower in inference mode. Every prompt token goes up in one parallel pass on a prefill pool. That is compute-bound, fills the compressed CSA/HCA KV cache, and sets TTFT.</p><p class=\"fact\"><span>GB200 dense FP4: <span class=\"num\">10,000</span> TFLOPS (<span class=\"num\">5,000</span> FP8; prefill is compute-bound)</span><cite>NVIDIA GB200 NVL72</cite></p>","ids":["IN-6"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.524},{"i":24,"ch":4,"step":3,"title":"Decode: one token per tick","body":"<p>Each new token (first hidden &lt;think&gt; tokens, then the visible reply) streams frozen FP4+FP8 weights and the compressed KV cache from HBM3e—memory-bound—often accelerated by MTP/EAGLE speculative drafting.</p><p class=\"fact\"><span>GB200 HBM3e: <span class=\"num\">8.0</span> TB/s per GPU (<span class=\"num\">576</span> TB/s NVL72 rack; decode is memory-bound)</span><cite>NVIDIA GB200 NVL72</cite></p>","ids":["IN-7"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.724},{"i":25,"ch":4,"step":4,"title":"Sample, check, stream","body":"<p>The sampler picks the next token (with grammar masks for JSON/tool schemas). Text is detokenized into a buffer, output guardrails check the chunk, and only then is it flushed as a server-sent event.</p><code class=\"eq\">verdict = output_check(buffer);  if (verdict.ok) sse_stream.flush(buffer); else cut_stream();</code><p class=\"fact\"><span>Model card: temperature <span class=\"num\">1.0</span>, top_p <span class=\"num\">1.0</span> for local runs</span><cite>DeepSeek-V4-Pro card</cite></p>","ids":["IN-8","IN-9","IN-10"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.924},{"i":26,"ch":5,"step":0,"title":"The model stops with a tool call","body":"<p>Instead of more text, generation ends with a structured tool call (native or MCP server schema) and arguments, and the stop reason signals control back to the caller.</p><code class=\"eq\">resp = POST(messages)   // stop_reason == \"tool_use\"</code><p class=\"fact\"><span>Client-run tools stop generation; hosted tools can execute server-side</span><cite>2026 frontier APIs</cite></p>","ids":["IN-8","IN-11"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.155},{"i":27,"ch":5,"step":1,"title":"Your app (or MCP server) runs it","body":"<p>For client tools, your app or an MCP server executes the call and keeps the result (provider-hosted sandboxes can run built-in code/web tools directly). Always treat tool outputs as untrusted input.</p><p class=\"fact\"><span>Prompt injection mostly arrives via tool results and documents, not at the gateway</span><cite>illustrative</cite></p>","ids":["IN-11"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.405},{"i":28,"ch":5,"step":2,"title":"A brand-new request","body":"<p>Because chat APIs remain stateless by default, your app sends the conversation plus the tool call and result (even across 1M-token agent sessions).</p><code class=\"eq\">resp2 = POST(messages + [tool_call, result])</code>","ids":["IN-11","IN-6"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.655},{"i":29,"ch":5,"step":3,"title":"Prefix cache: prefill only what’s new","body":"<p>The server recognises the unchanged prefix, “&nbsp;sat” included, and reuses its cached CSA/HCA KV blocks. Only the new tool-result tokens are prefilled, then decoding continues until the final reply.</p><code class=\"eq\">// server: prefix-cache hit, prefill only the new tokens</code>","ids":["IN-6","IN-12"],"skin":"light","css":"skin-light","realm":"INFERENCE","p":0.905}];
+const CHAPTER_NAMES=["Data & tokens","Pretraining at scale","Post-training & RL","Inside the model","Serving a request","Agents & tool loop"];
+
+let diagramSerial=0;
+function diagram(stop, detail=false){
+  const host=document.createElement('figure');host.className='obs-diagram '+stop.css;
+  const svg=E('svg',{class:'sv',viewBox:'0 0 480 400',role:'img','aria-label':stop.title,preserveAspectRatio:'xMidYMid meet'},host);
+  const saved=P2.field;
+  const a=BUILD['ch'+(stop.ch+1)](svg);if(saved)P2.field=saved;
+  a.aspect=.70;a.cw=440;a.mobile=false;a.m=a.mt=stop.ch===3&&stop.step===8?1:0;
+  a.render(detail&&stop.ids.includes('TR-5')?.8:detail&&stop.ids.includes('TR-3')?.43:stop.p,1.15,0);
+  if(stop.ch===3 && stop.step===4){
+    svg.setAttribute('viewBox','142 481 318 239');svg.querySelectorAll('rect[width="6.5"][opacity]').forEach(n=>{n.style.opacity='1';n.setAttribute('fill','#ffd277');n.setAttribute('stroke','#fff3c7');n.setAttribute('stroke-width','1')});
+  }
+  if(stop.ch===0||stop.ch===4||stop.ch===5){
+    const anchor=a.anchor;if(anchor&&stop.ch!==4){const tag=T(anchor.parentNode,+anchor.getAttribute('x')+anchor.width.baseVal.value/2,+anchor.getAttribute('y')+anchor.height.baseVal.value/2+4,' sat','mono-i',{'text-anchor':'middle'});tag.style.fill=stop.ch===0?'#345bd0':'#574396'}
+  }
+  const prefix='diagram-'+(++diagramSerial)+'-', idMap=new Map();
+  svg.querySelectorAll('[id]').forEach(n=>{idMap.set(n.id,prefix+n.id);n.id=prefix+n.id});
+  svg.querySelectorAll('*').forEach(n=>{for(const attr of [...n.attributes]){if(!attr.value.includes('url(#'))continue;const value=attr.value.replace(/url\(#([^)]+)\)/g,(m,k)=>idMap.has(k)?'url(#'+idMap.get(k)+')':m);if(value!==attr.value)n.setAttribute(attr.name,value)}});
+  return host;
+}
+const records=(api,el,id)=>{
+  const c=api.getComponent(id);el.replaceChildren();if(!c)return;
+  const add=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;el.append(n);return n};
+  for(const [label,key] of [['What it is','what'],['What happens','doing'],['Why it matters','narrative']]){add('h4',label);add('p',c[key])}
+  add('pre',c.equation);add('h4','Sub-parts');const list=add('ul','');for(const s of c.subs){const li=document.createElement('li');li.textContent=s;list.append(li)}
+  add('h4','Key fact');add('strong',c.keyFact);add('cite',c.keyFactSource);
+};
+function coreURL(){const v=new URL('../shared/obs-core.html',location.href);v.searchParams.set('embed','1');for(const k of ['perf','rm','quality','pr','aa'])if(qs.has(k))v.searchParams.set(k,qs.get(k));return v.href}
+function configure(api,s,ids,options={}){
+  api.setSkin(s.skin);api.setRealm(options.realm||s.realm);api.setControls(!!options.controls);
+  api.setBackprop(s.i===5||s.i===19);api.setKV(s.i===20||s.i===24?4:0);api.setMoeOffset(0);
+  api.setLabels(options.labels!==false);api.focus(ids,options);
+}
+
+
+const frame=document.getElementById('tourStage'),card=document.getElementById('tourCard'),rail=document.getElementById('tourRail'),allDialog=document.getElementById('catalogDialog'),reading=document.getElementById('reading');
+const starts=[0,4,8,12,21,26];let api=null,mode='start',index=0,chosen=null,staticState=false;
+function btn(text,fn,primary=false){const b=document.createElement('button');b.type='button';b.className='obs-pill'+(primary?' primary':'');b.textContent=text;b.onclick=fn;return b}
+function node(tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n}
+function overview(fly){api.setSkin('light');api.setRealm('ALL');api.setHighlight([]);api.setPlaying(false);api.setBackprop(false);api.setControls(mode==='free');const narrow=innerWidth<768;api.setPose(narrow?{pos:[64,63,100],target:[0,5,0]}:{pos:[28,55,98],target:[13,4,-1]}, {fly:fly&&!RM})}
+function setLocation(h){history.replaceState(null,'',location.pathname+location.search+h)}
+function populate(fly=true){
+  if(!api)return;card.replaceChildren();card.scrollTop=0;card.className='obs-panel tour-card '+mode;
+  rail.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-current',String(mode==='stop'&&STOPS[index].ch===i)));
+  const s=STOPS[index];document.body.className=(mode==='stop'?s.css:'skin-light')+' '+mode;
+  if(mode==='start'){
+    overview(false);card.append(node('span','Six chapters · 30 stops','obs-kicker'),node('h1','One token’s journey'),node('p','Follow “ sat” from raw text to a trained model, then through the machinery that serves a reply.'));
+    card.append(btn('Start the token’s journey →',()=>move(0),true));return
+  }
+  if(mode==='free'){
+    if(chosen){const c=api.getComponent(chosen);configure(api,{...s,skin:'light',realm:c.realm,i:-1},[chosen],{fly:fly&&!RM,controls:true,frameX:innerWidth<768?0:-.2});card.append(node('span',c.id+' · '+c.realm,'obs-kicker'),node('h2',c.title),node('p',c.what));}
+    else{overview(fly);card.append(node('h2','Explore freely'),node('p','Drag to orbit, scroll to zoom, or choose a component to inspect.'))}
+    const nav=node('div',null,'obs-actions');nav.append(btn('All components',()=>allDialog.showModal()),btn('Return to tour',()=>move(index),true));card.append(nav);return
+  }
+  const narrow=innerWidth<768;configure(api,s,s.ids,{fly:fly&&!RM,duration:.85,zoom:narrow?1.02:.92,frameX:narrow?0:-.24,frameY:narrow?-.06:0,controls:false});
+  api.setPlaying(!RM&&!staticState);
+  const label=node('div',null,'tour-step-state obs-kicker');label.append(node('span',CHAPTER_NAMES[s.ch]),node('span',String(index+1).padStart(2,'0')+' / 30'));const progress=node('div',null,'tour-progress');for(let i=0;i<30;i++)progress.append(node('i',null,i<=index?'fill':''));
+  card.append(label,progress,node('h2',s.title));const prose=node('div');prose.innerHTML=s.body;card.append(prose,diagram(s));
+  const more=node('details');more.append(node('summary','More detail'));for(const id of s.ids){const content=node('div',null,'fields');more.append(node('h3',api.getComponent(id).title),content);records(api,content,id)}card.append(more);
+  const nav=node('div',null,'obs-actions');nav.append(btn('← Previous',()=>index===0?start():move(index-1)),btn(index===29?'Explore freely →':'Next →',()=>index===29?free():move(index+1),true));card.append(nav);
+}
+function move(n,fly=true){mode='stop';chosen=null;index=Math.max(0,Math.min(29,n));setLocation('#stop-'+(index+1));populate(fly)}
+function start(){mode='start';setLocation('');populate(false)}
+function free(id=null,fly=true){mode='free';chosen=id;setLocation('#explore'+(id?'-'+id:''));populate(fly)}
+CHAPTER_NAMES.forEach((name,i)=>{const b=btn(String(i+1),()=>move(starts[i]));b.setAttribute('aria-label','Chapter '+(i+1)+' · '+name);b.append(node('span',name));rail.append(b)});
+document.getElementById('allParts').onclick=()=>allDialog.showModal();document.getElementById('readTour').onclick=()=>reading.showModal();document.querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+for(const s of STOPS){const article=node('article');article.append(node('h3',(s.i+1)+'. '+s.title));const body=node('div');body.innerHTML=s.body;article.append(body);document.getElementById('readingBody').append(article)}
+function bindHash(){const m=location.hash.match(/^#stop-(\d+)$/);if(m)move(Number(m[1])-1,false);else if(location.hash.startsWith('#explore'))free(location.hash.slice(9)||null,false);else start()}
+addEventListener('hashchange',bindHash);addEventListener('resize',()=>{if(api)populate(false)});document.addEventListener('visibilitychange',()=>{if(!api)return;if(document.hidden)api.suspend();else api.resume()});
+addEventListener('keydown',e=>{if(!!document.querySelector('dialog[open]')||!api)return;const k=e.key;if(k==='Escape')free();else if(k==='Home')move(0);else if(k==='End')move(29);else if(k==='ArrowRight'){if(mode==='stop'&&index===29)free();else move(mode==='stop'?index+1:0)}else if(k==='ArrowLeft')move(mode==='stop'?index-1:0);else if(/^[1-6]$/.test(k))move(starts[+k-1]);else return;e.preventDefault()});
+frame.addEventListener('load',async()=>{try{api=await frame.contentWindow.obs.ready;const list=document.getElementById('partList');api.components().forEach(c=>{const li=node('li');li.append(btn(c.id+' · '+c.title,()=>{allDialog.close();free(c.id)}));list.append(li)});
+const technical=node('details');technical.append(node('summary','Observatory component reference'));const text=node('div');api.textView(text);technical.append(text);document.getElementById('readingBody').append(technical);
+const states={'tour-ch1-bpe':2,'tour-ch4-router':16,'tour-ch5-decode':24,'tour-narrow':16},st=qs.get('state');staticState=!!st;for(const e of ['keydown','pointerdown'])window.addEventListener(e,()=>{staticState=false},{capture:true,once:true});
+if(location.hash)bindHash();else if(st in states)move(states[st],false);else if(st==='tour-free-roam')free(null,false);else start();api.renderNow();window.__ready=true;
+}catch(err){card.append(node('h2','3D unavailable'),node('p','Open Text view to read all 30 stops.'));console.error(err)}},{once:true});
+frame.src=coreURL();window.__tour={get state(){return {mode,index,chosen}},move};
+
+/* ---------- narration engine (shared by tour and story) ---------- */
+function makeNarrator(o){
+  const N={clips:null,byStop:new Map(),intro:null,outro:null,cur:null,audio:null,on:false,paused:false,internal:false};
+  const btn=o.btn,cap=o.cap;
+  async function load(){
+    if(N.clips)return N.clips;let d=null;
+    if(location.protocol!=='file:'){try{const r=await fetch('../shared/journey-narration/manifest.json',{cache:'no-cache'});if(r.ok)d=await r.json()}catch(_){d=null}}
+    if(!d){const el=document.getElementById('narration-manifest');if(el){try{d=JSON.parse(el.textContent)}catch(_){d=null}}}
+    if(!d||!Array.isArray(d.clips)||!d.clips.length)return null;
+    N.clips=d.clips;d.clips.forEach(c=>{if(c.stop==null){if(!N.intro)N.intro=c;else N.outro=c}else N.byStop.set(c.stop,c)});
+    const s=Math.round(d.totalDuration||0),m=Math.floor(s/60),r=s%60;
+    btn.querySelector('.narr-dur').textContent=m+':'+String(r).padStart(2,'0');
+    btn.setAttribute('aria-label',o.label+' with sound, '+m+' min '+r+' s');btn.hidden=false;return N.clips;
+  }
+  function setBtn(){btn.setAttribute('aria-pressed',N.on?'true':'false');btn.querySelector('.narr-lbl').textContent=N.on?'Pause':N.paused?'Resume':o.label}
+  function caption(c,t){if(!c||!c.cues||!c.cues.length){cap.hidden=true;return}let s=c.cues[0].s;for(const q of c.cues)if(t>=q.t)s=q.s;if(cap.textContent!==s)cap.textContent=s;cap.hidden=false}
+  function drop(){const a=N.audio;if(a){a.onended=null;a.onerror=null;a.ontimeupdate=null;a.pause()}N.audio=null}
+  function finish(){N.on=false;N.paused=false;drop();N.cur=null;cap.hidden=true;setBtn();if(o.onFinish)o.onFinish()}
+  function pause(){if(!N.on)return;N.on=false;N.paused=true;if(N.audio)N.audio.pause();setBtn()}
+  function play(c){
+    drop();N.cur=c;if(!c){finish();return}
+    const a=new Audio(c.src);a.preload='auto';N.audio=a;
+    a.ontimeupdate=()=>caption(c,a.currentTime);a.onended=next;a.onerror=next;caption(c,0);
+    const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==='NotAllowedError')pause();else next()});
+    const nx=c===N.intro?N.byStop.get(0):c===N.outro?null:(N.byStop.get(c.stop+1)||N.outro);if(nx){const pre=new Audio();pre.preload='auto';pre.src=nx.src}
+  }
+  function go(n){N.internal=true;try{o.goStop(n)}finally{N.internal=false}play(N.byStop.get(n))}
+  function next(){
+    if(!N.on)return;const c=N.cur;
+    if(c===N.intro){go(0);return}
+    if(!c||c===N.outro){finish();return}
+    if(c.stop>=29){if(N.outro){if(o.onOutro)o.onOutro();play(N.outro)}else finish();return}
+    go(c.stop+1);
+  }
+  async function toggle(){
+    if(N.on){pause();return}
+    if(N.paused&&N.audio){N.on=true;N.paused=false;setBtn();const p=N.audio.play();if(p&&p.catch)p.catch(()=>pause());return}
+    if(!await load())return;
+    N.on=true;N.paused=false;setBtn();
+    const s=o.getStop();if(s==null&&o.onStart)o.onStart();play(s==null?N.intro:N.byStop.get(s));
+  }
+  btn.addEventListener('click',toggle);load();
+  return{followStop(n){if(N.on&&!N.internal){const c=N.byStop.get(n);if(c)play(c)}},interrupt(){if(N.on&&!N.internal)pause()}};
+}
+
+const narr=makeNarrator({btn:document.getElementById('narrTour'),cap:document.getElementById('narrCap'),label:'Narrated tour',
+  goStop:n=>move(n),getStop:()=>mode==='stop'?index:null});
+{const _move=move;move=function(n,fly){_move(n,fly);narr.followStop(index)}}
+{const _free=free;free=function(id,fly){_free(id,fly);narr.interrupt()}}
+{const _start=start;start=function(){_start();narr.interrupt()}}
+})();</script></body></html>

@@ -8,7 +8,7 @@
   {
    "id": "00-intro",
    "title": "Intro",
-   "src": "./assets/narration/00-intro.mp3",
+   "src": "../shared/journey-narration/00-intro.mp3",
    "dur": 14.08,
    "stop": null,
    "cues": [
@@ -29,7 +29,7 @@
   {
    "id": "01-sources",
    "title": "Sources from everywhere",
-   "src": "./assets/narration/01-sources.mp3",
+   "src": "../shared/journey-narration/01-sources.mp3",
    "dur": 13.84,
    "stop": 0,
    "cues": [
@@ -46,7 +46,7 @@
   {
    "id": "02-dedupe",
    "title": "Duplicates out, quality in",
-   "src": "./assets/narration/02-dedupe.mp3",
+   "src": "../shared/journey-narration/02-dedupe.mp3",
    "dur": 11.44,
    "stop": 1,
    "cues": [
@@ -63,7 +63,7 @@
   {
    "id": "03-bpe",
    "title": "Byte-pair encoding cuts the sentence",
-   "src": "./assets/narration/03-bpe.mp3",
+   "src": "../shared/journey-narration/03-bpe.mp3",
    "dur": 13.52,
    "stop": 2,
    "cues": [
@@ -84,7 +84,7 @@
   {
    "id": "04-ids",
    "title": "Every token becomes an ID",
-   "src": "./assets/narration/04-ids.mp3",
+   "src": "../shared/journey-narration/04-ids.mp3",
    "dur": 15.44,
    "stop": 3,
    "cues": [
@@ -101,7 +101,7 @@
   {
    "id": "05-streams",
    "title": "Streams rise through the tower",
-   "src": "./assets/narration/05-streams.mp3",
+   "src": "../shared/journey-narration/05-streams.mp3",
    "dur": 10.8,
    "stop": 4,
    "cues": [
@@ -118,7 +118,7 @@
   {
    "id": "06-loss",
    "title": "Score the guess, send gradients down",
-   "src": "./assets/narration/06-loss.mp3",
+   "src": "../shared/journey-narration/06-loss.mp3",
    "dur": 13.2,
    "stop": 5,
    "cues": [
@@ -139,7 +139,7 @@
   {
    "id": "07-racks",
    "title": "Sharded across racks, trained in FP8",
-   "src": "./assets/narration/07-racks.mp3",
+   "src": "../shared/journey-narration/07-racks.mp3",
    "dur": 14.0,
    "stop": 6,
    "cues": [
@@ -156,7 +156,7 @@
   {
    "id": "08-context",
    "title": "Then, a million-token memory",
-   "src": "./assets/narration/08-context.mp3",
+   "src": "../shared/journey-narration/08-context.mp3",
    "dur": 13.12,
    "stop": 7,
    "cues": [
@@ -173,7 +173,7 @@
   {
    "id": "09-specialists",
    "title": "First, specialist SFT and RL",
-   "src": "./assets/narration/09-specialists.mp3",
+   "src": "../shared/journey-narration/09-specialists.mp3",
    "dur": 12.88,
    "stop": 8,
    "cues": [
@@ -190,7 +190,7 @@
   {
    "id": "10-attempts",
    "title": "Draw a group of attempts",
-   "src": "./assets/narration/10-attempts.mp3",
+   "src": "../shared/journey-narration/10-attempts.mp3",
    "dur": 9.84,
    "stop": 9,
    "cues": [
@@ -207,7 +207,7 @@
   {
    "id": "11-grade",
    "title": "Grade against the group",
-   "src": "./assets/narration/11-grade.mp3",
+   "src": "../shared/journey-narration/11-grade.mp3",
    "dur": 10.88,
    "stop": 10,
    "cues": [
@@ -224,7 +224,7 @@
   {
    "id": "12-distill",
    "title": "Distill specialists into one model",
-   "src": "./assets/narration/12-distill.mp3",
+   "src": "../shared/journey-narration/12-distill.mp3",
    "dur": 10.96,
    "stop": 11,
    "cues": [
@@ -241,7 +241,7 @@
   {
    "id": "13-embed",
    "title": "An ID becomes a vector",
-   "src": "./assets/narration/13-embed.mp3",
+   "src": "../shared/journey-narration/13-embed.mp3",
    "dur": 14.16,
    "stop": 12,
    "cues": [
@@ -262,7 +262,7 @@
   {
    "id": "14-attention",
    "title": "Normalize, then look back",
-   "src": "./assets/narration/14-attention.mp3",
+   "src": "../shared/journey-narration/14-attention.mp3",
    "dur": 9.68,
    "stop": 13,
    "cues": [
@@ -279,7 +279,7 @@
   {
    "id": "15-compressed",
    "title": "Hybrid compressed attention",
-   "src": "./assets/narration/15-compressed.mp3",
+   "src": "../shared/journey-narration/15-compressed.mp3",
    "dur": 12.32,
    "stop": 14,
    "cues": [
@@ -300,7 +300,7 @@
   {
    "id": "16-mhc",
    "title": "Merge via hyper-connections",
-   "src": "./assets/narration/16-mhc.mp3",
+   "src": "../shared/journey-narration/16-mhc.mp3",
    "dur": 11.36,
    "stop": 15,
    "cues": [
@@ -313,7 +313,7 @@
   {
    "id": "17-router",
    "title": "The router picks 6 of 384",
-   "src": "./assets/narration/17-router.mp3",
+   "src": "../shared/journey-narration/17-router.mp3",
    "dur": 14.8,
    "stop": 16,
    "cues": [
@@ -330,7 +330,7 @@
   {
    "id": "18-layers",
    "title": "Sixty-one distinct layers",
-   "src": "./assets/narration/18-layers.mp3",
+   "src": "../shared/journey-narration/18-layers.mp3",
    "dur": 11.28,
    "stop": 17,
    "cues": [
@@ -347,7 +347,7 @@
   {
    "id": "19-vocab",
    "title": "Score the whole vocabulary",
-   "src": "./assets/narration/19-vocab.mp3",
+   "src": "../shared/journey-narration/19-vocab.mp3",
    "dur": 10.88,
    "stop": 18,
    "cues": [
@@ -364,7 +364,7 @@
   {
    "id": "20-training",
    "title": "Training: loss up top, gradients down",
-   "src": "./assets/narration/20-training.mp3",
+   "src": "../shared/journey-narration/20-training.mp3",
    "dur": 12.32,
    "stop": 19,
    "cues": [
@@ -385,7 +385,7 @@
   {
    "id": "21-inference",
    "title": "Inference: the same tower, frozen",
-   "src": "./assets/narration/21-inference.mp3",
+   "src": "../shared/journey-narration/21-inference.mp3",
    "dur": 12.0,
    "stop": 20,
    "cues": [
@@ -402,7 +402,7 @@
   {
    "id": "22-gate",
    "title": "Through the gate",
-   "src": "./assets/narration/22-gate.mp3",
+   "src": "../shared/journey-narration/22-gate.mp3",
    "dur": 11.68,
    "stop": 21,
    "cues": [
@@ -419,7 +419,7 @@
   {
    "id": "23-batching",
    "title": "Disaggregated and continuously batched",
-   "src": "./assets/narration/23-batching.mp3",
+   "src": "../shared/journey-narration/23-batching.mp3",
    "dur": 11.44,
    "stop": 22,
    "cues": [
@@ -436,7 +436,7 @@
   {
    "id": "24-prefill",
    "title": "Prefill: read it all at once",
-   "src": "./assets/narration/24-prefill.mp3",
+   "src": "../shared/journey-narration/24-prefill.mp3",
    "dur": 11.2,
    "stop": 23,
    "cues": [
@@ -453,7 +453,7 @@
   {
    "id": "25-decode",
    "title": "Decode: one token per tick",
-   "src": "./assets/narration/25-decode.mp3",
+   "src": "../shared/journey-narration/25-decode.mp3",
    "dur": 14.24,
    "stop": 24,
    "cues": [
@@ -474,7 +474,7 @@
   {
    "id": "26-sample",
    "title": "Sample, check, stream",
-   "src": "./assets/narration/26-sample.mp3",
+   "src": "../shared/journey-narration/26-sample.mp3",
    "dur": 11.52,
    "stop": 25,
    "cues": [
@@ -491,7 +491,7 @@
   {
    "id": "27-toolcall",
    "title": "The model stops with a tool call",
-   "src": "./assets/narration/27-toolcall.mp3",
+   "src": "../shared/journey-narration/27-toolcall.mp3",
    "dur": 10.64,
    "stop": 26,
    "cues": [
@@ -508,7 +508,7 @@
   {
    "id": "28-runtool",
    "title": "Your app or an MCP server runs it",
-   "src": "./assets/narration/28-runtool.mp3",
+   "src": "../shared/journey-narration/28-runtool.mp3",
    "dur": 11.36,
    "stop": 27,
    "cues": [
@@ -525,7 +525,7 @@
   {
    "id": "29-newrequest",
    "title": "A brand-new request",
-   "src": "./assets/narration/29-newrequest.mp3",
+   "src": "../shared/journey-narration/29-newrequest.mp3",
    "dur": 8.96,
    "stop": 28,
    "cues": [
@@ -538,7 +538,7 @@
   {
    "id": "30-prefixcache",
    "title": "Prefix cache: prefill only what's new",
-   "src": "./assets/narration/30-prefixcache.mp3",
+   "src": "../shared/journey-narration/30-prefixcache.mp3",
    "dur": 11.92,
    "stop": 29,
    "cues": [
@@ -555,7 +555,7 @@
   {
    "id": "31-outro",
    "title": "Outro",
-   "src": "./assets/narration/31-outro.mp3",
+   "src": "../shared/journey-narration/31-outro.mp3",
    "dur": 9.12,
    "stop": null,
    "cues": [

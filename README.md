@@ -6,18 +6,34 @@ Scroll-driven 3D explainers that follow one token through a large language model
 
 ## What is here
 
-| Folder | Experience | What it is |
-|---|---|---|
-| [`one-token-end-to-end/`](one-token-end-to-end/) | **One Token, End to End** | "Paris" crosses twelve stages on one line, from training data to the streamed reply: how Claude Fable 5.2 is made and how it answers you. Scroll-driven 3D figures with 4:38 of narration (14 MP3s plus `manifest.json`). |
-| [`one-tokens-journey/`](one-tokens-journey/) | **One Token's Journey** | A scrolling 3D story of one token through DeepSeek-V4-Pro in six chapters, with 3D rooms you can orbit and inspect, and 6:25 of narration ("Narrated run"). [`one-token-journey-3d.html`](one-tokens-journey/one-token-journey-3d.html) |
-| [`tour-v4.html`](one-tokens-journey/tour-v4.html) | **Guided Tour** | Thirty stops through the same model, with a chapter rail, a 31-component index and the same 6:25 narration ("Narrated tour"). [`tour-v4.html`](one-tokens-journey/tour-v4.html) |
-|[`obs-core.html`](one-tokens-journey/obs-core.html) | 3D engine | [`obs-core.html`](one-tokens-journey/obs-core.html) is the shared Three.js engine the story and tour embed in an iframe (`obs-core.html?embed=1`). It also opens on its own. |
+Each explainer has its own folder: open its `index.html`, and read its `README.md` for controls, sources, lineage and known limits. A file sits in `shared/` only when more than one explainer uses it.
 
-`one-tokens-journey/index.html` redirects to the scrolling story. The page filenames in that folder link to each other by name, so keep them as they are. See [`one-tokens-journey/README.md`](one-tokens-journey/README.md) for its controls, deep-link states and test notes.
+| Folder | Title | What it is | Narration | Design |
+|---|---|---|---|---|
+| [`end-to-end-swiss/`](end-to-end-swiss/) | **One Token, End to End** | " Paris" crosses twelve stages on one line, from training data to the streamed reply: how Claude Fable 5.2 is made and how it answers you. | 14 clips, 4:38 | Swiss: orthographic 3D figures, Martian Mono, Three.js r128 |
+| [`end-to-end-beamline/`](end-to-end-beamline/) | **One Token, End to End (Beamline)** | The same story drawn as eleven physical stations in a pale hall, with " Paris" as a blue token you follow from corpus to tool loop. | 45 clips, 9:41 | Beamline: Archivo, one floor track, Three.js 0.160 |
+| [`journey-story/`](journey-story/) | **One Token's Journey** | Six chapters take one token from raw text to the next token through DeepSeek-V4-Pro, with 3D rooms you can orbit and inspect. | 32 clips, 6:25 (shared) | Blueprint sheets plus the shared 3D engine |
+| [`journey-tour/`](journey-tour/) | **Guided Tour** | Thirty stops through the same model, with a chapter rail and a 31-component index. | 32 clips, 6:25 (shared) | Same engine as the story |
+| [`shared/`](shared/) | Shared files | `obs-core.html`, the Three.js engine both journey pages embed (it also opens on its own), and `journey-narration/`, the clips both journey pages play. | n/a | n/a |
+
+The two End to End folders are two designs of one story. The two journey pages are two ways through one model.
+
+### Old URLs
+
+The site's first layout is kept as redirect stubs so shared links still work. They forward the query string and `#hash`.
+
+| Old path | Now |
+|---|---|
+| `one-token-end-to-end/` | `end-to-end-swiss/` |
+| `one-tokens-journey/`, `one-tokens-journey/one-token-journey-3d.html` | `journey-story/` |
+| `one-tokens-journey/tour-v4.html` | `journey-tour/` |
+| `one-tokens-journey/obs-core.html` | `shared/obs-core.html` |
+
+Don't add anything else to those two folders.
 
 ## Run locally
 
-The pages need HTTP, not `file://`: they fetch the narration manifest and embed `obs-core.html` in iframes. From the repository root:
+Serve over HTTP, not `file://`: the journey pages embed `shared/obs-core.html` in an iframe and fetch their narration manifest. From the repository root:
 
 ```powershell
 python -m http.server 8000
@@ -29,8 +45,11 @@ Three.js and the fonts load from CDNs, so you need an internet connection on fir
 
 ## Credits
 
-- **Narration** voiced with [ElevenLabs](https://elevenlabs.io/), on a paid plan.
-- **3D** by [Three.js](https://threejs.org/) (r128), loaded from cdnjs, with unpkg and jsDelivr as fallbacks.
+- **Narration** voiced with [ElevenLabs](https://elevenlabs.io/) (`eleven_v4`), on a paid plan. Voices: Sylvie (Beamline), Jade (journey pages), and ElevenLabs voice `TYKLc7ViOIGE13dSZYlK` (Swiss).
+- **3D** by [Three.js](https://threejs.org/):
+  - The Swiss page uses r128 from cdnjs, with unpkg and jsDelivr as fallbacks.
+  - The shared engine uses r128 from cdnjs.
+  - Beamline uses 0.160 as an ES module from jsDelivr.
 - **Fonts** from [Google Fonts](https://fonts.google.com/).
 
 ## Fact sources
@@ -38,7 +57,7 @@ Three.js and the fonts load from CDNs, so you need an internet connection on fir
 Every displayed claim was checked against:
 
 - The DeepSeek-V4 paper, [arXiv 2606.19348](https://arxiv.org/abs/2606.19348), and the [DeepSeek-V4-Pro Hugging Face model card and config](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro).
-- [Anthropic's Claude API docs](https://platform.claude.com/docs), as of 21 November 2026.
+- [Anthropic's Claude API docs](https://platform.claude.com/docs). The check dates are 21 November 2026 for the Swiss and journey pages, and 22 November 2026 for Beamline.
 
 Model details change. If a page disagrees with the current docs, the docs win.
 

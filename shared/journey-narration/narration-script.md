@@ -1,6 +1,6 @@
 # One Token's Journey: narration script (V4), draft 1
 
-For the observatory tour (`final/tour-v4.html`, 30 stops) and the scrolling story (`final/one-token-journey-3d.html`, which uses the same 30 steps grouped into 6 chapters).
+For the observatory tour (`journey-tour/`, 30 stops) and the scrolling story (`journey-story/`, which uses the same 30 steps grouped into 6 chapters).
 
 - **Voice:** Jade, British with a subtle French inflection (`tfvhQIydLdGEZP6h00c5`), on `eleven_v4`, 1 take per clip. One voice for the whole video. v2-hardened keeps its own existing voice.
 - **Clips:** 32 (intro, 30 stops, outro). Each line is written to be spoken: numbers are spelled out, symbols removed, and acronyms either expanded or spaced ("K V").
