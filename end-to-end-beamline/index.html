@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script src="../shared/vendor/three-r160.min.js"></script>
 <style>
 :root{
   --hall:#E9EBEB; --slab:#F4F5F5; --rule:#C3C8CB; --rule-soft:#D5D9DB;
@@ -171,6 +171,8 @@ html.study .study-note{display:block}
 @media (max-width:860px){.topbar{gap:12px}}@media (max-width:420px){.topbar{padding:0 14px;gap:10px}.brand{font-size:13px}}@media (max-width:360px){.topbar .src-link{display:none}}
 @media (prefers-reduced-motion:reduce){.tag{transition:none}.btn{transition:none}.cap{transition:none}}
 </style>
+<link rel="stylesheet" href="../shared/micro-labs.css">
+<script src="../shared/micro-labs.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -573,7 +575,7 @@ output_config: { effort: "high" }</code>
 </nav>
 
 <script type="module">
-import * as THREE from 'three';
+const THREE = window.THREE;
 
 /* ---------------- basics ---------------- */
 const qs = new URLSearchParams(location.search);
@@ -1208,6 +1210,16 @@ function measure() {
     const tr = Math.max(0, ...[...el.querySelectorAll('h2,p,.where')].map(ink));
     return { el, id: el.dataset.beat, top: r.top + scrollY, h: r.height, layout: el.dataset.layout || 'split', tr }; });
 }
+const studyLabs = {
+  '1c': ['bpe'], '3c': ['kl'], '5b': ['mix'], '5c': ['attention', 'rope'], '5d': ['kv'],
+  '5e': ['moe'], '6a': ['roof'], '6c': ['roof'], '6d': ['sample'], '6e': ['stream']
+};
+for (const [beat, labs] of Object.entries(studyLabs)) {
+  const host = document.createElement('div');
+  host.className = 'study-note';
+  document.querySelector('[data-beat="' + beat + '"]').append(host);
+  MicroLabs.dock(host, labs);
+}
 const studyBtn = $('#studyBtn');
 function setStudy(on) {
   const anchor = beatEls.find(el => el.getBoundingClientRect().bottom > innerHeight * .25), y0 = anchor ? anchor.getBoundingClientRect().top : 0;
@@ -1215,8 +1227,14 @@ function setStudy(on) {
   if (anchor) scrollTo({ top: scrollY + anchor.getBoundingClientRect().top - y0, behavior: 'instant' });
   measure();
 }
-studyBtn.addEventListener('click', () => setStudy(studyBtn.getAttribute('aria-pressed') !== 'true'));
-if (qs.get('study') === '1') setStudy(true);
+studyBtn.addEventListener('click', () => {
+  if ($('#watchBtn').getAttribute('aria-pressed') === 'true') $('#watchBtn').click();
+  setStudy(studyBtn.getAttribute('aria-pressed') !== 'true');
+});
+if (qs.get('study') === '1') {
+  setStudy(true);
+  if (qs.has('lab')) addEventListener('load', () => MicroLabs.reveal(document, qs.get('lab')), {once:true});
+}
 function probeY() { return narrow() ? innerHeight * .46 + innerHeight * .54 * .3 : innerHeight * .52; }
 function jumpTo(id, instant) { const g = beatGeo.find(b => b.id === id); if (!g) return; const y = id === 'ledger' ? g.top - $('.topbar').offsetHeight : g.top + Math.min(g.h * .38, innerHeight * .4) - probeY() + 2; scrollTo({ top: Math.max(0, y), behavior: instant || RM ? 'auto' : 'smooth' }); }
 document.querySelectorAll('[data-jump]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); jumpTo(a.dataset.jump); }));
@@ -1268,6 +1286,7 @@ const Narr = (() => {
   }
   function setWatch(on) {
     watch = on; glide = null; next = 0;
+    if (on && document.documentElement.classList.contains('study')) setStudy(false);
     if (on) { sound = true; if (activeId === 'ledger') { jumpTo('hero', true); want = 'hero'; wantAt = clock(); }
       else if (!cur || cur.id !== activeId) { want = activeId; wantAt = clock(); } }
     sync();
