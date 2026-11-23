@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const PUBLIC_DIRS = [
+  'one-token',
   'end-to-end-swiss',
   'end-to-end-beamline',
   'journey-story',

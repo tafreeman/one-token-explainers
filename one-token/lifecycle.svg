@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="270" viewBox="0 0 460 270" role="img" aria-labelledby="title description">
+  <title id="title">Training and serving a language model</title>
+  <desc id="description">Training updates weights using documents, and the final weights are frozen. During serving, a new request passes through the model loaded with those weights, then a reply streams back. Vermilion samples show separate appearances of Paris in text.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="m1 1 6 3-6 3" fill="none" stroke="#52575d" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .label { fill: #16181a; font: 600 18px Arial, sans-serif; text-anchor: middle }
+      .lane { fill: #52575d; font: 700 15px Arial, sans-serif; letter-spacing: 1.3px }
+      .sample { fill: #b8320d; font: 700 16px Arial, sans-serif; text-anchor: middle }
+      .legend { fill: #52575d; font: 400 17px Arial, sans-serif }
+      .plate { fill: #fff; stroke: #52575d; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round }
+      .detail { fill: none; stroke: #85837e; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round }
+      .flow { fill: none; stroke: #52575d; stroke-width: 1.45; marker-end: url(#arrow) }
+    </style>
+  </defs>
+
+  <path d="M9 27h442v96H9zm0 135h442v73H9z" fill="#eceae3" stroke="#d6d3cb"/>
+  <text class="lane" x="9" y="20">TRAINING</text>
+  <text class="lane" x="9" y="153">SERVING</text>
+
+  <g class="flow">
+    <path d="M139 66h48 M273 66h48"/>
+    <path d="M365 125v16H230v29" stroke-dasharray="3.5 2.5"/>
+    <path d="M139 191h48 M273 191h48"/>
+  </g>
+
+  <g transform="translate(95 66)">
+    <path class="plate" d="M-18-24h38v45h-38z M-24-18h38v45h-38z"/>
+    <path class="detail" d="M-19-11h26 M-19-6h16 M-19 21H4"/>
+    <text class="sample" x="-5" y="12">Paris</text>
+  </g>
+  <text class="label" x="95" y="110">Documents</text>
+
+  <g transform="translate(230 66)">
+    <path class="plate" d="m-27 14 27 11 27-11V-3L0-14-27-3z M-27-3 0 8 27-3 M0 8v17"/>
+    <path class="plate" d="m-27-4 27 11 27-11v-12L0-27l-27 11z M-27-16 0-5l27-11 M0-5V7"/>
+    <path class="detail" d="m-19-18 19 8 17-7m-37 20 5 2m26 7 8-3"/>
+  </g>
+  <text class="label" x="230" y="110">Train model</text>
+
+  <g transform="translate(365 66)">
+    <path class="plate" d="M-26-23h52v48h-52z M-20-16h40v34h-40z"/>
+    <path class="detail" d="M-20-5h40 M-20 6h40 M-10-16v34 M0-16v34 M10-16v34"/>
+    <path d="M0-5h10V6H0z M-20 6h10v12h-10z M10-16h10v11H10z" fill="#aaa497"/>
+  </g>
+  <text class="label" x="365" y="110">Frozen weights</text>
+
+  <g transform="translate(95 190)">
+    <path class="plate" d="M-28-15h56v30h-31l-9 6v-6h-16z"/>
+    <text class="sample" x="0" y="6">Paris</text>
+  </g>
+  <text class="label" x="95" y="225">New request</text>
+
+  <g transform="translate(230 189)">
+    <path class="plate" d="m-27 8 27 10 27-10V-7L0-17-27-7z M-27-7 0 3 27-7 M0 3v15"/>
+    <path class="detail" d="m-27-1 27 10 27-10 M-27 4 0 14 27 4 M-11-10l21 8 M-11-3l21-8"/>
+  </g>
+  <text class="label" x="230" y="225">Frozen model</text>
+
+  <g transform="translate(365 190)">
+    <path class="plate" d="M-30-15h60v30h-60z"/>
+    <text class="sample" x="-5" y="6">Paris</text>
+    <path class="detail" d="M18-6v12"/>
+  </g>
+  <text class="label" x="365" y="225">Streamed reply</text>
+
+  <g transform="translate(9 257)">
+    <path d="M0-6h10v10H0z" fill="#b8320d"/>
+    <text class="legend" x="18" y="3">“Paris” in separate texts</text>
+    <path d="M250-1h25" stroke="#52575d" stroke-width="1.45" stroke-dasharray="3.5 2.5"/>
+    <text class="legend" x="283" y="3">Weights loaded</text>
+  </g>
+</svg>

@@ -21,6 +21,15 @@
         ],
         "createdAt": "2026-11-23T05:22:42.286Z",
         "reason": "Agent: rendered desktop and phone checks show these findings concern the story/stage canvas panel dividers. Reading text has its own station gutters and spacing; padding the canvas boundary would break the flush split view. Other design rules remain active."
+      },
+      {
+        "rule": "overused-font",
+        "value": "roboto",
+        "files": [
+          "one-token/reader.css"
+        ],
+        "createdAt": "2026-11-23T12:18:00.000Z",
+        "reason": "Agent: sanctioned exception for multi-axis variable Roboto Flex (wdth, wght, opsz) driving the morphing Paris typographic specimen specified in DESIGN.md and .impeccable/surfaces/one-token-index-html.md, not generic static Roboto."
       }
     ]
   }

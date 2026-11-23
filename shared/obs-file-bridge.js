@@ -25,14 +25,16 @@
   };
   window.forwardJourneyKeys = function () {
     if (window === parent) return;
+    const reader = /[?&]reader=1(?:&|$)/.test(location.search);
     window.addEventListener('message', event => {
       if (event.source !== parent || !trustedOrigin(event.origin) || event.data?.type !== focusMessage) return;
       document.getElementById('threeCanvas')?.focus({preventScroll: true});
     });
     document.addEventListener('keydown', event => {
+      const readerEscape = reader && event.key === 'Escape';
       if (!keys.has(event.key) || event.defaultPrevented || event.isComposing ||
           event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
-          event.target.closest?.('input, textarea, select, button, summary, [contenteditable]')) return;
+          (!readerEscape && event.target.closest?.('input, textarea, select, button, summary, [contenteditable]'))) return;
       event.preventDefault();
       parent.postMessage({type: keyMessage, key: event.key}, location.protocol === 'file:' ? '*' : location.origin);
     });

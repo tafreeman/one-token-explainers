@@ -4,31 +4,38 @@ Scroll-driven 3D explainers that follow one token through a large language model
 
 **Live site:** <https://tafreeman.github.io/one-token-explainers/>
 
-The landing page presents all four explainer formats. Swiss retains its interactive
-**Explore the token** instrument and all 43 explanation steps with their technical
-details, controls and specifications visible without extra disclosure clicks.
+The root page (`index.html`) opens directly into the unified **One Token, End to End**
+Continuous Reader: all 43 written explanation steps across 12 stages with their technical
+details and specifications visible without extra disclosure clicks, paired with a
+synchronized 3D figure (**Diagram** and **Spatial** views on one WebGL context), a
+**Present** mode, dual narration tracks (9:41 full walkthrough and 4:38 quick summary),
+and an inline **Component Inspector** with interactive micro-labs and lazy 3D Observatory
+cutaways. The classic and deep-dive formats remain available under **Other views**.
 The factual, API, keyboard and focus corrections from PR #7 remain in place.
 
 ## What is here
 
-Each explainer has its own folder: open its `index.html`, and read its `README.md` for controls, sources, lineage and known limits. A file sits in `shared/` only when more than one explainer uses it.
+Root `index.html` hosts the unified Continuous Reader (with its scripts, styles, fonts,
+and static fallback in `one-token/`). Each classic or deep-dive explainer also keeps its
+own folder: open its `index.html`, and read its `README.md` for controls, sources, lineage
+and known limits. A file sits in `shared/` only when more than one explainer uses it.
 
-| Folder | Title | What it is | Narration | Design |
+| Path | Title | What it is | Narration | Design |
 |---|---|---|---|---|
-| [`end-to-end-swiss/`](end-to-end-swiss/) | **One Token, End to End** | " Paris" crosses twelve stages on one line, from training data to the streamed reply: how Claude Fable 5.2 is made and how it answers you. | 14 clips, 4:38 | Swiss: orthographic 3D figures, Martian Mono, Three.js r128 |
-| [`end-to-end-beamline/`](end-to-end-beamline/) | **One Token, End to End (Beamline)** | The same story drawn as eleven physical stations in a pale hall, with " Paris" as a blue token you follow from corpus to tool loop. | 45 clips, 9:41 | Beamline: Archivo, one floor track, Three.js 0.160 |
+| [`index.html`](index.html) (`one-token/`) | **One Token, End to End (Unified Reader)** | One continuous twelve-stage lesson pairing Swiss's written structure with Diagram and Spatial 3D views, Present mode, and an inline Component Inspector. | 37-beat 9:41 full + 14-clip 4:38 quick summary | Unified mineral paper, Roboto Flex & Martian Mono, `shared/theme-tokens.js`, Three.js 0.160 |
+| [`end-to-end-swiss/`](end-to-end-swiss/) | **One Token, End to End (Swiss)** | Classic Swiss edition: " Paris" crosses twelve stages on one line, from training data to the streamed reply. | 14 clips, 4:38 | Swiss: orthographic 3D figures, Martian Mono, Three.js r128 |
+| [`end-to-end-beamline/`](end-to-end-beamline/) | **One Token, End to End (Beamline)** | Classic Beamline edition: eleven physical stations in a pale hall, with Watch and Study modes. | 45 clips, 9:41 | Beamline: Archivo, one floor track, Three.js 0.160 |
 | [`journey-story/`](journey-story/) | **One Token's Journey** | Six chapters take one token from raw text to the next token through DeepSeek-V4-Pro, with 3D rooms you can orbit and inspect. | 32 clips, 6:25 (shared) | Blueprint sheets plus the shared 3D engine |
 | [`journey-tour/`](journey-tour/) | **Guided Tour** | Thirty stops through the same model, with a chapter rail and a 31-component index. | 32 clips, 6:25 (shared) | Same engine as the story |
-| [`shared/`](shared/) | Shared files | `obs-core.html`, the Three.js engine both journey pages embed (it also opens on its own), and `journey-narration/`, the clips both journey pages play. | n/a | n/a |
-
-The two End to End folders are two designs of one story. The two journey pages are two ways through one model.
+| [`shared/`](shared/) | Shared files | `theme-tokens.js`, `obs-core.html` (the shared 3D Observatory), `micro-labs.js`, `concept-links.js`, and `journey-narration/`. | n/a | n/a |
 
 ### Old URLs
 
-The site's first layout is kept as redirect stubs so shared links still work. They forward the query string and `#hash`.
+Earlier paths are kept as redirect stubs so shared links still work. They forward the query string and `#hash`.
 
 | Old path | Now |
 |---|---|
+| `one-token/` | `index.html` (unified reader promoted to root) |
 | `one-token-end-to-end/` | `end-to-end-swiss/` |
 | `one-tokens-journey/`, `one-tokens-journey/one-token-journey-3d.html` | `journey-story/` |
 | `one-tokens-journey/tour-v4.html` | `journey-tour/` |

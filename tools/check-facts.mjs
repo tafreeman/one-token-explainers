@@ -17,6 +17,7 @@ const check = (name, ok, detail = '') => {
 };
 
 const PAGES = {
+  reader: 'index.html',
   core: 'shared/obs-core.html',
   story: 'journey-story/index.html',
   tour: 'journey-tour/index.html',
@@ -33,9 +34,9 @@ check('MOE_N === 384', moeN === 384, `found ${moeN}`);
 check('MOE_BASE_LIT has 6 slots', lit.length === 6, `found ${lit.length}`);
 check('MOE_BASE_LIT slots are distinct and < MOE_N', new Set(lit).size === lit.length && lit.every((n) => n >= 0 && n < moeN));
 
-// Tasks 1-2 / gate 03: no stale V3 or MLA-vs-GQA terminology in obs-core, Story, Tour or shared/README.md.
+// Tasks 1-2 / gate 03: no stale V3 or MLA-vs-GQA terminology in reader, obs-core, Story, Tour or shared/README.md.
 const STALE = /\btop-?8\b|top-eight|eight routed|\b8 routed|MLA\s*(?:vs\.?|\/)\s*GQA|GQA\s*(?:vs\.?|\/)\s*MLA|GqaMla|mlaModeActive|gqaBtn/i;
-for (const p of [PAGES.core, PAGES.story, PAGES.tour, 'shared/README.md']) {
+for (const p of [PAGES.reader, PAGES.core, PAGES.story, PAGES.tour, 'shared/README.md']) {
   const m = read(p).match(STALE);
   check(`no stale terms in ${p}`, !m, m && `"${m[0]}"`);
 }
@@ -56,8 +57,9 @@ for (const k of ['core', 'story', 'tour']) {
 check('Swiss notes the 4-stream mHC', /drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams/.test(src.swiss));
 check('Beamline builds 4 mHC strands', /NSTR = 4\b/.test(src.beamline) && !/CylinderGeometry\(\.1, \.1, TOWER_TOP/.test(src.beamline));
 
-// Task 5: provenance lines at stages 3, 4 and 7 (Swiss) and Stations 3, 4-5 and 7 (Beamline).
+// Task 5: provenance lines at stages 3, 4 and 7 (Reader + Swiss) and Stations 3, 4-5 and 7 (Beamline).
 for (const n of [3, 4, 7]) {
+  check(`Reader stage ${n} provenance line`, new RegExp(`id="h-${n}"[^\\n]*\\n\\s*<p class="prov">`).test(src.reader));
   check(`Swiss stage ${n} provenance line`, new RegExp(`id="h-${n}"[^\\n]*\\n\\s*<p class="prov">`).test(src.swiss));
 }
 check('Beamline has 3 provenance lines', (src.beamline.match(/<p class="prov">/g) || []).length === 3);

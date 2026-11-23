@@ -278,22 +278,23 @@ const JourneyMath = (() => {
     jumps.forEach(b => b.addEventListener('click', () => render(Number(b.dataset.layerJump))));
     render(1);
 
-    const steerBtns = drawer.querySelectorAll('[data-steer]');
-    const steerRows = drawer.querySelectorAll('[data-steer-probs] .lens-probability');
-    const steerCap = drawer.querySelector('[data-steer-caption]');
-    const parisLbl = drawer.querySelector('[data-paris-lbl]');
+    const circuit = drawer.querySelector('.steer-section');
+    const steerBtns = circuit.querySelectorAll('[data-steer]');
+    const steerRows = circuit.querySelectorAll('[data-steer-probs] .lens-probability');
+    const steerCap = circuit.querySelector('[data-steer-caption]');
+    const parisLbl = circuit.querySelector('[data-paris-lbl]');
     function renderSteer(mode) {
       const s = steerCircuit(mode);
       steerBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.steer === s.mode)));
       for (const [key, w] of Object.entries(s.edges)) {
-        const edge = drawer.querySelector(`[data-edge="${key}"]`);
+        const edge = circuit.querySelector(`[data-edge="${key}"]`);
         if (!edge) continue;
         edge.setAttribute('stroke-width', (1.1 + w * 2.4).toFixed(2));
         edge.setAttribute('opacity', (0.2 + w * 0.8).toFixed(2));
         edge.dataset.active = String(w > 0.5);
       }
       for (const [key, st] of Object.entries(s.nodes)) {
-        const node = drawer.querySelector(`[data-node="${key}"]`);
+        const node = circuit.querySelector(`[data-node="${key}"]`);
         if (node) node.dataset.state = st;
       }
       if (parisLbl) parisLbl.textContent = s.mode === 'swap' ? 'Rome*' : (s.mode === 'ablate' ? 'Paris ×' : 'Paris');
@@ -306,12 +307,12 @@ const JourneyMath = (() => {
       steerCap.textContent = s.caption;
     }
     steerBtns.forEach(b => b.addEventListener('click', () => renderSteer(b.dataset.steer)));
-    drawer.querySelector('[data-node="paris"]')?.addEventListener('click', () => renderSteer(
-      drawer.querySelector('[data-steer="ablate"]').getAttribute('aria-pressed') === 'true' ? 'swap' : 'ablate'
+    circuit.querySelector('[data-node="paris"]')?.addEventListener('click', () => renderSteer(
+      circuit.querySelector('[data-steer="ablate"]').getAttribute('aria-pressed') === 'true' ? 'swap' : 'ablate'
     ));
-    drawer.querySelector('[data-node="france"]')?.addEventListener('click', () => renderSteer('amplify'));
-    drawer.querySelector('[data-node="eiffel"]')?.addEventListener('click', () => renderSteer('natural'));
-    drawer.querySelector('[data-node="italy"]')?.addEventListener('click', () => renderSteer('swap'));
+    circuit.querySelector('[data-node="france"]')?.addEventListener('click', () => renderSteer('amplify'));
+    circuit.querySelector('[data-node="eiffel"]')?.addEventListener('click', () => renderSteer('natural'));
+    circuit.querySelector('[data-node="italy"]')?.addEventListener('click', () => renderSteer('swap'));
     renderSteer('natural');
     return drawer;
   }
