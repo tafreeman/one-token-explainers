@@ -1,0 +1,11 @@
+{
+  "files": [
+    "index.html",
+    "end-to-end-*/index.html",
+    "journey-*/index.html",
+    "shared/obs-core.html"
+  ],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}

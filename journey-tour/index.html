@@ -42,9 +42,9 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}.tblock span
 .tblock span:nth-child(-n+2){ border-top:0 }
 .tblock b{ font-weight:500 }
 .modes{ position:relative; align-self:flex-start; display:inline-grid; grid-template-columns:1fr 1fr; padding:4px; border-radius:999px; background:rgba(10,36,64,.92); border:1.25px solid rgba(255,255,255,.55); isolation:isolate }
-.modes .knob{ position:absolute; z-index:-1; top:4px; left:4px; width:calc(50% - 4px); height:calc(100% - 8px); border-radius:999px; background:linear-gradient(90deg,#2F6BFF,#7C4DEB); transition:transform .5s var(--spring), background .4s ease; box-shadow:0 6px 14px -6px rgba(47,107,255,.8) }
+.modes .knob{ position:absolute; z-index:-1; top:4px; left:4px; width:calc(50% - 4px); height:calc(100% - 8px); border-radius:999px; background:linear-gradient(90deg,#2F6BFF,#7C4DEB); transition:transform .5s var(--spring), background .4s ease; box-shadow:0 6px 14px -6px rgba(0,0,0,.25) }
 .modes[data-mode="infer"] .knob{ transform:translateX(100%) }
-.modes[data-mode="train"] .knob{ background:linear-gradient(90deg,#E5672F,#F2A65A); box-shadow:0 6px 14px -6px rgba(229,103,47,.8) }
+.modes[data-mode="train"] .knob{ background:linear-gradient(90deg,#E5672F,#F2A65A) }
 .modes button{ appearance:none; border:0; background:transparent; color:#fff; font:500 13px/1 var(--sans); letter-spacing:.01em; padding:0 12px; min-height:38px; min-width:78px; border-radius:999px; cursor:pointer; transition:color .2s ease, transform .15s var(--ease) }
 .modes button[aria-checked="false"]{ color:rgba(255,255,255,.78) }
 .modes button:hover{ color:#fff } .modes button[aria-checked="false"]:hover{ background:rgba(255,255,255,.08) }
@@ -661,7 +661,7 @@ for(const s of STOPS){const article=node('article');article.append(node('h3',(s.
 function bindHash(){const m=location.hash.match(/^#stop-(\d+)$/);if(m)move(Number(m[1])-1,false);else if(location.hash.startsWith('#explore'))free(location.hash.slice(9)||null,false);else start()}
 journeyFrameKeys(frame, key => {
   if (api && !document.querySelector('dialog[open]')) {
-    window.dispatchEvent(new KeyboardEvent('keydown', {key, cancelable: true}));
+    frame.dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true}));
   }
 });
 addEventListener('hashchange',bindHash);addEventListener('resize',()=>{
@@ -669,7 +669,21 @@ addEventListener('hashchange',bindHash);addEventListener('resize',()=>{
   if(mode==='stop') api.focus(STOPS[index].ids,stopPose(false,STOPS[index]));
   else if(mode==='start'||!chosen) overview(false);
 });document.addEventListener('visibilitychange',()=>{if(!api)return;if(document.hidden)api.suspend();else api.resume()});
-addEventListener('keydown',e=>{if(e.target.closest?.('.micro-lab,.component-math input[type="range"]')||document.querySelector('dialog[open]')||!api)return;const k=e.key;if(k==='Escape')free();else if(k==='Home')move(0);else if(k==='End')move(29);else if(k==='ArrowRight'){if(mode==='stop'&&index===29)free();else move(mode==='stop'?index+1:0)}else if(k==='ArrowLeft')move(mode==='stop'?index-1:0);else if(/^[1-6]$/.test(k))move(starts[+k-1]);else return;e.preventDefault()});
+rail.title='Keys 1–6 jump chapters while the chapter rail or 3D view is focused.';
+rail.setAttribute('aria-label','Jump to chapter; keys 1–6 work while this rail or the 3D view is focused');
+document.getElementById('readingBody').prepend(node('p',rail.title));
+addEventListener('keydown',e=>{
+  if(e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey||
+    e.target.closest?.('.micro-lab,input,textarea,select,summary,[contenteditable]')||
+    document.querySelector('dialog[open]')||!api)return;
+  const k=e.key;
+  if(k==='Escape')free();else if(k==='Home')move(0);else if(k==='End')move(29);
+  else if(k==='ArrowRight'){if(mode==='stop'&&index===29)free();else move(mode==='stop'?index+1:0)}
+  else if(k==='ArrowLeft')move(mode==='stop'?index-1:0);
+  else if(/^[1-6]$/.test(k)&&(e.target===frame||(e.target instanceof Element&&rail.contains(e.target))))move(starts[+k-1]);
+  else return;
+  e.preventDefault();
+});
 frame.addEventListener('load',async()=>{try{api=await journeyObservatory(frame, STOPS);const list=document.getElementById('partList');api.components().forEach(c=>{const li=node('li');li.append(btn(c.id+' · '+c.title,()=>{allDialog.close();free(c.id)}));list.append(li)});
 const technical=node('details');technical.append(node('summary','Observatory component reference'));const text=node('div');api.textView(text);technical.append(text);document.getElementById('readingBody').append(technical);
 const states={'tour-ch1-bpe':2,'tour-ch4-router':16,'tour-ch5-decode':24,'tour-narrow':16},st=qs.get('state');staticState=!!st;for(const e of ['keydown','pointerdown'])window.addEventListener(e,()=>{staticState=false},{capture:true,once:true});
