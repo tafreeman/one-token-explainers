@@ -67,7 +67,7 @@ npm run verify:warp
 
 - **Guided Tour** — [byte-pair merges](journey-tour/index.html?rm=1&lab=bpe#stop-3), [expert routing](journey-tour/index.html?rm=1&lab=moe#stop-17), [the B200 roofline](journey-tour/index.html?rm=1&lab=roof#stop-24), and [UTF-8 streaming](journey-tour/index.html?rm=1&lab=stream#stop-26). Each lab opens under **More detail** at its stop.
 - **Story** — [the KL penalty](journey-story/index.html?rm=1&lab=kl), [causal attention](journey-story/index.html?rm=1&lab=attention), [rotary position encoding](journey-story/index.html?rm=1&lab=rope), [KV cache sizes](journey-story/index.html?rm=1&lab=kv), and [the four residual streams](journey-story/index.html?rm=1&lab=mix).
-- **Beamline Study** — [the sampling contract](end-to-end-beamline/index.html?rm=1&study=1&lab=sample).
+- **Beamline Study** — mechanism-focused labs appear alongside the relevant steps, including MoE routing, the roofline and UTF-8 streaming.
 
 The [3D Observatory](shared/obs-core.html?rm=1) also opens on its own.
 
