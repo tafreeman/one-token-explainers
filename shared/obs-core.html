@@ -3082,6 +3082,8 @@ let gantryShell=null;
           const bladeShape = new THREE.BoxGeometry(0.56, 0.06, 0.22);
           const bladeMetal = P.aluminum();
           const irisBlades = addShadow(new THREE.InstancedMesh(bladeShape, bladeMetal, 8));
+          // r128 culls an InstancedMesh by the single blade's bounds at the group origin.
+          irisBlades.frustumCulled = false;
           irisBlades.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
           const bladeMatrix = new THREE.Matrix4();
           irisGrp.add(irisBlades);
@@ -4829,6 +4831,8 @@ let gantryShell=null;
       // Four fixed gantry struts share geometry, material and a single draw.
       const masts = addShadow(new THREE.InstancedMesh(
         new THREE.CylinderGeometry(0.18, 0.24, 20.6, 12), Ps.steelDark(), colPts.length), true, false);
+      // r128 culls an InstancedMesh by one mast's bounds at the shell origin, not by its instances.
+      masts.frustumCulled = false;
       gantryShell.add(masts);
       colPts.forEach(([gx, gz], index) => {
         masts.setMatrixAt(index, new THREE.Matrix4().makeTranslation(gx, 10.7, gz));

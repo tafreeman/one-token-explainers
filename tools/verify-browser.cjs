@@ -109,7 +109,19 @@ async function contextRecovery(browser, base, name, route, condition, selector, 
   page.on('pageerror', err => errors.push(err.message));
   page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
   try {
-    await ready(page, base + route + '?rm=1', condition);
+    // quality=high keeps the env map on software renderers, so restore rebuilds it too.
+    await ready(page, base + route + '?rm=1' + (name === 'Observatory' ? '&quality=high' : ''), condition);
+    // Count real draws so a restore that never schedules a frame cannot pass.
+    await page.evaluate(() => {
+      window.__draws = 0;
+      for (const proto of [WebGLRenderingContext.prototype, window.WebGL2RenderingContext?.prototype]) {
+        if (!proto) continue;
+        for (const fn of ['drawArrays', 'drawElements', 'drawArraysInstanced', 'drawElementsInstanced']) {
+          const original = proto[fn];
+          if (original) proto[fn] = function (...args) { window.__draws++; return original.apply(this, args); };
+        }
+      }
+    });
     await page.locator(selector).evaluate(canvas => {
       const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
       window.testLoss = gl.getExtension('WEBGL_lose_context');
@@ -118,8 +130,10 @@ async function contextRecovery(browser, base, name, route, condition, selector, 
     await page.locator(fallback).waitFor({state:'visible'});
     // The browser must acknowledge the loss before the test can request restoration.
     await page.waitForTimeout(150);
-    await page.evaluate(() => window.testLoss.restoreContext());
+    // Nothing draws while the context is lost, so any draw after this snapshot came from the restore.
+    const drawsAtRestore = await page.evaluate(() => { const n = window.__draws; window.testLoss.restoreContext(); return n; });
     await page.locator(fallback).waitFor({state:'hidden'});
+    await page.waitForFunction(n => window.__draws > n, drawsAtRestore, {timeout: 15000});
     assert(await page.locator(selector).evaluate(canvas => !(canvas.getContext('webgl2') || canvas.getContext('webgl')).isContextLost()));
     if (name === 'Observatory') assert(await page.evaluate(() => window.obs.renderNow()));
     assert.deepEqual(errors, [], name + ' context recovery');

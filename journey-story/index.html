@@ -1511,7 +1511,11 @@ function drawerContent(fly){
   else{records(api,fields,entry.id);dockStoryLabs(fields,s);box.append(diagram(s,true,entry.id,s.ch===3?mode:null));configure(api,s,[entry.id],{controls:true,fly:fly&&!RM,duration:.85,zoom:.88});api.setPlaying(!RM&&!frozen)}
   api.setControls(true);prevPart.disabled=pos<=(catalog?-1:0);nextPart.disabled=pos===items.length-1;aside.scrollTop=0;
 }
-function togglePageInert(on){for(const el of document.querySelectorAll('main,#rail,.skip'))el.inert=on}
+// While the drawer is modal, Shift+Tab out of the 3D frame lands on this guard and wraps
+// to the panel's last button instead of leaving the page (everything behind is inert).
+const focusGuard=document.createElement('span');focusGuard.tabIndex=-1;modal.prepend(focusGuard);
+focusGuard.addEventListener('focus',()=>{if(opened)[...aside.querySelectorAll('button:not(:disabled)')].pop()?.focus({preventScroll:true})});
+function togglePageInert(on){for(const el of document.querySelectorAll('main,#rail,.skip'))el.inert=on;focusGuard.tabIndex=on?0:-1}
 function openDrawer(all=false){
   if(!api||opened)return;
   saved={x:scrollX,y:scrollY,focus:all?document.getElementById('allTour'):expand,active,overflow:doc.style.overflow};catalog=all;items=all?api.components().map(c=>({id:c.id,s:STOPS.find(s=>s.ids.includes(c.id))||{i:-1,ch:c.id==='TR-6'?2:0,step:3,title:c.shortLabel,ids:[c.id],skin:c.id==='TR-6'?'blueprint':'light',css:c.id==='TR-6'?'skin-bp':'skin-light',realm:c.realm,p:0.9}})):sequence;pos=all?-1:items.findIndex(e=>e.s.i===active);
@@ -1527,6 +1531,7 @@ function closeDrawer(){
 journeyFrameKeys(sceneFrame, key => {
   if (!api) return;
   if (opened) {
+    if (closing) return;
     if (key === 'Escape') return closeDrawer();
     if (key === 'ArrowLeft' || key === 'ArrowRight') return movePart(key === 'ArrowLeft' ? -1 : 1);
     const next = key === 'Home' ? (catalog ? -1 : 0) : key === 'End' ? items.length - 1 :
