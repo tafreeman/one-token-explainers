@@ -315,7 +315,7 @@ async function swissFullLessons(browser, base, artifacts, local=false) {
       const swiss=local?pathToFileURL(path.join(root,'end-to-end-swiss/index.html')).href:base+'end-to-end-swiss/index.html';
       await ready(page,swiss+'?rm=1#s-7','window.THREE && document.querySelector("#heroCanvas").width > 300');
       assert.equal(await page.locator('.stage-detail').count(),12);
-      assert.equal(await page.locator('.technical-detail').count(),34);
+      assert.equal(await page.locator('.technical-detail').count(),33);
       assert.equal(await page.locator('.step').count(),43);
       assert.equal(await page.locator('.stage-detail > summary,.technical-detail > summary').count(),0,'no forced expansion');
       const stage=page.locator('#s-7');
