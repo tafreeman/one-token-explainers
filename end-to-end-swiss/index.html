@@ -707,7 +707,7 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.2</span>Sample</h3>
-        <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: requests that set <code>temperature</code>, <code>top_p</code> or <code>top_k</code> to non-default values are rejected.</p>
+        <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: on API version 2026-10-21, a request that sends <code>temperature</code>, <code>top_p</code> or <code>top_k</code> at any value is rejected. Earlier versions reject only non-default values.</p>
         <dl class="spec">
           <div><dt>Sampling parameters</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>

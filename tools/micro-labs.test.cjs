@@ -85,11 +85,15 @@ test('ridge uses the bandwidth and dense peak of a single GPU', () => {
   assert.equal(lab.roofline(4096, 1024).decode.bound, 'compute');
 });
 
-test('the local sampling probe identifies each non-default parameter', () => {
-  assert.equal(lab.sampling(null, null).status, 200);
-  assert.equal(lab.sampling(1, 1).status, 200);
-  assert.deepEqual(lab.sampling(0, .9), {status: 400, rejected: ['temperature', 'top_p']});
-  assert.deepEqual(lab.sampling(null, .5).rejected, ['top_p']);
+test('the local sampling probe follows API 2026-10-21: any sent parameter is rejected', () => {
+  assert.deepEqual(lab.sampling(), {status: 200, rejected: []});
+  assert.deepEqual(lab.sampling(null, null, null), {status: 200, rejected: []});
+  // Explicit defaults are rejected too, not only non-default values.
+  assert.deepEqual(lab.sampling(1, null), {status: 400, rejected: ['temperature']});
+  assert.deepEqual(lab.sampling(null, 1), {status: 400, rejected: ['top_p']});
+  assert.deepEqual(lab.sampling(1, 1), {status: 400, rejected: ['temperature', 'top_p']});
+  assert.deepEqual(lab.sampling(null, null, 40), {status: 400, rejected: ['top_k']});
+  assert.deepEqual(lab.sampling(0, .9, 1).rejected, ['temperature', 'top_p', 'top_k']);
 });
 
 test('Guided Tour and Story offer the same component labs at all ten lab stops', () => {
