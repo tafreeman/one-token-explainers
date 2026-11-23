@@ -41,7 +41,22 @@ python -m http.server 8000
 
 Then open <http://localhost:8000/>.
 
-Story, Tour, the Observatory and Beamline bundle their 3D renderer. Swiss uses a CDN. The pages use system fallback fonts offline.
+Every page loads its bundled Three.js build first, so the 3D views work offline. If that file is missing, `shared/three-loader.js` tries cdnjs, then unpkg, then jsDelivr, each pinned to the bundled bytes with a subresource-integrity hash. The pages use system fallback fonts offline. If the GPU drops the WebGL context, the scene pauses, shows a one-line text fallback, and redraws when the context comes back.
+
+Keys pressed inside an embedded 3D view still drive the page around it: arrows, Home, End and Escape, plus 1–6 for chapters.
+
+### Verify
+
+```powershell
+npm ci
+npm run lint
+npm test
+npm exec -- playwright install chromium
+npm run verify:browser
+npm run verify:warp
+```
+
+`lint` syntax-checks the shared scripts and every inline `<script>` block, then runs the fact gate. `verify:browser` serves the site and loads Swiss, Beamline, Story, Tour and the Observatory at 1440×900 and 390×844. It checks for horizontal overflow, console errors and axe-core WCAG 2.1 AA violations, and it tests iframe keyboard bridging over HTTP and `file://`, WebGL context loss and restore, the mirror order, and SRI rejection of altered bytes. Pass `--only=layout,keyboard,context,mirrors` to run some of these. Set `JOURNEY_SCREENSHOTS` to keep the layout screenshots. `verify:warp` runs on Windows. It opens the Story router drawer under Microsoft's software renderer (WARP) and requires fewer than 90 draw calls, a camera-nudge p95 under 100 ms, and no frames during 900 ms of idle.
 
 ### Component labs
 
@@ -55,9 +70,9 @@ The [3D Observatory](shared/obs-core.html?rm=1) also opens on its own.
 
 - **Narration** voiced with [ElevenLabs](https://elevenlabs.io/) (`eleven_v4`), on a paid plan. Voices: Sylvie (Beamline), Jade (journey pages), and ElevenLabs voice `TYKLc7ViOIGE13dSZYlK` (Swiss).
 - **3D** by [Three.js](https://threejs.org/):
-  - The Swiss page uses r128 from cdnjs, with unpkg and jsDelivr as fallbacks.
-  - The shared engine uses the bundled r128 build.
-  - Beamline uses the bundled r160 build. The upstream MIT license is in `shared/vendor/THREE-LICENSE.txt`.
+  - Swiss and the shared engine use the bundled r128 build.
+  - Beamline uses the bundled r160 build.
+  - All three fall back to cdnjs, unpkg and jsDelivr. The upstream MIT license is in `shared/vendor/THREE-LICENSE.txt`.
 - **Fonts** from [Google Fonts](https://fonts.google.com/).
 
 ## Fact sources

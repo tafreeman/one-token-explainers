@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>LLM Systems Observatory</title>
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>LLM Systems Observatory</title>
 <style>
     /* Theme tokens: light values on bare :root; dark under prefers-color-scheme and [data-theme="dark"] */
     :root {
@@ -685,6 +685,7 @@
       z-index: 20;
     }
 
+    html:not(.embed) #labelsLayer { clip-path: inset(var(--hdr-h, 0px) 0 var(--ftr-h, 0px)); }
     .comp-label {
       position: absolute;
       top: 0;
@@ -868,6 +869,10 @@
       cursor: pointer;
     }
 
+    #contextFallback:not([hidden]) { position:absolute; inset:40% 10% auto; z-index:25;
+      padding:1rem; text-align:center; border-block:1px solid currentColor;
+      color:var(--text-primary); background:var(--surface-elevated); }
+    #stage.gl-lost #threeCanvas, #stage.gl-lost #labelsLayer { visibility:hidden; }
     /* WebGL Error Fallback */
     #errorOverlay {
       display: none;
@@ -1018,8 +1023,9 @@
 
   <!-- Three.js r128 bundled locally with fallback guard -->
   <script src="vendor/three-r128.min.js"></script>
+  <script src="three-loader.js"></script>
   <script>
-window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolve=resolve;window.__obsReject=reject});window.obs.ready.catch(()=>{});window.__threeReady=window.THREE?.REVISION==='128'?Promise.resolve():Promise.reject(new Error('Three.js r128 could not load from the local bundle.'));window.__threeReady.catch(e=>window.__obsReject(e));
+window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolve=resolve;window.__obsReject=reject});window.obs.ready.catch(()=>{});window.__threeReady=ensureJourneyThree('128');window.__threeReady.catch(e=>window.__obsReject(e));
   </script>
 <link rel="stylesheet" href="micro-labs.css">
 <script src="micro-labs.js"></script>
@@ -1031,6 +1037,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
 
     <!-- 3D Projected Floating Component Labels -->
     <div id="labelsLayer"></div>
+    <div id="contextFallback" role="status" hidden>Training → Model → Inference</div>
 
     <!-- TOP FLOATING BAR -->
     <header class="top-bar glass-bar">
@@ -1874,6 +1881,17 @@ let gantryShell=null;
       } catch (e) {
         return null;
       }
+    }
+
+    // Software rasterizers (WARP, SwiftShader, llvmpipe) spend most of a moving frame
+    // filtering this PMREM atlas: ~16 manual RGBE taps per PBR fragment. Measured on WARP
+    // in the open router drawer, dropping it takes camera-nudge p95 from ~110-170 ms to
+    // ~40-55 ms at the same 85 draw calls. The low tier therefore lights with the hemisphere
+    // and direct lights alone. The blueprint skin (envI 0) multiplies the map by zero, so only
+    // its two custom-role parts change (~2% of drawer pixels); lit skins lose their soft
+    // reflections (metals read darker). GPU tiers are unaffected; ?quality=high keeps the map.
+    function studioEnvForTier(rendererInstance) {
+      return perf.tier === 'low' ? null : createStudioEnvMap(rendererInstance);
     }
 
     // Procedural PBR Micro-Detail Surface Texture Suite (zero external assets, instant photorealism)
@@ -3061,11 +3079,21 @@ let gantryShell=null;
           irisGrp.add(ringBrass);
 
           const blades = [];
+          const bladeShape = new THREE.BoxGeometry(0.56, 0.06, 0.22);
+          const bladeMetal = P.aluminum();
+          const irisBlades = addShadow(new THREE.InstancedMesh(bladeShape, bladeMetal, 8));
+          irisBlades.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          const bladeMatrix = new THREE.Matrix4();
+          irisGrp.add(irisBlades);
           for (let i = 0; i < 8; i++) {
             const ang = (i / 8) * Math.PI * 2;
             const pivot = new THREE.Group();
             pivot.rotation.y = ang;
-            const blade = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.06, 0.22), P.aluminum()));
+            pivot.updateMatrix();
+            const blade = new THREE.Object3D();
+            blade.userData.irisBlade = true;
+            blade.geometry = bladeShape;
+            blade.material = bladeMetal;
             blade.position.set(0.52, 0, 0.14);
             pivot.add(blade);
             irisGrp.add(pivot);
@@ -3086,10 +3114,13 @@ let gantryShell=null;
           animHooks.push((t) => {
             const shift = (comp.id === 'MD-2f' ? 1.5 : 0);
             const breathe = (Math.sin(t * 1.7 + shift) + 1) * 0.5;
-            blades.forEach(b => {
+            blades.forEach((b, i) => {
               b.rotation.y = 0.22 + breathe * 0.42;
               b.position.x = 0.46 + breathe * 0.15;
+              b.updateMatrix();
+              irisBlades.setMatrixAt(i, bladeMatrix.multiplyMatrices(b.parent.matrix, b.matrix));
             });
+            irisBlades.instanceMatrix.needsUpdate = true;
             const u = (t * 0.48 + shift * 0.2) % 1.0;
             // Residual spine stays un-normalized
             spineRing.position.set(0, -0.82 + u * 1.64, 0);
@@ -4795,14 +4826,17 @@ let gantryShell=null;
       const gantryAngles = [Math.PI * 0.72, Math.PI * 1.15, Math.PI * 1.85, Math.PI * 2.28];
       const gantryR = 6.35;
       const colPts = gantryAngles.map(a => [Math.cos(a) * gantryR, Math.sin(a) * gantryR]);
-      colPts.forEach(([gx, gz]) => {
-        const mast = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 20.6, 12), Ps.steelDark()), true, false);
-        mast.position.set(gx, 10.7, gz);
+      // Four fixed gantry struts share geometry, material and a single draw.
+      const masts = addShadow(new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.18, 0.24, 20.6, 12), Ps.steelDark(), colPts.length), true, false);
+      gantryShell.add(masts);
+      colPts.forEach(([gx, gz], index) => {
+        masts.setMatrixAt(index, new THREE.Matrix4().makeTranslation(gx, 10.7, gz));
         const foot = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.54, 0.55, 8), Ps.aluminum()), true, true);
         foot.position.set(gx, 0.76, gz);
         const cap = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.22, 0.35, 8), Ps.brass()), false, false);
         cap.position.set(gx, 21.1, gz);
-        gantryShell.add(mast, foot, cap);
+        gantryShell.add(foot, cap);
       });
 
       // Curved Smoked-Glass Rear Thermal Containment Shroud (165° rear arc so front cutaway stays 100% visible)
@@ -4912,7 +4946,7 @@ let gantryShell=null;
       zoneLabelRecords.length = 0;
 
       // Instantiate Tier-0 Major Zone Headers
-      MAJOR_ZONES.forEach(z => {
+      if (!EMBED) MAJOR_ZONES.forEach(z => {
         const el = document.createElement('button');
         el.type = 'button';
         el.className = 'zone-label ' + z.cls;
@@ -5990,7 +6024,8 @@ let gantryShell=null;
     const perfLabelScratch = { items: [], boxes: [], sorted: [] };
 
     function perfAniso(kind) { return perf.aniso[kind] || 1; }
-    function wake(){if(!rafId && renderer && clock && !suspended && !document.hidden)rafId=requestAnimationFrame(animate)}
+    let contextLost = false;
+    function wake(){if(!contextLost && !rafId && renderer && clock && !suspended && !document.hidden)rafId=requestAnimationFrame(animate)}
     function perfRequestRender(frames){perf.renderRequests=Math.max(perf.renderRequests,frames||2);wake()}
     function requestRender(frames){perfRequestRender(frames)}
     function nextFrame(){if(!isPaused||camFlight.active||settleFrames>0||perf.renderRequests>0)wake()}
@@ -6290,7 +6325,7 @@ let gantryShell=null;
     // ---------- static batching ----------
     function perfMatKey(m) {
       const c = m.color, e = m.emissive;
-      return [m.type, c.r, c.g, c.b, e.r, e.g, e.b, m.emissiveIntensity, m.metalness, m.roughness,
+      return [m.type, m.userData.role, c.r, c.g, c.b, e.r, e.g, e.b, m.emissiveIntensity, m.metalness, m.roughness,
         m.map ? m.map.id : 0, m.bumpMap ? m.bumpMap.id : 0, m.bumpScale, m.normalMap ? m.normalMap.id : 0,
         m.emissiveMap ? m.emissiveMap.id : 0, m.roughnessMap ? m.roughnessMap.id : 0, m.metalnessMap ? m.metalnessMap.id : 0,
         m.aoMap ? 1 : 0, m.alphaMap ? 1 : 0, m.lightMap ? 1 : 0, m.displacementMap ? 1 : 0, m.envMap ? m.envMap.id : 0,
@@ -6537,7 +6572,22 @@ let gantryShell=null;
           perfRebuildBatch(b);
         }
       }
-      if (changed) perfListsChanged();
+      if (changed) {
+        perfListsChanged();
+        if (edgesBuilt) {
+          const oldGeometries = new Set();
+          for (const edge of edgeList) {
+            if (edge.userData.customEdge) continue;
+            edge.parent?.remove(edge);
+            oldGeometries.add(edge.geometry);
+          }
+          oldGeometries.forEach(geo => geo.dispose());
+          edgeList.length = outlineBatches.length = 0;
+          edgesBuilt = false;
+          ensureEdges();
+          edgeList.forEach(edge => { edge.visible = !!currentSkinTok?.edges; });
+        }
+      }
     }
 
     // ---------- render-on-demand + shadow dirty signatures ----------
@@ -6599,6 +6649,7 @@ let gantryShell=null;
     // Fast approximate antialiasing for drivers that decline multisampling.
     let fxPass=null;
     function drawScene(){
+      syncOutlineBatches();
       if(perf.antialias){renderer.render(scene,camera);return}
       if(!fxPass){
         const target=new THREE.WebGLRenderTarget(1,1,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true});
@@ -6779,7 +6830,7 @@ let gantryShell=null;
     let colEmerald = null;
 
     function animate() {
-      rafId=0;if(suspended||document.hidden)return;frameCount++;if(settleFrames>0)settleFrames--;
+      rafId=0;if(contextLost||suspended||document.hidden)return;frameCount++;if(settleFrames>0)settleFrames--;
       const perfT0 = performance.now();
       perf.frameNo++;
 
@@ -7479,8 +7530,7 @@ let gantryShell=null;
       blueprint: { chipBg: '#0F3358', chipInk: '#ffffff', chipInk2: '#C9D8EA', chipLine: 'rgba(255,255,255,.7)', chipShadow: '0 12px 26px -16px rgba(3,15,30,.8)', focBg: '#c4a065', focInk: '#0F2238' }
     };
 
-    const tmpSkinColor = new THREE.Color();
-    const tmpSkinColor2 = new THREE.Color();
+    let tmpSkinColor, tmpSkinColor2;
     const tmpHSL = { h: 0, s: 0, l: 0 };
     const skinMats = [];
     const realmTagged = [];
@@ -7565,6 +7615,9 @@ let gantryShell=null;
       compRecords.forEach(rec => {
         rec.group.userData.realmTag = rec.data.realm;
         tagTree(rec.group, rec.data.realm);
+        // Batched members are detached from the graph, but their materials must
+        // receive the same skin as the merged mesh for the animation guard.
+        rec.materials.forEach(m => tagMaterial(m, rec.data.realm));
         if(EMBED)rec.labelEl.style.display='none';
         rec.lblShown = false; rec.lblX = -1e9; rec.lblY = -1e9; rec.lblW = 0; rec.lblH = 0; rec.lblF = null;
         rec.fadeApplied = -1;
@@ -7573,6 +7626,7 @@ let gantryShell=null;
         const realm = i < 2 ? 'TRAINING' : (i < 5 ? 'INFERENCE' : 'MODEL');
         dr.group.userData.realmTag = realm;
         tagTree(dr.group, realm, i < 6 ? 'deck' : null);
+        dr.materials.forEach(m => tagMaterial(m, realm, i < 6 ? 'deck' : null));
         dr.fadeApplied = -1;
       });
       conduitRecords.forEach(cr => {
@@ -7645,11 +7699,14 @@ let gantryShell=null;
     function ensureEdges() {
       if (edgesBuilt) return;
       edgesBuilt = true;
-      edgeMatW = new THREE.LineBasicMaterial({ color: 0xffffff, toneMapped: false });
-      edgeMatB = new THREE.LineBasicMaterial({ color: 0xffffff, toneMapped: false });
+      edgeMatW ||= new THREE.LineBasicMaterial({ color: 0xffffff, toneMapped: false });
+      edgeMatB ||= new THREE.LineBasicMaterial({ color: 0xffffff, toneMapped: false });
       const cache = new Map();
+      const groups = new Map();
+      const roots = new Set([...compRecords, ...deckRecords].map(rec => rec.group));
       const meshes = [];
       scene.traverse(o => {
+        if (o.userData.irisBlade) { meshes.push(o); return; }
         if (o.userData.customEdge) { o.material = o.userData.customEdge === 'B' ? edgeMatB : edgeMatW; edgeList.push(o); return; }
         if(!o.visible || !o.isMesh || o.isInstancedMesh || o.userData.noEdges || !o.geometry || (!o.userData.perfBatch && !o.geometry.type.startsWith('Box'))) return;
         const t = o.geometry.type;
@@ -7662,12 +7719,66 @@ let gantryShell=null;
         if (!eg) { eg = new THREE.EdgesGeometry(o.geometry, 40); cache.set(o.geometry.uuid, eg); }
         const m0 = Array.isArray(o.material) ? o.material[0] : o.material;
         const brassy = m0 && m0.userData && isBrassy(m0.userData.role, m0.userData.origHex);
-        const ls = new THREE.LineSegments(eg, brassy ? edgeMatB : edgeMatW);
+        const material = brassy ? edgeMatB : edgeMatW;
+        let root = o.parent;
+        while (root && !roots.has(root)) root = root.parent;
+        if (EMBED && root) {
+          if (!groups.has(root)) groups.set(root, new Map());
+          const colors = groups.get(root);
+          if (!colors.has(material)) colors.set(material, []);
+          colors.get(material).push({mesh: o, points: eg.attributes.position, last: null});
+          return;
+        }
+        const ls = new THREE.LineSegments(eg, material);
         ls.raycast = function () {};
         ls.userData.isEdge = true;
         o.add(ls);
         edgeList.push(ls);
       });
+      for (const [root, colors] of groups) {
+        for (const [material, parts] of colors) {
+          const geo = new THREE.BufferGeometry();
+          const count = parts.reduce((sum, part) => sum + part.points.count, 0);
+          const output = new THREE.Float32BufferAttribute(new Float32Array(count * 3), 3);
+          output.setUsage(THREE.DynamicDrawUsage);
+          geo.setAttribute('position', output);
+          const lines = new THREE.LineSegments(geo, material);
+          lines.raycast = () => {};
+          root.add(lines);
+          edgeList.push(lines);
+          outlineBatches.push({root, parts, output, geo});
+        }
+      }
+    }
+
+    // Combine the outlines of each assembly by ink color. Preserve moving
+    // internal parts by rewriting only their slices when their transforms change.
+    const outlineBatches = [];
+    let edgeMatrix, edgeInverse, edgePoint;
+    function syncOutlineBatches() {
+      if (!currentSkinTok?.edges) return;
+      for (const {root, parts, output, geo} of outlineBatches) {
+        if (!root.visible) continue;
+        edgeInverse.copy(root.matrixWorld).invert();
+        let offset = 0, dirty = false;
+        for (const part of parts) {
+          let visible = true;
+          for (let node = part.mesh; node && node !== root; node = node.parent) visible &&= node.visible;
+          edgeMatrix.multiplyMatrices(edgeInverse, part.mesh.matrixWorld);
+          if (part.visible !== visible || !part.last || !part.last.equals(edgeMatrix)) {
+            part.visible = visible;
+            (part.last ||= new THREE.Matrix4()).copy(edgeMatrix);
+            for (let i = 0; i < part.points.count; i++) {
+              if (visible) edgePoint.fromBufferAttribute(part.points, i).applyMatrix4(edgeMatrix);
+              else edgePoint.set(0, 0, 0);
+              output.setXYZ(offset + i, edgePoint.x, edgePoint.y, edgePoint.z);
+            }
+            dirty = true;
+          }
+          offset += part.points.count;
+        }
+        if (dirty) { output.needsUpdate = true; geo.computeBoundingSphere(); }
+      }
     }
 
     function makeGrid(tok) {
@@ -7966,7 +8077,7 @@ let gantryShell=null;
         textView(el){buildTextView(el)},project:projectPoint,conduitPoint,
         requestRender,suspend(){suspended=true;cancelAnimationFrame(rafId);rafId=0;perf.lastRendered=false},
         resume(){if(suspended){suspended=false;clock.getDelta()}requestRender()},
-        renderNow(){if(suspended||document.hidden)return false;cancelAnimationFrame(rafId);rafId=0;perf.renderRequests++;animate();return true},
+        renderNow(){if(contextLost||suspended||document.hidden)return false;cancelAnimationFrame(rafId);rafId=0;perf.renderRequests++;animate();return true},
         resize(w,h){if(w>0&&h>0){camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);perf.viewW=w;perf.viewH=h;requestRender()}},
         stats(){return {...perfInfo(),frames:frameCount,skin:SKIN,realm:currentRealm,flight:camFlight.active,playing:!isPaused,suspended,lit:moeLit.size,gateWeights:Object.fromEntries(moeLit)}}
       });
@@ -7974,11 +8085,14 @@ let gantryShell=null;
       compRecords.forEach(r=>r.animHooks.forEach(h=>h(1,.016)));
       in7Kv?.setCount(4);if(SKIN)applySkin(SKIN);setRealmVisible(QS.get('realm')||'ALL');
       if(QS.get('focus'))api.focus(QS.get('focus').split(','),{fly:false});if(QS.has('kv'))api.setKV(+QS.get('kv'));
-      if(EMBED)document.addEventListener('keydown',e=>{if(['Escape','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key)){parent.dispatchEvent(new KeyboardEvent('keydown',{key:e.key,shiftKey:e.shiftKey,bubbles:true,cancelable:true}));e.preventDefault()}});
+      if (EMBED) forwardJourneyKeys();
     }
     function initObservatory() {
       try {
         // Initialize all deferred THREE instances now that THREE is guaranteed defined
+        edgeMatrix = new THREE.Matrix4(); edgeInverse = new THREE.Matrix4(); edgePoint = new THREE.Vector3();
+        tmpSkinColor = new THREE.Color();
+        tmpSkinColor2 = new THREE.Color();
         savedOverviewCam.pos = new THREE.Vector3(0, 34, 62);
         savedOverviewCam.target = new THREE.Vector3(0, 5.0, 2.0);
         camFlight.startPos = new THREE.Vector3();
@@ -8021,6 +8135,27 @@ let gantryShell=null;
         camera.position.set(0, 34, 62);
 
         try{renderer=new THREE.WebGLRenderer({canvas,antialias:QS.get('aa')!=='0',powerPreference:'high-performance'})}catch(e){renderer=new THREE.WebGLRenderer({canvas,antialias:false})}
+        canvas.addEventListener('webglcontextlost', event => {
+          event.preventDefault();
+          contextLost = true;
+          cancelAnimationFrame(rafId); rafId = 0;
+          perf.lastRendered = false;
+          stage.classList.add('gl-lost');
+          document.getElementById('contextFallback').hidden = false;
+        });
+        canvas.addEventListener('webglcontextrestored', () => {
+          contextLost = false;
+          stage.classList.remove('gl-lost');
+          document.getElementById('contextFallback').hidden = true;
+          // Procedural render targets lose their pixels along with the context.
+          scene.environment?.dispose();
+          scene.environment = studioEnvForTier(renderer);
+          perf.forceShadow = true;
+          renderer.shadowMap.needsUpdate = true;
+          perfInitGpuTimer();
+          handleViewportResize();
+          requestRender(2);
+        });
         perfConfigureTier(); renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
         renderer.setSize(w, h, false);
         perf.viewW = canvas.clientWidth || w;
@@ -8044,7 +8179,7 @@ let gantryShell=null;
         }
 
         // Procedural Studio Light-Box Environment Map
-        const envTex = createStudioEnvMap(renderer);
+        const envTex = studioEnvForTier(renderer);
         if (envTex) scene.environment = envTex;
 
         // Smooth built-in damped Studio Controls — zero external OrbitControls CDN dependency
