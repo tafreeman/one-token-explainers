@@ -850,7 +850,6 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
         <div class="technical-detail">
           <dl class="spec">
           <div><dt>Effort levels</dt><dd>low → max</dd><dd class="src">Anthropic docs</dd></div>
-          <div><dt>budget_tokens</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
         </div>
       </article>
@@ -881,12 +880,7 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.2</span>Sample</h3>
-        <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: on API version 2026-10-21, a request that sends <code>temperature</code>, <code>top_p</code> or <code>top_k</code> at any value is rejected. Earlier versions reject only non-default values.</p>
-        <div class="technical-detail">
-          <dl class="spec">
-          <div><dt>Sampling parameters</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
-        </dl>
-        </div>
+        <p>The model produces a probability distribution over possible next tokens. Sampling selects one token from that distribution, which becomes the next step in the generated reasoning, tool call or answer. The exact sampling policy for Fable 5.2 is controlled by the model provider.</p>
       </article>
       <article class="step">
         <h3><span class="sn">10.3</span>Draft, then verify</h3>

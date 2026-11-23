@@ -256,27 +256,21 @@ async function focusOrder(browser, base, local = false) {
   } finally { await page.close(); }
 }
 
-async function samplingContract(browser, base) {
+// Keep the teaching path focused on sampling as a mechanism, not request-validation errors.
+async function samplingTeachingScope(browser, base) {
   const page = await browser.newPage({reducedMotion: 'reduce'});
   try {
-    await ready(page, base + 'end-to-end-beamline/?rm=1&study=1&lab=sample',
+    await ready(page, base + 'end-to-end-beamline/?rm=1&study=1',
       'document.documentElement.dataset.ready === "1"');
-    const lab = page.locator('.micro-lab[data-lab="sample"]');
-    if (!await lab.evaluate(el => el.open)) await lab.locator('summary').click();
-    const payload = async () => JSON.parse((await lab.locator('pre').textContent()).split('\n\n')[1]);
-    for (const name of ['temperature', 'top_p', 'top_k']) {
-      assert(!Object.hasOwn(await payload(), name), 'Omitted ' + name + ' was serialized');
-      for (const value of ['null', '1']) {
-        await lab.getByLabel(name, {exact: true}).selectOption(value);
-        assert.equal((await payload())[name], value === 'null' ? null : 1);
-        assert.match(await lab.locator('[role="status"]').textContent(), /remove/);
-        assert.match(await lab.locator('[role="status"]').textContent(), new RegExp(name));
-      }
-      await lab.getByLabel(name, {exact: true}).selectOption('');
-    }
-    assert.doesNotMatch(await lab.locator('[role="status"]').textContent(), /HTTP 200/);
-    assert.match(await lab.locator('[role="status"]').textContent(), /sampling.parameter check passes/i);
-    console.log('Sampling request preview preserves omission and rejects explicit null/defaults');
+    assert.equal(await page.locator('.micro-lab[data-lab="sample"]').count(), 0);
+    const beamline = await page.locator('[data-beat="6d"]').innerText();
+    assert.match(beamline, /sampler turns the model.s probability distribution/i);
+    assert.doesNotMatch(beamline, /HTTP 400|temperature · top_p · top_k/i);
+    await page.goto(base + 'end-to-end-swiss/index.html?rm=1');
+    const swiss = await page.locator('#s-10').innerText();
+    assert.match(swiss, /Sampling selects one token from that distribution/i);
+    assert.doesNotMatch(swiss, /HTTP 400|Rejected \(400\)/i);
+    console.log('Sampler lessons teach token choice without an API error probe');
   } finally { await page.close(); }
 }
 
@@ -574,7 +568,7 @@ async function main() {
       await focusOrder(browser, base);
       await focusOrder(browser, base, true);
     }
-    if (runs('sampling')) await samplingContract(browser, base);
+    if (runs('sampling')) await samplingTeachingScope(browser, base);
     if (runs('claims')) await swissKVComparison(browser, base, artifacts);
     if (runs('depth')) {
       await swissFullLessons(browser, base, artifacts);
