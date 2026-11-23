@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="../shared/vendor/three-r160.min.js"></script>
+<script src="../shared/three-loader.js"></script>
 <style>
 :root{
   --hall:#E9EBEB; --slab:#F4F5F5; --rule:#C3C8CB; --rule-soft:#D5D9DB;
@@ -45,7 +46,7 @@ a:hover{text-decoration-thickness:2px}
 .tag.quiet span{border-color:var(--steel);color:var(--ink-2)}
 .tag.quiet span::after{background:var(--steel)}
 body:has([data-eq-target="mask"]:is(:hover,:focus-visible)) .tag[data-mark="mask"] span{background:var(--ink);color:var(--hall)}
-.tag.tok span{background:var(--token);border-color:var(--token);color:#fff;text-transform:none;letter-spacing:0;font-size:12px;padding:6px 8px 5px}
+.tag.tok span{background:var(--token-ink);border-color:var(--token-ink);color:#fff;text-transform:none;letter-spacing:0;font-size:12px;padding:6px 8px 5px}
 .tag.tok span::after{background:var(--token)}
 .tag.tok em{display:block;font-style:normal;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.86;margin-top:3px}
 
@@ -60,6 +61,7 @@ body:has([data-eq-target="mask"]:is(:hover,:focus-visible)) .tag[data-mark="mask
 .src.ill{border:1px dashed var(--ink-3);color:var(--ink-2)}
 
 .strip{position:fixed;left:0;right:0;bottom:0;height:var(--strip);z-index:6;background:var(--hall);border-top:1px solid var(--rule);padding:0 var(--pad-l)}
+.strip-track{height:100%;position:relative}
 .strip ol{list-style:none;margin:0;padding:0;height:100%;display:grid;grid-template-columns:repeat(11,1fr);position:relative}
 .strip .rail{position:absolute;left:0;right:0;top:22px;border-top:1px dashed var(--steel);pointer-events:none}
 .strip .done{position:absolute;left:0;top:21px;height:0;border-top:3px solid var(--ink);width:0;pointer-events:none}
@@ -155,6 +157,9 @@ html.watch-mode .cam-bar{display:inline-flex}
 .sources span{color:var(--ink-2)}
 .closing{margin:64px 0 0;font-size:clamp(22px,2.2vw,30px);font-stretch:114%;font-weight:640;letter-spacing:-.02em;max-width:30ch}
 
+.render-fallback{display:none}
+.gl-lost .render-fallback,.nogl .render-fallback{display:block;position:fixed;top:22%;right:3vw;padding:1em;border-block:1px solid var(--rule);color:var(--ink);background:var(--slab);font:500 13px var(--mono);pointer-events:none}
+.gl-lost #stage,.gl-lost #tags{visibility:hidden}
 .nogl .hero .lede::after{content:"3D needs WebGL, which this browser didn’t provide. Every step below is complete as text.";display:block;margin-top:22px;font:500 13px/1.5 var(--mono);color:var(--train-ink)}
 
 @media (max-width:1100px){.legend{display:none}}
@@ -225,6 +230,7 @@ html.watch-mode .cam-bar{display:inline-flex}
 <div class="cap" id="cap" aria-hidden="true"><span></span></div>
 
 <canvas id="stage" aria-hidden="true"></canvas>
+<div class="render-fallback" role="status">Training → Model → Reply</div>
 <div id="tags" aria-hidden="true"></div>
 
 <main id="top">
@@ -602,18 +608,21 @@ output_config: { effort: "high" }</code>
 </main>
 
 <nav class="strip" aria-label="Stations on the line">
-  <ol id="stripList">
+  <div class="strip-track">
     <div class="rail"></div><div class="done" id="stripDone"></div><div class="marker" id="stripMarker"></div>
-  </ol>
+    <ol id="stripList"></ol>
+  </div>
 </nav>
 
 <!-- narration:begin -->
 <script type="application/json" id="narration-data">{"voice":"Sylvie","model":"eleven_v4","clips":[{"id":"hero","dur":21.034,"cues":[{"t":0,"s":"One token, end to end."},{"t":1.48,"s":"This is one beamline."},{"t":3.52,"s":"A single token, Paris, enters on the left as raw text and leaves on the right as a streamed reply from Claude Fable five point two."},{"t":13.36,"s":"Where Anthropic doesn't publish the internals, the drawing uses DeepSeek V4 Pro as a representative design, and says so."}],"src":"assets/narration/hero.mp3"},{"id":"p1","dur":12.152,"cues":[{"t":0,"s":"Part one: make the data."},{"t":2.8,"s":"Months before your request, trillions of tokens of text, code and images are gathered, cleaned, and cut into pieces from a fixed vocabulary."}],"src":"assets/narration/p1.mp3"},{"id":"1a","dur":17.351,"cues":[{"t":0,"s":"Many sources become one stream: public web pages, licensed data, labelled examples, data from users who opted in, and data Anthropic generates itself."},{"t":11.76,"s":"Our token starts here, inside a web page that says the Eiffel Tower is in Paris."}],"src":"assets/narration/1a.mp3"},{"id":"1b","dur":10.951,"cues":[{"t":0,"s":"At the gate, near-duplicate documents are dropped, and classifiers remove low-quality, unsafe and private text."},{"t":7.867,"s":"Whatever falls into the tray never reaches training."}],"src":"assets/narration/1b.mp3"},{"id":"1c","dur":13.746,"cues":[{"t":0,"s":"Then the tokenizer cuts the text into pieces."},{"t":3.68,"s":"Common words become a single piece, and the leading space travels with the word."},{"t":8.32,"s":"So our token is space-Paris: one piece, one integer ID."}],"src":"assets/narration/1c.mp3"},{"id":"1d","dur":12.544,"cues":[{"t":0,"s":"Images take a different road."},{"t":2.24,"s":"A vision encoder cuts each image into square patches and turns each patch into a vector, so images enter the model as embeddings, not token IDs."}],"src":"assets/narration/1d.mp3"},{"id":"p2","dur":11.186,"cues":[{"t":0,"s":"Part two: pretrain the tower."},{"t":2.96,"s":"A stack of sixty-one layers starts with random weights."},{"t":6.64,"s":"Predicting the next token, over and over, turns it into a model."}],"src":"assets/narration/p2.mp3"},{"id":"2a","dur":13.197,"cues":[{"t":0,"s":"At every position, the tower is asked what comes next."},{"t":4.32,"s":"After 'the Eiffel Tower is in', the right answer is Paris."},{"t":9.04,"s":"The bars on top are its scores for every entry in the vocabulary."}],"src":"assets/narration/2a.mp3"},{"id":"2b","dur":13.824,"cues":[{"t":0,"s":"The error flows back down as gradients, the copper rings, and every weight takes a small step."},{"t":6.8,"s":"This is where the training copy of Paris ends."},{"t":9.867,"s":"It survives only as tiny changes spread across the weights."}],"src":"assets/narration/2b.mp3"},{"id":"2c","dur":12.309,"cues":[{"t":0,"s":"No single chip can hold the model."},{"t":2.72,"s":"Layers, experts and data are split across a cluster of accelerators working in lockstep, with the math done in low precision to save memory."}],"src":"assets/narration/2c.mp3"},{"id":"2d","dur":10.219,"cues":[{"t":0,"s":"Late in training, the context window is stretched."},{"t":3.68,"s":"Rescaling the position encoding lets a model trained on sixty-four thousand tokens address a million."}],"src":"assets/narration/2d.mp3"},{"id":"p3","dur":13.511,"cues":[{"t":0,"s":"Part three: tune it, test it, ship it."},{"t":4.08,"s":"Post-training teaches the model to follow instructions, reason, and decline harm."},{"t":9.6,"s":"Then evaluations decide whether it leaves the training floor."}],"src":"assets/narration/p3.mp3"},{"id":"3a","dur":9.435,"cues":[{"t":0,"s":"First, imitation."},{"t":2.28,"s":"Supervised fine-tuning shows the model worked examples of good replies, as the tower rolls forward along the line."}],"src":"assets/narration/3a.mp3"},{"id":"3b","dur":15.182,"cues":[{"t":0,"s":"Then, many tries."},{"t":2.32,"s":"For a problem with a checkable answer, the model makes a group of attempts and a verifier grades them."},{"t":8.56,"s":"Better-than-average attempts, the solid arcs, are reinforced."},{"t":12.72,"s":"The dashed ones are discouraged."}],"src":"assets/narration/3b.mp3"},{"id":"3c","dur":14.059,"cues":[{"t":0,"s":"For behaviour no test can check, Anthropic trains against a written constitution, and the model's own judgements become the reward."},{"t":8.56,"s":"A leash to the frozen reference model, the outline on the left, keeps it from drifting."}],"src":"assets/narration/3c.mp3"},{"id":"3d","dur":10.951,"cues":[{"t":0,"s":"Reasoning is trained the same way."},{"t":2.64,"s":"Long chains of thought that end in verified answers earn the reward, which is why Fable five point two thinks before it answers."}],"src":"assets/narration/3d.mp3"},{"id":"3e","dur":14.059,"cues":[{"t":0,"s":"Before release, the model is tested for dangerous capabilities and for alignment."},{"t":5.6,"s":"Each lamp on the gate is one family of evaluations."},{"t":9.36,"s":"Anthropic's Responsible Scaling Policy ties deployment to the results."}],"src":"assets/narration/3e.mp3"},{"id":"3f","dur":11.186,"cues":[{"t":0,"s":"The tower that passes is the tower that serves."},{"t":3.68,"s":"Its weights are copied to the serving floor and frozen."},{"t":7.12,"s":"Nothing in it changes, however many requests it answers."}],"src":"assets/narration/3f.mp3"},{"id":"p4","dur":12.152,"cues":[{"t":0,"s":"Part four: your request arrives."},{"t":3.12,"s":"Now it's milliseconds, not months."},{"t":5.92,"s":"A new copy of Paris enters inside your prompt, and rides the return track from your app to the intake."}],"src":"assets/narration/p4.mp3"},{"id":"4a","dur":14.869,"cues":[{"t":0,"s":"You ask: what's the weather in Paris right now?"},{"t":3.36,"s":"Your app sends the whole conversation, the tools it offers, and a system prompt to the Messages API."},{"t":9.547,"s":"The API keeps no memory between calls, so every request carries everything."}],"src":"assets/narration/4a.mp3"},{"id":"4b","dur":14.399,"cues":[{"t":0,"s":"At the intake, everything is rendered into one sequence with the chat template, screened by input safety classifiers, and tokenized with the same vocabulary as training."},{"t":11.16,"s":"Paris gets the same ID it had in the corpus."}],"src":"assets/narration/4b.mp3"},{"id":"4c","dur":10.872,"cues":[{"t":0,"s":"If an earlier request began with exactly the same bytes, its work may still be cached."},{"t":5.76,"s":"The doubled track is the reused prefix."},{"t":8.56,"s":"Only the rest has to be computed."}],"src":"assets/narration/4c.mp3"},{"id":"4d","dur":11.421,"cues":[{"t":0,"s":"You're not alone on the tower."},{"t":2.04,"s":"A scheduler batches your prompt with other users' requests and re-forms the batch at every step, so new prompts join while others are mid-reply."}],"src":"assets/narration/4d.mp3"},{"id":"p5","dur":9.906,"cues":[{"t":0,"s":"Part five: inside one forward pass."},{"t":3.84,"s":"The same tower, weights frozen."},{"t":6.72,"s":"Here's what happens to one token on its way up."}],"src":"assets/narration/p5.mp3"},{"id":"5a","dur":14.059,"cues":[{"t":0,"s":"At the base, the token ID picks one row of the embedding table."},{"t":4.693,"s":"It's a lookup, not a calculation."},{"t":7.36,"s":"Out comes a vector of seven thousand, one hundred and sixty-eight numbers, and that vector rides up the tower."}],"src":"assets/narration/5a.mp3"},{"id":"5b","dur":9.671,"cues":[{"t":0,"s":"The vector travels the residual stream, the steel rod."},{"t":4,"s":"Each layer reads a copy, computes something, and adds its result back to the stream."}],"src":"assets/narration/5b.mp3"},{"id":"5c","dur":12.231,"cues":[{"t":0,"s":"In every layer, attention looks back."},{"t":3.2,"s":"Paris forms a query and scores it against the earlier tokens."},{"t":7.12,"s":"Thicker arcs mean more weight, and the red mask hides everything that comes after."}],"src":"assets/narration/5c.mp3"},{"id":"5d","dur":14.242,"cues":[{"t":0,"s":"At a million tokens, scoring every key is too slow."},{"t":4,"s":"So older keys are compressed into blocks, a small indexer picks the blocks that matter, and a sliding window keeps the most recent hundred and twenty-eight tokens exact."}],"src":"assets/narration/5d.mp3"},{"id":"5e","dur":17.507,"cues":[{"t":0,"s":"The other half of each layer is a mixture of experts."},{"t":3.84,"s":"A router sends Paris to six of three hundred and eighty-four experts, while one shared expert always runs."},{"t":10.96,"s":"That's why only forty-nine billion of one point six trillion parameters work on any one token."}],"src":"assets/narration/5e.mp3"},{"id":"5f","dur":11.264,"cues":[{"t":0,"s":"The block repeats sixty-one times, each layer with its own weights."},{"t":4.76,"s":"A stack, not a loop."},{"t":6.8,"s":"By the top, the vector carries what the model needs to predict what follows."}],"src":"assets/narration/5f.mp3"},{"id":"5g","dur":13.119,"cues":[{"t":0,"s":"At the top, the LM head turns the vector into one score for every entry in the vocabulary."},{"t":6.56,"s":"A small extra head behind it drafts the token after next, which serving can use to go faster."}],"src":"assets/narration/5g.mp3"},{"id":"p6","dur":12.857,"cues":[{"t":0,"s":"Part six: prefill, think, decode, stream."},{"t":5.04,"s":"The prompt goes up in one pass."},{"t":7.64,"s":"Then the model thinks, writes one token at a time, and streams the result."}],"src":"assets/narration/p6.mp3"},{"id":"6a","dur":14.059,"cues":[{"t":0,"s":"Prefill sends every prompt token up the tower in one parallel pass, writing each token's keys and values into the KV cache, the yellow rack."},{"t":10.267,"s":"The longer the prompt, the longer you wait for the first token."}],"src":"assets/narration/6a.mp3"},{"id":"6b","dur":14.712,"cues":[{"t":0,"s":"Fable five point two always thinks first."},{"t":3.52,"s":"Reasoning tokens are generated just like answer tokens, one at a time."},{"t":8.4,"s":"The raw chain of thought never leaves the server, which is why the hollow tiles stop short of your app."}],"src":"assets/narration/6b.mp3"},{"id":"6c","dur":14.712,"cues":[{"t":0,"s":"Then decoding: one token per step."},{"t":3.76,"s":"Each new token needs its own trip up the tower, re-reading the weights and the cache."},{"t":9.147,"s":"The cache grows by one slice each step, so earlier tokens are never recomputed."}],"src":"assets/narration/6c.mp3"},{"id":"6d","dur":10.219,"cues":[{"t":0,"s":"The sampler turns probabilities into one choice."},{"t":3.68,"s":"Here the model writes a tool call, and to fill in the city, it attends straight back to Paris in your prompt."}],"src":"assets/narration/6d.mp3"},{"id":"6e","dur":11.682,"cues":[{"t":0,"s":"Tokens are turned back into text and streamed to your app, while output classifiers watch the stream."},{"t":6.56,"s":"This reply stops because the model wants a tool, and the stop reason says so."}],"src":"assets/narration/6e.mp3"},{"id":"p7","dur":10.219,"cues":[{"t":0,"s":"Part seven: loop with tools."},{"t":3.04,"s":"The reply was a tool call."},{"t":5.08,"s":"Your app runs it, sends everything back, and the cache makes the second pass cheap."}],"src":"assets/narration/p7.mp3"},{"id":"7a","dur":9.984,"cues":[{"t":0,"s":"The model can't call your weather service."},{"t":2.72,"s":"Your code does, at the tool bench, and keeps the result."},{"t":6.64,"s":"Treat every tool result as untrusted input."}],"src":"assets/narration/7a.mp3"},{"id":"7b","dur":10.637,"cues":[{"t":0,"s":"Because the API keeps no state, your app sends the entire conversation again: your prompt, the model's tool call, and the tool result, the green tile."}],"src":"assets/narration/7b.mp3"},{"id":"7c","dur":11.76,"cues":[{"t":0,"s":"Everything up to the tool result matches the last request byte for byte, so it's a cache hit."},{"t":6.48,"s":"The old Paris doesn't go up the tower again."},{"t":9.52,"s":"Only the new part is computed."}],"src":"assets/narration/7c.mp3"},{"id":"7d","dur":11.421,"cues":[{"t":0,"s":"With the weather in context, the model writes the answer: it's eighteen degrees and clear in Paris."},{"t":6.453,"s":"The loop ends when a reply stops with end turn, instead of tool use."}],"src":"assets/narration/7d.mp3"},{"id":"7e","dur":9.827,"cues":[{"t":0,"s":"Agents can loop for hours."},{"t":2.36,"s":"When a conversation nears its limit, compaction summarises earlier turns into one block, so the run can continue."}],"src":"assets/narration/7e.mp3"},{"id":"f1","dur":15.835,"cues":[{"t":0,"s":"Now, once more, end to end."},{"t":3.04,"s":"One token, from a web page in the corpus, up the tower in training, through the release gate, then back inside your request, through the forward pass, decode, the tool loop, and onto your screen."}],"src":"assets/narration/f1.mp3"},{"id":"ledger","dur":20.642,"cues":[{"t":0,"s":"What's published, and what's drawn."},{"t":2.68,"s":"Anthropic publishes how Fable five point two behaves, not how it's built."},{"t":7.92,"s":"Where the drawing needs internals, it uses DeepSeek V4 Pro, and says so beside every number."},{"t":14.8,"s":"One token in a web page became a few weight updates."},{"t":18.267,"s":"A new copy of it came back as an answer."}],"src":"assets/narration/ledger.mp3"}]}</script>
 <!-- narration:end -->
 <script>
-(() => {
+(async () => {
 'use strict';
-const THREE = window.THREE;
+let THREE;
+try { THREE = await ensureJourneyThree('160'); }
+catch { document.documentElement.classList.add('nogl'); return; }
 
 /* ---------------- basics ---------------- */
 const qs = new URLSearchParams(location.search);
@@ -1355,7 +1364,6 @@ const Narr = (() => {
     group.hidden = false; heroWatch.hidden = false;
     const s = Math.round([...clips.values()].reduce((n, c) => n + c.dur, 0)), m = Math.floor(s / 60), r = s % 60;
     heroWatch.querySelector('.dur').textContent = `${m}:${String(r).padStart(2, '0')}`;
-    heroWatch.setAttribute('aria-label', `Watch it narrated, ${m} min ${r} s, with sound`);
     sndBtn.addEventListener('click', () => { sound = !sound; if (sound) { want = activeId; wantAt = clock(); } else { watch = false; glide = null; stopAll(); } sync(); });
     [watchBtn, heroWatch].forEach(b => b.addEventListener('click', () => setWatch(!watch)));
     const userNav = () => { if (watch) setWatch(false); };
@@ -1388,7 +1396,27 @@ const nowEl = $('#now'), nowForm = $('#nowForm'), readoutEl = $('.finale .readou
 let lastStage = '';
 const proj = new THREE.Vector3();
 
+let frameId = 0, contextLost = false;
+function scheduleFrame() {
+  if (!frameId && !contextLost) frameId = requestAnimationFrame(frame);
+}
+canvas.addEventListener('webglcontextlost', event => {
+  event.preventDefault();
+  contextLost = true;
+  cancelAnimationFrame(frameId);
+  frameId = 0;
+  document.documentElement.classList.add('gl-lost');
+});
+canvas.addEventListener('webglcontextrestored', () => {
+  contextLost = false;
+  document.documentElement.classList.remove('gl-lost');
+  resize();
+  frame.n = 0; frame.done = false; last = performance.now();
+  scheduleFrame();
+});
 function frame(now) {
+  frameId = 0;
+  if (contextLost) return;
   const dtRaw = Math.min(.1, (now - last) / 1000); last = now;
   const S = State; S.dt = STILL ? .016 : dtRaw; S.t += S.dt;
   // active beat
@@ -1548,7 +1576,7 @@ function frame(now) {
   Narr.tick(full ? 0 : regionL);
   snapNext = false;
   document.documentElement.dataset.ready = '1';
-  if (!STILL || !frame.done) { frame.done = STILL ? (frame.n = (frame.n || 0) + 1) > 6 : false; requestAnimationFrame(frame); }
+  if (!STILL || !frame.done) { frame.done = STILL ? (frame.n = (frame.n || 0) + 1) > 6 : false; scheduleFrame(); }
 }
 function isTowerOnScreen() { proj.set(State.tower.x, 6, 0).project(camera); return Math.abs(proj.x) < 1.3 && Math.abs(proj.y) < 1.3 && proj.z < 1; }
 function placeTag(e, p, rl, rw, H) {
@@ -1584,7 +1612,7 @@ function resolveTags(textEl) {
 
 /* ---------------- boot ---------------- */
 function resize() {
-  if (!renderer) return;
+  if (!renderer || contextLost) return;
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
   measure(); snapNext = true;
@@ -1598,7 +1626,7 @@ document.addEventListener('visibilitychange', () => { last = performance.now(); 
   Serve.resetScreen();
   resize(); measure();
   if (qs.get('beat')) { jumpTo(qs.get('beat'), true); }
-  requestAnimationFrame(t => { measure(); last = t; snapNext = true; requestAnimationFrame(frame); });
+  requestAnimationFrame(t => { measure(); last = t; snapNext = true; scheduleFrame(); });
 })();
 new ResizeObserver(() => measure()).observe(document.body);
 })();

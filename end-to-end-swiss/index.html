@@ -102,6 +102,8 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .stage-hud{position:absolute;left:14px;top:14px;width:min(268px,44%);padding:8px 10px 10px;background:color-mix(in srgb,var(--paper) 90%,transparent);border:1px solid var(--rule);border-radius:2px;pointer-events:none}
 .hud-glyph{--wdth:151;--wght:220;display:flex;align-items:baseline;margin:0 0 12px;font-size:44px;line-height:.85;letter-spacing:calc((var(--wght) - 220) * .00007em - .02em);font-variation-settings:"wdth" var(--wdth),"wght" var(--wght),"opsz" 144}
 .hud-glyph .sp{display:inline-block;width:.24em;height:.11em;margin-right:.05em;border:.05em solid var(--token);border-top:0}
+.gl-lost canvas,.gl-lost .gl-labels{visibility:hidden}
+.gl-lost::after{content:"Training → Model → Reply";position:absolute;inset:40% 10% auto;text-align:center;border-block:1px solid var(--rule);padding:1rem;background:var(--paper);color:var(--ink);font:500 15px/1.5 var(--mono)}
 .no-gl .stage-sticky::after{content:"The 3D view needs WebGL. The text tells the whole story.";position:absolute;left:20px;bottom:24px;font:500 11px/1.4 var(--mono);color:var(--ink-3)}
 
 .key{margin:clamp(40px,7vh,72px) 0 0;padding:18px 0 4px;border-top:1px solid var(--rule)}
@@ -856,7 +858,8 @@ data: {"delta": {"type": "input_json_delta",
 
 <!-- Inline copy of assets/narration/manifest.json so narration also works from file://. Regenerate when the manifest changes. -->
 <script type="application/json" id="narration-manifest">{"version":2,"voice":"TYKLc7ViOIGE13dSZYlK","model":"eleven_v4","totalDuration":278.017,"clips":[{"id":"00-intro","g0":0,"g1":0,"dur":23.359,"cues":[{"t":0,"s":"Follow one token through a frontier model."},{"t":3.04,"s":"The token is Paris, with its leading space."},{"t":6.48,"s":"It starts in the training data and ends on your screen, crossing twelve stages: how Claude Fable five point two is made, and how it answers you."},{"t":16.24,"s":"Where Anthropic doesn't publish the internals, the drawing uses DeepSeek V4 Pro's design, marked with an asterisk."}],"src":"./assets/narration/00-intro.mp3","status":"ready"},{"id":"01-corpus","g0":0,"g1":1,"dur":23.098,"cues":[{"t":0,"s":"Stage one: the corpus."},{"t":2.76,"s":"Web pages, code, books, papers and many languages are pooled into one stream."},{"t":9.28,"s":"Near-duplicates are dropped, classifiers filter out spam and personal data, and the mix is weighted toward code, math and careful prose."},{"t":18.88,"s":"Somewhere in it, a page says the Eiffel Tower is in Paris."}],"src":"./assets/narration/01-corpus.mp3","status":"ready"},{"id":"02-tokens","g0":1,"g1":2,"dur":22.706,"cues":[{"t":0,"s":"Stage two: tokens."},{"t":2.8,"s":"The model never sees letters."},{"t":5.48,"s":"Byte-pair encoding merges frequent pairs of bytes until common words become single pieces, leading space included."},{"t":13.44,"s":"So Paris is one token, one integer ID."},{"t":18.48,"s":"Images take another road, as patch vectors from a vision encoder."}],"src":"./assets/narration/02-tokens.mp3","status":"ready"},{"id":"03-pretrain","g0":2,"g1":3,"dur":21.112,"cues":[{"t":0,"s":"Stage three: pretraining."},{"t":2.88,"s":"One objective, repeated trillions of times: predict the next token."},{"t":8.76,"s":"Batches flow up the tower in parallel, the loss scores the probability given to Paris, and gradients nudge every weight."},{"t":17.04,"s":"Then the context is stretched toward a million positions."}],"src":"./assets/narration/03-pretrain.mp3","status":"ready"},{"id":"04-post-train","g0":3,"g1":4,"dur":21.112,"cues":[{"t":0,"s":"Stage four: post-training."},{"t":2.88,"s":"Fine-tuning on curated demonstrations teaches the model to follow instructions."},{"t":8.08,"s":"Then it samples a group of attempts, verifiers grade them, and the better-than-average attempts are reinforced."},{"t":15.173,"s":"Written principles add AI feedback, and a penalty keeps the policy close to where it started."}],"src":"./assets/narration/04-post-train.mp3","status":"ready"},{"id":"05-release","g0":4,"g1":5,"dur":20.956,"cues":[{"t":0,"s":"Stage five: release."},{"t":2.72,"s":"The final checkpoint is evaluated for what it can do, and for what it could be misused to do."},{"t":9.2,"s":"Red teams hunt for jailbreaks, safeguards scale with capability, and the results go in a system card."},{"t":16.4,"s":"Safety classifiers ship alongside."},{"t":18.907,"s":"The weights are now frozen."}],"src":"./assets/narration/05-release.mp3","status":"ready"},{"id":"06-request","g0":5,"g1":6,"dur":21.582,"cues":[{"t":0,"s":"Stage six: your request."},{"t":3.36,"s":"Months later, you ask for the weather in Paris, with a weather tool attached."},{"t":8.267,"s":"The API is stateless, so every call carries the whole conversation."},{"t":13.36,"s":"Tools, system and messages are rendered in a fixed order, cut by the same tokenizer, and checked against the prompt cache."}],"src":"./assets/narration/06-request.mp3","status":"ready"},{"id":"07-forward-pass","g0":6,"g1":7,"dur":25.344,"cues":[{"t":0,"s":"Stage seven: the forward pass."},{"t":3.2,"s":"This is the engine, drawn from DeepSeek V4 Pro's published design."},{"t":8.347,"s":"The ID picks one row of the embedding table."},{"t":11.867,"s":"Attention reads earlier positions sparsely."},{"t":14.72,"s":"A router sends the token to six of three hundred and eighty-four experts, plus a shared one."},{"t":20.64,"s":"That repeats sixty-one times, and the head scores the whole vocabulary."}],"src":"./assets/narration/07-forward-pass.mp3","status":"ready"},{"id":"08-prefill","g0":7,"g1":8,"dur":19.519,"cues":[{"t":0,"s":"Stage eight: prefill."},{"t":2.68,"s":"Serving runs the frozen tower in two phases."},{"t":6.16,"s":"Prefill pushes every prompt token up at once, in one parallel pass, and each layer caches its keys and values."},{"t":14.64,"s":"Your request shares the hardware with other users, batched continuously."}],"src":"./assets/narration/08-prefill.mp3","status":"ready"},{"id":"09-think","g0":8,"g1":9,"dur":20.459,"cues":[{"t":0,"s":"Stage nine: thinking."},{"t":2.64,"s":"On Fable five point two, thinking is always on."},{"t":6.8,"s":"You set an effort level, from low to max, and the model decides how much to think."},{"t":12.56,"s":"The raw reasoning never leaves the server."},{"t":15.6,"s":"Here, it works out that it can't know today's weather, and should call the tool."}],"src":"./assets/narration/09-think.mp3","status":"ready"},{"id":"10-decode","g0":9,"g1":10,"dur":18.709,"cues":[{"t":0,"s":"Stage ten: decode."},{"t":2.84,"s":"Now it's a loop: one pass up the tower for each new token, each pass reading the whole cache."},{"t":9.707,"s":"A cheap draft can propose the next token for the big model to verify."},{"t":14.107,"s":"The model writes a tool call: get weather, for the city of Paris."}],"src":"./assets/narration/10-decode.mp3","status":"ready"},{"id":"11-stream","g0":10,"g1":11,"dur":15.6,"cues":[{"t":0,"s":"Stage eleven: streaming."},{"t":2.76,"s":"Token IDs are decoded back into text and streamed to your app as server-sent events, while generation is still running."},{"t":10.533,"s":"The response ends with a stop reason."},{"t":13.333,"s":"Here, the reason is tool use."}],"src":"./assets/narration/11-stream.mp3","status":"ready"},{"id":"12-tool-loop","g0":11,"g1":12,"dur":18.709,"cues":[{"t":0,"s":"Stage twelve: the tool loop."},{"t":3.04,"s":"Claude can't check the weather itself, so your code runs the tool and appends the result."},{"t":8.747,"s":"The whole conversation goes back in, and the unchanged prefix hits the cache."},{"t":13.92,"s":"Decoding resumes, the reply ends, and Paris reaches your screen."}],"src":"./assets/narration/12-tool-loop.mp3","status":"ready"},{"id":"13-outro","g0":12,"g1":12,"dur":5.752,"cues":[{"t":0,"s":"Twelve stages, one token."},{"t":3.04,"s":"Scroll to any stage to read it in detail."}],"src":"./assets/narration/13-outro.mp3","status":"ready"}]}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../shared/vendor/three-r128.min.js"></script>
+<script src="../shared/three-loader.js"></script>
 <script>
 (function(){
 'use strict';
@@ -1077,7 +1080,6 @@ const NARR={
       [narrHero,narrStory].forEach(b=>{
         b.hidden=false;
         b.querySelector('.dur').textContent=`${m}:${String(r).padStart(2,'0')}`;
-        b.setAttribute('aria-label',`Narrated run with sound, ${m} min ${r} s`);
       });
       return this.clips;
     }catch(err){
@@ -1997,10 +1999,12 @@ function initGL(){
     cv.addEventListener('webglcontextlost',e=>{
       e.preventDefault();
       v.lost=true;
+      host.classList.add("gl-lost");
       if(raf){cancelAnimationFrame(raf);raf=0;}
     },false);
     cv.addEventListener('webglcontextrestored',()=>{
       v.lost=false;
+      host.classList.remove("gl-lost");
       r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
       r.setClearColor(PAPER,1);
       r.setSize(v.w,v.h,false);
@@ -2159,22 +2163,6 @@ function initGL(){
 }
 
 /* ---------------- Three.js fallback loader + boot ---------------- */
-function loadScript(src){
-  return new Promise((resolve,reject)=>{
-    const s=document.createElement('script');
-    s.src=src;s.async=true;
-    s.onload=()=>window.THREE?resolve():reject(new Error('THREE undefined after '+src));
-    s.onerror=()=>reject(new Error('Failed to load '+src));
-    document.head.appendChild(s);
-  });
-}
-async function ensureThree(){
-  if(window.THREE) return;
-  for(const url of ['https://unpkg.com/three@0.128.0/build/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js']){
-    try{await loadScript(url);if(window.THREE) return;}catch(_){}
-  }
-  throw new Error('three.js unavailable from primary and fallback sources');
-}
 function startGL(){
   try{
     GL=initGL();
@@ -2190,7 +2178,7 @@ function startGL(){
 
 layout();
 if(window.THREE){startGL();}
-else{ensureThree().then(startGL).catch(err=>{GL=null;document.documentElement.classList.add('no-gl');console.warn('3D view disabled:',err&&err.message);});}
+else{ensureJourneyThree('128').then(startGL).catch(err=>{GL=null;document.documentElement.classList.add('no-gl');console.warn('3D view disabled:',err&&err.message);});}
 const q=new URLSearchParams(location.search);
 function boot(){layout();if(GL) GL.remeasure();if(q.has('g')){const g=parseFloat(q.get('g'));if(!isNaN(g)){window.scrollTo({top:scrollForG(g),behavior:'instant'});gT=gS=gFromScroll();}}else{gT=gS=gFromScroll();}request();}
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(boot);else boot();

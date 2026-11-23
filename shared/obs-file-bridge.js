@@ -6,6 +6,30 @@
     'setLabels', 'setPlaying', 'setControls', 'setKV', 'setBackprop', 'setMoeOffset',
     'setRouting', 'suspend', 'resume', 'renderNow', 'resize']);
 
+  const keys = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape', '1', '2', '3', '4', '5', '6']);
+  const keyMessage = 'journey-navigation-key';
+  // file:// documents report location.origin as "file://" but post with origin "null",
+  // so local playback trusts only the sending window; hosted pages also match origin.
+  const trustedOrigin = origin => location.protocol === 'file:'
+    ? origin === 'null' || origin === 'file://'
+    : origin === location.origin;
+  window.journeyFrameKeys = function (frame, navigate) {
+    window.addEventListener('message', event => {
+      if (event.source !== frame.contentWindow || !trustedOrigin(event.origin)) return;
+      if (event.data?.type === keyMessage && keys.has(event.data.key)) navigate(event.data.key);
+    });
+  };
+  window.forwardJourneyKeys = function () {
+    if (window === parent) return;
+    document.addEventListener('keydown', event => {
+      if (!keys.has(event.key) || event.defaultPrevented || event.isComposing ||
+          event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+          event.target.closest?.('input, textarea, select, button, summary, [contenteditable]')) return;
+      event.preventDefault();
+      parent.postMessage({type: keyMessage, key: event.key}, location.protocol === 'file:' ? '*' : location.origin);
+    });
+  };
+
   window.journeyObservatory = async function (frame, stops) {
     if (location.protocol !== 'file:') return frame.contentWindow.obs.ready;
     try {
