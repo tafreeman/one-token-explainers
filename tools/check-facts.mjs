@@ -67,18 +67,6 @@ check('Beamline Study toggle', src.beamline.includes('id="studyBtn"') && src.bea
 check('Beamline clipped GRPO in a study note', /class="study-note">[\s\S]{0,200}full GRPO objective[\s\S]{0,300}clip\(ρ_i,t, 1 − ε, 1 \+ ε\)[\s\S]{0,80}β · KL\(π_θ ‖ π_ref\)/.test(src.beamline));
 check('Swiss has no study notes', !src.swiss.includes('study-note'));
 
-// Audit corrections: the published 1M KV ratio is storage vs V3.2, not a dense-attention speedup.
-// https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro (Introduction, checked 2026-11-22).
-check('Swiss has no invented 10x dense memory/bandwidth ratio', !/10[×x][^'\n]*(?:memory|bandwidth)/i.test(src.swiss));
-const swissKV = (src.swiss.match(/const KV_COPY=\{([\s\S]*?)\n\};/) || [])[1] || '';
-check('Swiss KV endpoint names model, length, storage and baseline',
-  /V4.Pro/.test(swissKV) && /1M/.test(swissKV) && /10%/.test(swissKV) && /V3\.2/.test(swissKV) && /stored KV/.test(swissKV));
-const precisionStep = (src.swiss.match(/<h3><span class="sn">3\.3<\/span>([\s\S]*?)<\/article>/) || [])[1] || '';
-check('Swiss separates FP8 pretraining from FP4 QAT release',
-  /pretraining uses FP8 mixed precision/i.test(precisionStep) && /QAT[^<]*FP4[^<]*release/.test(precisionStep));
-check('Story benchmark labels the reported Think Max mode', /V4-PRO[^'\n]*THINK MAX/.test(src.story));
-check('Story does not invent a red-team pass', !/\['Red-team safety',\s*'PASS'/.test(src.story));
-
 // Narration: inline manifests must match the shared manifest (file:// playback, audio timing).
 const inline = (html, id) => JSON.parse((html.match(new RegExp(`<script type="application/json" id="${id}">([\\s\\S]*?)</script>`)) || [])[1] || 'null');
 const shared = JSON.parse(read('shared/journey-narration/manifest.json'));

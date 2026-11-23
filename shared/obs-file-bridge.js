@@ -8,7 +8,6 @@
 
   const keys = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape', '1', '2', '3', '4', '5', '6']);
   const keyMessage = 'journey-navigation-key';
-  const focusMessage = 'journey-focus-scene';
   // file:// documents report location.origin as "file://" but post with origin "null",
   // so local playback trusts only the sending window; hosted pages also match origin.
   const trustedOrigin = origin => location.protocol === 'file:'
@@ -20,15 +19,8 @@
       if (event.data?.type === keyMessage && keys.has(event.data.key)) navigate(event.data.key);
     });
   };
-  window.focusJourneyScene = function (frame) {
-    frame.contentWindow.postMessage({type: focusMessage}, location.protocol === 'file:' ? '*' : location.origin);
-  };
   window.forwardJourneyKeys = function () {
     if (window === parent) return;
-    window.addEventListener('message', event => {
-      if (event.source !== parent || !trustedOrigin(event.origin) || event.data?.type !== focusMessage) return;
-      document.getElementById('threeCanvas')?.focus({preventScroll: true});
-    });
     document.addEventListener('keydown', event => {
       if (!keys.has(event.key) || event.defaultPrevented || event.isComposing ||
           event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||

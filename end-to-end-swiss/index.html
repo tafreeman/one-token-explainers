@@ -56,11 +56,10 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .btn:hover{background:#262622}
 .btn[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
 .btn svg{width:12px;height:12px;flex:none}
-.btn{text-decoration:none}
 .btn .i-stop{display:none}
 .btn[aria-pressed="true"] .i-play{display:none}
 .btn[aria-pressed="true"] .i-stop{display:block}
-.link{display:inline-flex;align-items:center;gap:8px;min-height:44px;font:600 12px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:var(--ink)}
+.link{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:var(--ink)}
 .link svg{width:12px;height:12px}
 .btn[hidden]{display:none}
 .btn-quiet{background:var(--paper);color:var(--ink)}
@@ -87,7 +86,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .ov b{font-weight:600;color:var(--ink)}
 .ov:hover,.ov.on{color:var(--ink)}
 .ov.on b{color:var(--token-ink)}
-.lb{position:absolute;left:0;top:0;transform:translate(-9999px,0);opacity:0;font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;color:var(--ink);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;padding:2px 5px 2px 11px;background:color-mix(in srgb,var(--paper) 84%,transparent);translate:0 -50%}
+.lb{position:absolute;left:0;top:0;transform:translate(-9999px,0);opacity:0;transition:opacity .25s var(--ease-out);font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;color:var(--ink);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;padding:2px 5px 2px 11px;background:color-mix(in srgb,var(--paper) 84%,transparent);translate:0 -50%}
 .lb::before{content:"";position:absolute;left:0;top:50%;width:7px;height:1px;background:var(--ink)}
 .lb.on{opacity:1}
 .lb.tok{color:var(--token-ink);font-weight:600;padding:2px 6px;translate:-50% 0;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--token);border-radius:2px}
@@ -96,7 +95,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .lb.ovn::before{display:none}
 
 /* ---------- story ---------- */
-.story{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);border-top:1px solid var(--ink);overflow-anchor:none}
+.story{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);border-top:1px solid var(--ink)}
 .stations{grid-column:1;grid-row:1;padding:0 clamp(20px,3vw,48px) 0 var(--gutter);min-width:0}
 .stage{grid-column:2;grid-row:1;position:relative;min-width:0}
 .stage-sticky{position:sticky;top:0;height:calc(100svh - var(--rail));border-left:1px solid var(--rule);overflow:hidden}
@@ -109,40 +108,25 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 
 .key{margin:clamp(40px,7vh,72px) 0 0;padding:18px 0 4px;border-top:1px solid var(--rule)}
 .key h2{margin:0 0 12px;font:600 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.09em;text-transform:uppercase}
-.key>summary{min-height:44px;cursor:pointer;font-weight:600}
-.key[open]>summary{margin-bottom:12px}
 .key dl{display:grid;grid-template-columns:44px 1fr;gap:9px 14px;margin:0;font-size:.92rem;line-height:1.4;color:var(--ink-2)}
 .key dt{display:flex;align-items:center}
 .key dd{margin:0}
 .sw{display:block;width:36px;height:12px}
 
-.station{min-height:70svh;padding:clamp(56px,9vh,96px) 0 clamp(40px,6vh,64px)}
+.station{padding:clamp(72px,14vh,140px) 0 clamp(40px,8vh,80px)}
 .st-title{display:flex;align-items:flex-end;gap:16px;margin:0 0 22px}
 .st-num{flex:none;font-size:clamp(3.6rem,6vw,5.6rem);line-height:.78;letter-spacing:-.04em;font-variation-settings:"wdth" 25,"wght" 160,"opsz" 144;color:var(--ink);font-variant-numeric:tabular-nums}
 .station h2{margin:0;font-size:clamp(2.1rem,3.4vw,3.5rem);line-height:.98;letter-spacing:-.01em;font-variation-settings:"wdth" 64,"wght" 830,"opsz" 120;text-wrap:balance}
-.prov{margin:-8px 0 18px;font:500 12px/1.55 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.04em;color:var(--ink-3);max-width:40rem}
+.prov{margin:-8px 0 18px;font:500 10.5px/1.55 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.04em;color:var(--ink-3);max-width:40rem}
 .prov>span{display:block}
 .prov b{font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
 .prov i{font-style:normal;white-space:nowrap}
 .lead{margin:0 0 clamp(28px,5vh,48px);font-size:1.16rem;line-height:1.52;color:var(--ink-2);max-width:40rem}
-.step{padding:24px 0 32px;border-top:1px solid var(--rule);max-width:40rem;color:var(--ink-2)}
+.step{min-height:44vh;padding:22px 0 40px;border-top:1px solid var(--rule);max-width:40rem;color:var(--ink-3);transition:color .35s var(--ease-out)}
 .step.on{color:var(--ink)}
 .step h3{margin:0 0 .5em;font-size:1.28rem;line-height:1.2;letter-spacing:-.01em;font-variation-settings:"wdth" 92,"wght" 680,"opsz" 32}
 .step h3 .sn{font:500 .7em/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.04em;margin-right:.7em;vertical-align:.12em;font-variant-numeric:tabular-nums}
 .step p{margin:0 0 1em;max-width:62ch}
-.stage-detail>summary,.technical-detail>summary,.playback-options>summary,.other-presentations>summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:600}
-.stage-detail>summary{border-top:1px solid var(--rule)}
-.stage-detail[open]>summary{margin-bottom:16px}
-.stage-detail:not([open]) .when-open,.stage-detail[open] .when-closed{display:none}
-.technical-detail{margin-top:12px}
-.technical-detail>summary{font-size:.9rem;color:var(--ink-2)}
-.technical-detail[open]>summary{margin-bottom:8px}
-.playback-options{flex-basis:100%}
-.playback-options>.actions{margin:8px 0 4px}
-.other-presentations{grid-column:1/-1;border-top:1px solid var(--rule)}
-.other-presentations ul{margin:8px 0 24px;padding-left:20px;max-width:65ch}
-.other-presentations li{padding:8px 0}
-.sources .project{grid-column:1/-1;max-width:75ch;font-size:.85rem}
 .eq{margin:0 0 1.1em;padding:12px 14px;background:var(--paper-2);border:1px solid var(--rule);border-radius:2px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:inherit}
 .spec{margin:6px 0 0;font-size:12px}
 .spec div{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.95fr);gap:12px;padding:8px 0;border-top:1px solid var(--rule);align-items:baseline}
@@ -182,7 +166,8 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .sources li b{display:block;font:500 11px/1.3 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
 
 /* ---------- rail ---------- */
-.rail{position:fixed;left:0;right:0;bottom:0;height:var(--rail);z-index:30;display:grid;grid-template-columns:88px minmax(0,1fr) 15.5rem;align-items:start;gap:22px;padding:0 var(--gutter);background:var(--paper);border-top:1px solid var(--ink)}
+.rail{position:fixed;left:0;right:0;bottom:0;height:var(--rail);z-index:30;display:grid;grid-template-columns:auto minmax(0,1fr) 15.5rem;align-items:start;gap:22px;padding:0 var(--gutter);background:var(--paper);border-top:1px solid var(--ink)}
+.rail-k{padding-top:17px;font:600 11px/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.09em;text-transform:uppercase}
 .rail-track{--p:0;position:relative;height:100%}
 .rail-track::before{content:"";position:absolute;left:0;top:21px;height:2px;width:calc(var(--p) * 100%);background:var(--ink)}
 .rail-track::after{content:"";position:absolute;right:0;top:21px;height:0;width:calc((1 - var(--p)) * 100%);border-top:1px dashed var(--rule-2)}
@@ -199,7 +184,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .ticks li{position:absolute;left:var(--x);top:0}
 .ticks li::before{content:"";position:absolute;left:0;top:0;width:1px;height:11px;background:var(--rule-2)}
 .ticks li.done::before{background:var(--ink)}
-.ticks a{position:absolute;top:22px;left:0;translate:calc(-50% + var(--tx, 0px)) 0;pointer-events:auto;display:flex;gap:6px;align-items:baseline;white-space:nowrap;text-decoration:none;color:var(--ink-3);font:500 11px/1 var(--mono);font-variation-settings:"wdth" 80;letter-spacing:.05em;text-transform:uppercase}
+.ticks a{position:absolute;top:22px;left:0;translate:calc(-50% + var(--tx, 0px)) 0;pointer-events:auto;display:flex;gap:6px;align-items:baseline;white-space:nowrap;text-decoration:none;color:var(--ink-3);font:500 11px/1 var(--mono);font-variation-settings:"wdth" 80;letter-spacing:.05em;text-transform:uppercase;transition:opacity .18s var(--ease-out)}
 .ticks a b{font-weight:600}
 .ticks li.done a{color:var(--ink)}
 .ticks li.cur a{color:var(--token-ink)}
@@ -222,6 +207,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
   .readout-box{grid-column:2;grid-row:2;align-self:end}
 }
 @media (max-width:900px){
+  :root{--rail:60px}
   .story{grid-template-columns:minmax(0,1fr)}
   .stage{grid-column:1;grid-row:1;position:sticky;top:0;z-index:5;height:40svh;background:var(--paper);border-bottom:1px solid var(--rule)}
   .stage-sticky{position:relative;height:100%;border-left:0}
@@ -230,9 +216,10 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
   .hud-glyph{font-size:30px;margin-bottom:6px}
   .stage-hud .readout{display:none}
   .stage .caption{left:50%;right:auto;translate:-50% 0;max-width:calc(100% - 32px);text-align:center}
-  .station{min-height:56svh}
-  .stage-detail>summary,.technical-detail>summary{scroll-margin-top:42svh}
+  .step{min-height:48vh}
   .sources{grid-template-columns:minmax(0,1fr)}
+  .rail{grid-template-columns:minmax(0,1fr);gap:0}
+  .rail-k,.rail-out{display:none}
   .ticks a{display:none}
 }
 @media (max-width:640px){
@@ -242,12 +229,12 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
   .hero-copy,.readout-box{grid-column:1;grid-row:auto}
   .readout-box{display:none}
   .glyph-metric{display:none}
-  .hero .note{font-size:.85rem}
+  .hero .note{display:none}
   .hero-top{padding-top:14px;gap:14px}
   .hero h1{font-size:1.75rem}
   .standfirst{margin-bottom:.9em}
   .hero-gl{min-height:clamp(190px,28svh,240px)}
-  .lb{font-size:11px;max-width:calc(100% - 24px)}
+  .lb{font-size:10px;max-width:calc(100% - 24px)}
   .sources ol{columns:1}
   .spec div{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .spec dd.src{grid-column:1/-1;text-align:left}
@@ -261,7 +248,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 
 #storyCanvas{cursor:grab;touch-action:pan-y}
 #storyCanvas.grabbing{cursor:grabbing}
-.orbit-hint{position:absolute;right:14px;bottom:14px;z-index:2;padding:3px 7px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--rule);border-radius:2px;font:500 11px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);pointer-events:none;transition:opacity .3s var(--ease-out)}
+.orbit-hint{position:absolute;right:14px;bottom:14px;z-index:2;padding:3px 7px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--rule);border-radius:2px;font:500 10px/1.2 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);pointer-events:none;opacity:.85;transition:opacity .3s var(--ease-out)}
 .orbit-hint.off{opacity:0}
 .seg{flex-wrap:wrap}
 @media (max-width:900px){
@@ -279,64 +266,6 @@ body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
   .seg{max-width:100%}
   .seg span{padding:7px 9px;font-size:11px}
 }
-
-/* The existing line becomes a tactile instrument; the lesson stays underneath. */
-@property --token-travel{syntax:"<number>";inherits:false;initial-value:0}
-.hero .hero-top{grid-template-columns:minmax(0,1fr) minmax(240px,.65fr);gap:20px 48px;padding-block:24px 18px}
-.hero-top>.hero-copy{grid-column:1;grid-row:1;align-self:center;max-width:42rem}
-.hero-top>.glyph-box{grid-column:2;grid-row:1;align-self:center}
-.hero h1{max-width:24ch;font-size:clamp(1.8rem,2.8vw,2.8rem);margin-bottom:20px}
-.hero .glyph{font-size:clamp(3.5rem,6.4vw,6rem)}
-.instrument-state{display:flex;flex-direction:column;gap:3px;margin:16px 0 0;font-size:.9rem;line-height:1.35;color:var(--ink-2)}
-.instrument-state>span:first-child{font-weight:600;color:var(--ink)}
-.hero .hero-gl{min-height:50svh;isolation:isolate}
-.hero-gl canvas,.hero-gl .gl-labels{z-index:1}
-.hero-footer{padding:12px var(--gutter) 18px;border-top:1px solid var(--rule)}
-#instrumentHint{margin:0 0 4px;font-size:.9rem;color:var(--ink-2)}
-.hero-options{display:flex;flex-wrap:wrap;gap:0 32px;align-items:start}
-.hero-options>details{flex-basis:auto;min-width:0}
-.hero-options>details[open]{flex-basis:100%}
-.hero-options summary{min-height:44px;padding:10px 0;cursor:pointer;font-size:.9rem;font-weight:600}
-.hero-options .standfirst{max-width:65ch;font-size:1rem;margin:4px 0 16px}
-.hero-footer .note{max-width:90ch;margin:8px 0 0;font-size:12px;line-height:1.55}
-.hero-footer .readout-box{display:block;max-width:32rem;margin:8px 0 16px}
-.hero-footer .glyph-metric{max-width:32rem;margin:8px 0 16px}
-.instrument-fallback{position:absolute;inset:30% 6%;z-index:0;display:flex;align-items:center;justify-content:center;gap:16px;color:var(--ink);font-size:clamp(1rem,2vw,1.5rem)}
-.instrument-fallback svg{width:clamp(24px,6vw,60px);height:12px;fill:none;stroke:currentColor;stroke-width:1.5}
-.no-gl .hero-gl canvas{visibility:hidden}
-.instrument-reply{position:absolute;z-index:3;left:50%;bottom:24px;translate:-50% 0;width:min(36rem,calc(100% - 32px));padding:16px 20px;background:var(--paper);border:1px solid var(--ink)}
-.instrument-reply[hidden]{display:none}
-.instrument-reply p{margin:0;font-size:clamp(1.2rem,2.2vw,1.8rem);line-height:1.35;max-width:28ch}
-.instrument-reply small{display:block;margin-top:8px;font-size:12px;color:var(--ink-3)}
-.arrival-word{display:inline-block;color:var(--token-ink);font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.18em}
-.depth-sheet{min-width:0}
-.axis-stepper{display:flex;gap:0}
-.axis-stepper button{display:grid;place-items:center;flex:none;width:44px;height:44px;border:0;background:transparent;color:var(--ink);cursor:pointer}
-.axis-stepper button:disabled{color:var(--ink-3);opacity:.5;cursor:default}
-.axis-stepper svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5}
-.axis-stepper button:not(:disabled):hover{background:var(--paper-2)}
-#axis::-webkit-slider-thumb{transition:transform 120ms var(--ease-out)}
-#axis:active::-webkit-slider-thumb{transform:scale(1.15)}
-@media (max-width:900px){
-  .rail{grid-template-columns:88px minmax(0,1fr);grid-template-rows:44px 23px;gap:0 16px}
-  .axis-stepper{grid-column:1;grid-row:1;align-self:start}
-  .rail-track{grid-column:2;grid-row:1}
-  .rail-out{display:block;grid-column:2;grid-row:2;min-width:0;padding:0;font-size:11px;text-align:left;letter-spacing:.03em}
-  #axis{top:0;height:44px}
-  #axis::-webkit-slider-runnable-track{height:44px}
-  #axis::-webkit-slider-thumb{margin-top:14px}
-  #axis::-moz-range-track{height:44px}
-  .hero .hero-gl{min-height:44svh}
-}
-@media (max-width:640px){
-  .hero .hero-top{grid-template-columns:minmax(0,1fr);gap:18px;padding-block:20px 16px}
-  .hero-top>.glyph-box{grid-column:1;grid-row:2;display:flex;align-items:center;justify-content:space-between;gap:16px}
-  .hero .glyph{font-size:3.5rem}
-  .instrument-state{margin:0;max-width:17ch;font-size:12px;text-align:right}
-  .hero .hero-gl{min-height:42svh}
-  .hero-options{gap:0 20px}
-  .hero-footer .note{font-size:12px}
-}
 </style>
 </head>
 <body>
@@ -352,35 +281,9 @@ body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
   <div class="hero-top">
     <div class="hero-copy">
       <h1 id="h-hero">Follow one token through a frontier&nbsp;LLM.</h1>
+      <p class="standfirst">“&nbsp;Paris” starts as a word in the training data and ends as a word on your screen. In between it crosses twelve stages on one line: how Claude Fable&nbsp;5.2 is made, and how it answers you.</p>
+      <p class="note">Anthropic doesn’t publish the model’s internals. Where the drawing needs them, it uses DeepSeek‑V4‑Pro’s published design and marks the figure <span class="rep">*</span><span class="vh"> as representative</span>.</p>
       <div class="actions">
-        <button class="btn" id="exploreToken" type="button" aria-describedby="instrumentHint">Explore the token
-          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6h9M6.5 2.5 10 6 6.5 9.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
-        </button>
-        <a class="link" id="readJourney" href="#s-1">Read stage by stage</a>
-      </div>
-    </div>
-    <div class="glyph-box">
-      <div aria-hidden="true"><p class="glyph" id="heroGlyph"><i class="sp"></i>Paris</p></div>
-      <p class="instrument-state"><span id="instrumentStage">Start</span><span id="instrumentForm">word in a document</span></p>
-    </div>
-  </div>
-  <div class="hero-gl" id="heroGL">
-    <div class="instrument-fallback" aria-hidden="true"><span>Training</span><svg viewBox="0 0 60 12"><path d="M0 6h56M51 1l5 5-5 5"/></svg><span>Model</span><svg viewBox="0 0 60 12"><path d="M0 6h56M51 1l5 5-5 5"/></svg><span>Reply</span></div>
-    <canvas id="heroCanvas" aria-hidden="true"></canvas>
-    <div class="gl-labels" id="heroLabels"></div>
-    <p class="caption" id="capHero"></p>
-    <div class="instrument-reply" id="instrumentReply" hidden>
-      <p>It’s 18 °C and clear in <span class="arrival-word">Paris</span> right now.</p>
-      <small>Illustrative reply</small>
-    </div>
-  </div>
-  <div class="hero-footer">
-    <p id="instrumentHint">Move the axis or use the arrows to follow the token.</p>
-    <div class="hero-options">
-      <details class="about-example"><summary>About this example</summary><p class="standfirst">“&nbsp;Paris” starts as a word in the training data and ends as a word on your screen. In between it crosses twelve stages on one line: how Claude Fable&nbsp;5.2 is made, and how it answers you.</p></details>
-      <details class="playback-options">
-          <summary>Watch or listen</summary>
-          <div class="actions">
         <button class="btn" id="runHero" type="button" aria-pressed="false">
           <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z" fill="currentColor"/></svg>
           <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
@@ -391,18 +294,30 @@ body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
           <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
           <span>Narrated run</span><small class="dur"></small>
         </button>
-          </div>
-        </details>
-      <details class="instrument-reference"><summary>Token readout</summary><div class="readout-box"><dl class="readout" id="heroReadout">
+        <a class="link" href="#s-1">Read stage by stage
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v9M2 6.5 6 10.5 10 6.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="glyph-box" aria-hidden="true">
+      <p class="glyph" id="heroGlyph"><i class="sp"></i>Paris</p>
+      <div class="glyph-metric"><span>token “ Paris” · one piece, leading space included</span><span class="tab" id="heroAxes">wdth 151 · wght 220</span></div>
+    </div>
+    <div class="readout-box">
+      <dl class="readout" id="heroReadout">
         <div><dt>Token</dt><dd class="tok">“&nbsp;Paris”</dd></div>
         <div><dt>ID</dt><dd>12842 (illustrative)</dd></div>
         <div><dt>Stage</dt><dd data-k="stage">00 / 12</dd></div>
         <div><dt>Station</dt><dd data-k="name">Start</dd></div>
         <div><dt>Form</dt><dd data-k="form">text</dd></div>
         <div><dt>Axis</dt><dd data-k="axis">0.000</dd></div>
-      </dl></div><p class="glyph-metric tab" id="heroAxes">wdth 151 · wght 220</p></details>
+      </dl>
     </div>
-    <p class="note">Anthropic doesn’t publish the model’s internals. Where the drawing needs them, it uses DeepSeek‑V4‑Pro’s published design and marks the figure <span class="rep">*</span><span class="vh"> as representative</span>.</p>
+  </div>
+  <div class="hero-gl" id="heroGL">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <div class="gl-labels" id="heroLabels"></div>
+    <p class="caption" id="capHero"></p>
   </div>
 </section>
 
@@ -426,8 +341,8 @@ body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
   </div>
 
   <div class="stations">
-    <details class="key">
-      <summary>How to read the drawing</summary>
+    <aside class="key" aria-labelledby="h-key">
+      <h2 id="h-key">How to read the drawing</h2>
       <dl>
         <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><rect x="12" y="0" width="12" height="12" rx="1.5" fill="#FF4A1C"/></svg></dt><dd>The token “&nbsp;Paris”. Nothing else is this colour.</dd>
         <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><path d="M0 6h36" stroke="#0E0E0E" stroke-width="2"/></svg></dt><dd>Solid: travelled, or real.</dd>
@@ -436,95 +351,67 @@ body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
         <dt><svg class="sw" viewBox="0 0 36 12" aria-hidden="true"><rect x="2" y="1" width="10" height="10" fill="#0E0E0E"/><rect x="22.5" y="1.5" width="9" height="9" fill="none" stroke="#0E0E0E"/></svg></dt><dd>Filled: selected or passed. Open: not selected.</dd>
         <dt><span class="rep" style="font:700 15px/1 var(--mono);padding-left:14px">*</span></dt><dd>Representative: DeepSeek‑V4‑Pro’s published value, not Claude’s.</dd>
       </dl>
-    </details>
+    </aside>
 
     <!-- 01 CORPUS -->
     <section class="station" id="s-1" data-i="0" aria-labelledby="h-1">
       <div class="st-title"><span class="st-num" aria-hidden="true">01</span><h2 id="h-1">Read almost everything.</h2></div>
       <p class="lead">Pretraining starts as a stream of documents. Somewhere in it is a page that says “…the Eiffel Tower is in Paris.” Its “&nbsp;Paris” is our token.</p>
-      <details class="stage-detail" id="depth-1">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 1</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">1.1</span>Pool the sources</h3>
         <p>Crawled web pages, code, books, papers, math and many languages are pooled into one stream. Anthropic’s recent system cards describe the mix as public web data, licensed data, data from users who opted in, and data generated internally. They don’t publish proportions or totals.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 1.1</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Pretraining tokens</dt><dd>33T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Claude’s data volume</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">1.2</span>Remove duplicates</h3>
         <p>Near-duplicate documents are found with MinHash signatures and dropped, so the model isn’t trained on the same text hundreds of times. Deduplication cuts memorised output and wasted compute.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 1.2</span></summary>
-          <pre class="eq"><code>sig  = minhash(shingles(doc))
+        <pre class="eq"><code>sig  = minhash(shingles(doc))
 keep = not lsh_index.has_near_duplicate(sig)</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Method</dt><dd>MinHash + LSH</dd><dd class="src">Lee et al., 2021</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">1.3</span>Filter and mix</h3>
         <p>Classifiers drop spam, boilerplate, low-quality text and personal data. What’s left is reweighted so code, math and careful prose count for more than raw web text.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 1.3</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Mixture weights</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 02 TOKENS -->
     <section class="station" id="s-2" data-i="1" aria-labelledby="h-2">
       <div class="st-title"><span class="st-num" aria-hidden="true">02</span><h2 id="h-2">Cut into tokens.</h2></div>
       <p class="lead">The model never sees letters. A byte-level tokenizer cuts text into pieces from a fixed vocabulary, and each piece becomes an integer ID.</p>
-      <details class="stage-detail" id="depth-2">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 2</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">2.1</span>Byte-pair encoding</h3>
         <p>BPE starts from raw bytes and repeatedly merges the most frequent adjacent pair. Frequent words end up as one piece with their leading space attached, so “&nbsp;Paris” is one token, not five letters.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 2.1</span></summary>
-          <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
+        <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
 # [382, 304, 12842, 13]   illustrative IDs</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Algorithm</dt><dd>Byte-level BPE</dd><dd class="src">Sennrich et al., 2016</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">2.2</span>A fixed vocabulary</h3>
         <p>Every ID points at one row of a table the model learns. A bigger vocabulary means shorter sequences but a bigger table.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 2.2</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Vocabulary</dt><dd>129,280<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Fable 5.2 tokenizer</dt><dd>Introduced with Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Tokens vs. older Claude</dt><dd>≈ 30% more than before Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">2.3</span>Images take another road</h3>
         <p>Claude also reads images. A vision encoder cuts an image into patches and turns each patch into a vector. Those vectors sit in the same sequence as the text, but they’re vectors, not IDs.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 2.3</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Image input</dt><dd>Supported</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 03 PRETRAIN -->
@@ -532,58 +419,40 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <div class="st-title"><span class="st-num" aria-hidden="true">03</span><h2 id="h-3">Predict the next one.</h2></div>
       <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— 1M-token context</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— figures marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">Pretraining is one objective repeated trillions of times: given everything so far, put probability on the next token. The tower of layers you’ll meet again in stage 7 is built here.</p>
-      <details class="stage-detail" id="depth-3">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 3</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">3.1</span>Forward, in parallel</h3>
         <p>A batch of sequences flows up the tower at once. A causal mask lets position <i>n</i> see only positions ≤ <i>n</i>, so every position in every sequence is its own prediction problem.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.1</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Total parameters</dt><dd>1.6T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Active per token</dt><dd>49B<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Claude’s size</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">3.2</span>Score the guess</h3>
         <p>After “…the Eiffel Tower is in”, the loss is the negative log of the probability given to “&nbsp;Paris”. A multi-token-prediction head also predicts the token after that, which adds training signal at every position.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.2</span></summary>
-          <pre class="eq"><code>loss = cross_entropy(logits[:, :-1], ids[:, 1:]) + λ · mtp_loss</code></pre>
-          <dl class="spec">
+        <pre class="eq"><code>loss = cross_entropy(logits[:, :-1], ids[:, 1:]) + λ · mtp_loss</code></pre>
+        <dl class="spec">
           <div><dt>MTP depth</dt><dd>1 extra token<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">3.3</span>Adjust every weight</h3>
-        <p>Gradients flow back down the same layers and the optimizer moves every weight a little. DeepSeek‑V4 uses Muon for most matrices and AdamW for embeddings, the output head and norms. Pretraining uses FP8 mixed precision; quantization-aware training (QAT) produces FP4 expert weights for the released model.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.3</span></summary>
-          <dl class="spec">
+        <p>Gradients flow back down the same layers and the optimizer moves every weight a little. DeepSeek‑V4 uses Muon for most matrices and AdamW for embeddings, the output head and norms, with FP8 matrix math and FP4 expert weights.</p>
+        <dl class="spec">
           <div><dt>Optimizer</dt><dd>Muon + AdamW<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
-          <div><dt>Pretraining precision</dt><dd>FP8 mixed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
-          <div><dt>Released expert weights</dt><dd>FP4 via QAT<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Precision</dt><dd>FP8; FP4 experts<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">3.4</span>Stretch the context</h3>
         <p>Most training runs at a shorter context. Then the rotary position frequencies are rescaled (YaRN, ×16) and training continues on long documents, so attention can reach a million positions.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.4</span></summary>
-          <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
-          <dl class="spec">
+        <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
+        <dl class="spec">
           <div><dt>Context, representative</dt><dd>65,536 → 1,048,576<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Fable 5.2 context</dt><dd>1M tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 04 POST-TRAIN -->
@@ -591,9 +460,6 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <div class="st-title"><span class="st-num" aria-hidden="true">04</span><h2 id="h-4">Learn what good looks like.</h2></div>
       <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no training recipe</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— the recipe marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">A pretrained model only continues text. Post-training turns the same tower into an assistant that follows instructions, uses tools and reasons toward answers it can check.</p>
-      <details class="stage-detail" id="depth-4">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 4</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">4.1</span>Imitate</h3>
         <p>Supervised fine-tuning trains on curated demonstrations: conversations, tool calls, worked solutions. It uses the pretraining loss on much better data.</p>
@@ -601,58 +467,41 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step">
         <h3><span class="sn">4.2</span>Try, grade, reinforce</h3>
         <p>For a prompt with a checkable answer, the policy samples a group of attempts. Verifiers grade them: the tests pass, the final answer matches. Each score is compared with the group’s mean, so no separate value model is needed. Rewarding correct answers is also how a model learns to think before it answers.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 4.2</span></summary>
-          <pre class="eq"><code>A_i = (r_i − mean(r)) / std(r)
+        <pre class="eq"><code>A_i = (r_i − mean(r)) / std(r)
 θ  ← θ + η · ∇ Σ_i A_i · log π_θ(attempt_i)
 # simplified: GRPO also clips π_θ / π_old to 1 ± ε, PPO-style</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Method</dt><dd>GRPO</dd><dd class="src">Shao et al., 2024</dd></div>
           <div><dt>Group of 8 in the drawing</dt><dd>Illustrative</dd><dd class="src">—</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">4.3</span>Principles as feedback</h3>
         <p>Anthropic’s Constitutional AI writes down a set of principles. The model critiques and compares responses against them, and that AI feedback trains a preference model used alongside human feedback.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 4.3</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Method</dt><dd>Constitutional AI (RLAIF)</dd><dd class="src">Bai et al., 2022</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">4.4</span>Stay near the anchor</h3>
         <p>A KL penalty to the frozen starting model keeps the policy from drifting into reward hacks. DeepSeek‑V4 trains separate domain experts this way, then distils them into one model on-policy.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 4.4</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Recipe, representative</dt><dd>SFT → GRPO per domain → distillation<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Claude’s recipe</dt><dd class="unk">Not published in detail</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 05 RELEASE -->
     <section class="station" id="s-5" data-i="4" aria-labelledby="h-5">
       <div class="st-title"><span class="st-num" aria-hidden="true">05</span><h2 id="h-5">Pass the gate.</h2></div>
       <p class="lead">Before a frontier model ships, it is tested for what it can do and for what it could be misused to do. After this gate the weights are frozen: everything training changed is now fixed, and no request will change it.</p>
-      <details class="stage-detail" id="depth-5">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 5</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">5.1</span>Evaluate</h3>
         <p>Capability suites, agentic tasks and dangerous-capability evaluations (cyber, biology, autonomy) run on the final checkpoint. Anthropic publishes the results in a system card.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 5.1</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Framework</dt><dd>Responsible Scaling Policy</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">5.2</span>Red-team, then set safeguards</h3>
@@ -661,53 +510,39 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step">
         <h3><span class="sn">5.3</span>Ship with classifiers</h3>
         <p>Deployed models run with safety classifiers beside them. On Fable 5.2 a classifier can end a reply with <code>stop_reason: "refusal"</code> and a <code>stop_details</code> category, such as cyber.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 5.3</span></summary>
-          <pre class="eq"><code>if (resp.stop_reason === "refusal")
+        <pre class="eq"><code>if (resp.stop_reason === "refusal")
   handle(resp.stop_details.category)</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Refusal signal</dt><dd>HTTP 200 · "refusal"</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 06 REQUEST -->
     <section class="station" id="s-6" data-i="5" aria-labelledby="h-6">
       <div class="st-title"><span class="st-num" aria-hidden="true">06</span><h2 id="h-6">Your request arrives.</h2></div>
       <p class="lead">Months later you ask “What’s the weather in Paris right now?” with a <code>get_weather</code> tool attached. The API is stateless: every call carries the whole conversation. What the call builds is temporary, activations and a KV cache that end with the request, apart from any prefix the prompt cache keeps for reuse, 5 minutes by default.</p>
-      <details class="stage-detail" id="depth-6">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 6</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">6.1</span>One call</h3>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 6.1</span></summary>
-          <pre class="eq"><code>POST /v1/messages
+        <pre class="eq"><code>POST /v1/messages
 { "model": "claude-fable-5-2",
   "max_tokens": 64000, "stream": true,
   "tools": [ get_weather ],
   "system": "…",
   "messages": [{ "role": "user",
     "content": "What’s the weather in Paris right now?" }] }</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Request body</dt><dd>Abridged</dd><dd class="src">Illustrative</dd></div>
           <div><dt>Price</dt><dd>$8 in · $40 out / MTok</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Max output</dt><dd>128K tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">6.2</span>Rendered in a fixed order</h3>
         <p>Tools, then system, then messages are rendered through the chat template into one token sequence. The order matters: prompt caching matches the longest identical prefix, so stable content goes first.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 6.2</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Render order</dt><dd>tools → system → messages</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">6.3</span>The same tokenizer</h3>
@@ -724,16 +559,11 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           </div>
           <output class="effort-out" data-out="cache">Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 6.4</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Cache read</dt><dd>$0.20 / MTok</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Minimum prefix</dt><dd>512–4,096 tokens, by model</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 07 FORWARD PASS -->
@@ -741,93 +571,69 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <div class="st-title"><span class="st-num" aria-hidden="true">07</span><h2 id="h-7">One pass up the tower.</h2></div>
       <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no internals</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— every figure, marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">This is the engine. The token’s vector rides a residual stream up 61 layers; each layer reads from the stream and writes back to it. Anthropic doesn’t publish Claude’s internals, so this stage uses DeepSeek‑V4‑Pro’s published design as a representative frontier architecture.</p>
-      <details class="stage-detail" id="depth-7">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 7</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">7.1</span>Look up a vector</h3>
         <p>The ID selects one row of the embedding table: a lookup, not a multiplication. Out comes a vector of 7,168 numbers, the start of the residual stream.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.1</span></summary>
-          <pre class="eq"><code>h = E[12842]        # float[7168]</code></pre>
-          <dl class="spec">
+        <pre class="eq"><code>h = E[12842]        # float[7168]</code></pre>
+        <dl class="spec">
           <div><dt>Hidden size</dt><dd>7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Embedding table</dt><dd>129,280 × 7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">7.2</span>Attend, sparsely</h3>
         <p>RMSNorm rescales a copy of the vector, then attention scores earlier positions, never later ones. To reach a million tokens, older context is compressed into blocks; a lightweight indexer picks the top-k blocks to read, plus a sliding window over the most recent tokens. Positions are encoded by rotating part of each query and key (RoPE).</p>
-
+        <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
+out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
         <fieldset class="effort">
           <legend>Attention &amp; KV mode, as drawn</legend>
           <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
             <label><input type="radio" name="kvMode7" data-sync="kv" value="sparse" checked><span>Sparse k=1,024</span></label>
             <label><input type="radio" name="kvMode7" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
           </div>
-          <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
+          <output class="effort-out" data-out="kv">Sparse k=1,024 + 128-token window, with heavily compressed layers: ≈ 10% of V3.2’s KV memory at 1M*</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.2</span></summary>
-          <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
-out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Query heads</dt><dd>128<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
-          <div><dt>CSA top-k entries</dt><dd>1,024<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Top-k entries</dt><dd>1,024<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Sliding window</dt><dd>128 tokens<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
-          <div><dt>V4-Pro stored KV at 1M</dt><dd>≈ 10% of V3.2’s<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>KV cache at 1M</dt><dd>≈ 10% of V3.2’s<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">7.3</span>Route to 6 of 384 experts</h3>
         <p>A router scores 384 expert networks and keeps the top 6, and one shared expert always runs. Their outputs are weighted and summed. That’s why only 49B of the 1.6T parameters touch this token.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.3</span></summary>
-          <pre class="eq"><code>out = shared(x) + Σ_{j ∈ top6(router(x))} g_j · expert_j(x)</code></pre>
-          <dl class="spec">
+        <pre class="eq"><code>out = shared(x) + Σ_{j ∈ top6(router(x))} g_j · expert_j(x)</code></pre>
+        <dl class="spec">
           <div><dt>Experts</dt><dd>384 routed + 1 shared<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Active per token</dt><dd>6 routed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>First layers</dt><dd>Hash routing<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
         <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. The drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections)<span class="rep">*</span>.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.4</span></summary>
-          <pre class="eq"><code>for layer in layers:
+        <pre class="eq"><code>for layer in layers:
     h = h + layer.attn(rmsnorm(h))
     h = h + layer.moe(rmsnorm(h))</code></pre>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Layers</dt><dd>61<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">7.5</span>Score the vocabulary</h3>
         <p>A final RMSNorm and the LM head turn the vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.5</span></summary>
-          <pre class="eq"><code>p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
-          <dl class="spec">
+        <pre class="eq"><code>p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
+        <dl class="spec">
           <div><dt>After “ Paris”</dt><dd>“ right” 0.31</dd><dd class="src">Illustrative</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 08 PREFILL -->
     <section class="station" id="s-8" data-i="7" aria-labelledby="h-8">
       <div class="st-title"><span class="st-num" aria-hidden="true">08</span><h2 id="h-8">Read the whole prompt at once.</h2></div>
       <p class="lead">Serving runs the frozen tower in two phases. Prefill pushes every prompt token up the tower in one parallel pass.</p>
-      <details class="stage-detail" id="depth-8">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 8</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">8.1</span>Parallel and compute-bound</h3>
         <p>All prompt tokens go up together, as in training, but nothing is learned and nothing flows back. Large matrix multiplies keep the accelerators busy, and prompt length sets the time to the first token.</p>
@@ -841,37 +647,26 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
             <label><input type="radio" name="kvMode8" data-sync="kv" value="sparse" checked><span>Sparse k=1,024</span></label>
             <label><input type="radio" name="kvMode8" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
           </div>
-          <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
+          <output class="effort-out" data-out="kv">Sparse k=1,024 + 128-token window, with heavily compressed layers: ≈ 10% of V3.2’s KV memory at 1M*</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 8.2</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>KV storage</dt><dd>FP8 + BF16 RoPE dims<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">8.3</span>Batched with strangers</h3>
         <p>A scheduler re-forms the batch at every iteration. Your prefill joins other users’ decode steps whenever cache memory is free, and finished requests leave without waiting for the rest.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 8.3</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Batching</dt><dd>Continuous</dd><dd class="src">Yu et al., OSDI 2022</dd></div>
           <div><dt>Cache memory</dt><dd>Paged blocks</dd><dd class="src">Kwon et al., SOSP 2023</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 09 THINK -->
     <section class="station" id="s-9" data-i="8" aria-labelledby="h-9">
       <div class="st-title"><span class="st-num" aria-hidden="true">09</span><h2 id="h-9">Think before answering.</h2></div>
       <p class="lead">On Fable 5.2, thinking is always on. The model writes reasoning tokens through the same decode loop before it writes its answer.</p>
-      <details class="stage-detail" id="depth-9">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 9</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">9.1</span>Effort sets the depth</h3>
         <p>You don’t set a token budget. You set effort, from low to max, and the model decides how much to think. For Fable 5.2, Anthropic suggests starting at high.</p>
@@ -886,37 +681,26 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
           </div>
           <output class="effort-out" id="effortOut">16 thinking tokens in the drawing (illustrative; real runs use far more)</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 9.1</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Effort levels</dt><dd>low → max</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>budget_tokens</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">9.2</span>Never returned raw</h3>
         <p>The raw chain of thought never leaves the server. The response carries thinking blocks that are empty by default (<code>display: "omitted"</code>) or hold a summary (<code>"summarized"</code>). Thinking is billed the same either way.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 9.2</span></summary>
-          <pre class="eq"><code>thinking: { type: "adaptive", display: "summarized" }</code></pre>
-        </details>
+        <pre class="eq"><code>thinking: { type: "adaptive", display: "summarized" }</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">9.3</span>Reasoning picks the tool</h3>
         <p>Here the model works out that it can’t know today’s weather and should call <code>get_weather</code>. Every reasoning step attends over the KV cache, “&nbsp;Paris” included.</p>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 10 DECODE -->
     <section class="station" id="s-10" data-i="9" aria-labelledby="h-10">
       <div class="st-title"><span class="st-num" aria-hidden="true">10</span><h2 id="h-10">One token per step.</h2></div>
       <p class="lead">After prefill, generation is a loop: one pass up the tower for each new token, every pass reading the whole KV cache.</p>
-      <details class="stage-detail" id="depth-10">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 10</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">10.1</span>Memory-bound</h3>
         <p>Each step streams the active weights and the cache through memory to produce a single token. That’s why decode speed is measured in tokens per second, and why sparse experts and compressed caches matter so much.</p>
@@ -924,43 +708,29 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       <article class="step">
         <h3><span class="sn">10.2</span>Sample</h3>
         <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: on API version 2026-10-21, a request that sends <code>temperature</code>, <code>top_p</code> or <code>top_k</code> at any value is rejected. Earlier versions reject only non-default values.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 10.2</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Sampling parameters</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">10.3</span>Draft, then verify</h3>
         <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. An accepted draft gives two tokens for one pass. Anthropic doesn’t publish how Claude is served.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 10.3</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Technique</dt><dd>Speculative decoding</dd><dd class="src">Leviathan et al., 2023</dd></div>
         </dl>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">10.4</span>“Paris”, again</h3>
         <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. Inside JSON the word has no leading space, so it’s a different token ID from “&nbsp;Paris”; attention copies it from the prompt anyway. The cache grows by one entry per token.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 10.4</span></summary>
-          <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
+        <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
   "input": { "city": "Paris" } }</code></pre>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 11 STREAM -->
     <section class="station" id="s-11" data-i="10" aria-labelledby="h-11">
       <div class="st-title"><span class="st-num" aria-hidden="true">11</span><h2 id="h-11">Stream it out.</h2></div>
       <p class="lead">Token IDs are decoded back into text and sent to your app as server-sent events while generation is still running.</p>
-      <details class="stage-detail" id="depth-11">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 11</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">11.1</span>Detokenize</h3>
         <p>IDs map back to bytes. A partial UTF-8 sequence waits in a buffer until it forms a whole character, so a multi-byte character never arrives split.</p>
@@ -968,42 +738,28 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       <article class="step">
         <h3><span class="sn">11.2</span>Stream</h3>
         <p>Text and tool input arrive as <code>content_block_delta</code> events over SSE. A single response can run to 128K output tokens.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 11.2</span></summary>
-          <pre class="eq"><code>event: content_block_delta
+        <pre class="eq"><code>event: content_block_delta
 data: {"delta": {"type": "input_json_delta",
         "partial_json": "{\"city\": \"Par"}}</code></pre>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">11.3</span>Stop, with a reason</h3>
         <p>Generation ends with a stop reason, such as <code>end_turn</code>, <code>max_tokens</code>, <code>refusal</code>, <code>pause_turn</code> when a server-tool loop hits its limit, or, here, <code>tool_use</code>.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 11.3</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Stop reason</dt><dd>"tool_use"</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- 12 TOOL LOOP -->
     <section class="station" id="s-12" data-i="11" aria-labelledby="h-12">
       <div class="st-title"><span class="st-num" aria-hidden="true">12</span><h2 id="h-12">Call a tool. Continue.</h2></div>
       <p class="lead">The model can’t check the weather itself. It stops, your code does the work, and the conversation goes back in.</p>
-      <details class="stage-detail" id="depth-12">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 12</span></summary>
-        <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">12.1</span>Your code runs the tool</h3>
         <p>Claude doesn’t execute <code>get_weather</code>; your app does, then appends a <code>tool_result</code>. Treat that result as untrusted input. Server tools such as web search and code execution run on Anthropic’s side instead.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 12.1</span></summary>
-          <pre class="eq"><code>{ "type": "tool_result", "tool_use_id": "toolu_…",
+        <pre class="eq"><code>{ "type": "tool_result", "tool_use_id": "toolu_…",
   "content": "{\"temp_c\": 18, \"conditions\": \"clear\"}" }   # illustrative</code></pre>
-        </details>
       </article>
       <article class="step">
         <h3><span class="sn">12.2</span>A new request, a warm prefix</h3>
@@ -1019,20 +775,15 @@ data: {"delta": {"type": "input_json_delta",
       </article>
       <article class="step">
         <h3><span class="sn">12.3</span>The answer</h3>
-        <p>Decoding resumes: “It’s 18&nbsp;°C and clear in <span class="arrival-word">Paris</span> right now.” (illustrative). The reply ends with <code>stop_reason: "end_turn"</code>, and “&nbsp;Paris” reaches your screen.</p>
+        <p>Decoding resumes: “It’s 18&nbsp;°C and clear in Paris right now.” (illustrative). The reply ends with <code>stop_reason: "end_turn"</code>, and “&nbsp;Paris” reaches your screen.</p>
       </article>
       <article class="step">
         <h3><span class="sn">12.4</span>Long sessions</h3>
         <p>When a long agent session nears the context limit, server-side compaction (beta) summarizes earlier turns so the loop can keep going.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 12.4</span></summary>
-          <dl class="spec">
+        <dl class="spec">
           <div><dt>Compaction trigger</dt><dd>150K tokens (default)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
       </article>
-        </div>
-      </details>
     </section>
 
     <!-- FINALE -->
@@ -1093,26 +844,11 @@ data: {"delta": {"type": "input_json_delta",
     <li><b>Serving</b><a href="https://arxiv.org/abs/2309.06180">Kwon et al., PagedAttention, SOSP 2023</a></li>
     <li><b>Serving</b><a href="https://arxiv.org/abs/2211.17192">Leviathan et al., Speculative Decoding, 2023</a></li>
   </ol>
-  <details class="other-presentations">
-    <summary>Other presentations</summary>
-    <ul>
-      <li><a href="../end-to-end-beamline/index.html">Beamline</a> — the lifecycle as physical stations, with Watch and Study modes.</li>
-      <li><a href="../journey-story/index.html">One Token’s Journey</a> — six chapters with inspectable model rooms.</li>
-      <li><a href="../journey-tour/index.html">Guided Tour</a> — thirty stops and a component index.</li>
-      <li><a href="../shared/obs-core.html">3D Observatory</a> — the standalone model scene.</li>
-    </ul>
-  </details>
-  <p class="project">Narration voiced with ElevenLabs. 3D with Three.js. Fonts from Google Fonts.
-    <a href="https://github.com/tafreeman/one-token-explainers">Source on GitHub</a>.
-    Code MIT, content CC BY 4.0. <a href="https://github.com/tafreeman/one-token-explainers#licence">Licence</a>.</p>
 </section>
 </main>
 
 <nav class="rail" aria-label="Journey axis">
-  <div class="axis-stepper">
-    <button id="previousStage" type="button" aria-label="Previous stage" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button>
-    <button id="nextStage" type="button" aria-label="Next stage"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button>
-  </div>
+  <span class="rail-k" aria-hidden="true">Axis</span>
   <div class="rail-track" id="railTrack">
     <input id="axis" type="range" min="0" max="1200" step="1" value="0" aria-label="Token position along the twelve stages" aria-valuetext="Start, before stage 1">
     <ol class="ticks" id="ticks"></ol>
@@ -1131,7 +867,7 @@ const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.quer
 const mq=matchMedia('(prefers-reduced-motion: reduce)');
 const forceRM=/[?&]rm=1/.test(location.search);
 let reduce=mq.matches||forceRM;
-if(mq.addEventListener) mq.addEventListener('change',e=>{reduce=e.matches||forceRM;settleMotion();});
+if(mq.addEventListener) mq.addEventListener('change',e=>{reduce=e.matches||forceRM;});
 
 const STAGES=[
   {name:'Corpus',       form:'word in a document',     ax:[151,220]},
@@ -1199,16 +935,7 @@ const STEP_10_4=9+A0+3*(1-A0)/4;
 const isNoSpaceParis=g=>g>=STEP_10_4&&g<11;
 function layout(){
   const y0=scrollY;
-  LAY=stEls.map(el=>{
-    const r=el.getBoundingClientRect(),top=r.top+y0,bottom=r.bottom+y0;
-    const stepEls=$$('.step',el),n=stepEls.length,W=(1-A0)/n;
-    const detail=$('.stage-detail',el),expanded=!detail||detail.open;
-    // Closed details have no useful child geometry. Spread the existing scene
-    // beats across the overview instead, keeping the complete visual journey.
-    const steps=stepEls.map((s,k)=>expanded?s.getBoundingClientRect().top+y0:lerp(top,bottom,A0+W*k));
-    const knots=[{y:top,t:0}];steps.forEach((y,k)=>knots.push({y,t:A0+W*k}));knots.push({y:bottom,t:1});
-    return {el,top,bottom,stepEls,n,W,knots,expanded};
-  });
+  LAY=stEls.map(el=>{const r=el.getBoundingClientRect(),top=r.top+y0,bottom=r.bottom+y0;const stepEls=$$('.step',el);const steps=stepEls.map(s=>s.getBoundingClientRect().top+y0);const n=steps.length,W=(1-A0)/n;const knots=[{y:top,t:0}];steps.forEach((y,k)=>knots.push({y,t:A0+W*k}));knots.push({y:bottom,t:1});return {el,top,bottom,stepEls,n,W,knots};});
   const fr=finaleEl.getBoundingClientRect();LAY.finale={top:fr.top+y0,bottom:fr.bottom+y0};
   layoutTicks();
 }
@@ -1229,7 +956,7 @@ function scrollForG(g){
 function stepLabelAt(g){
   if(!LAY||g<=0.004||g>=11.996) return '';
   const i=clamp(Math.floor(g),0,11), s=LAY[i], t=g-i;
-  if(!s||!s.expanded) return '';
+  if(!s) return '';
   const k=clamp(Math.floor((t-A0)/s.W),0,s.n-1);
   return `${i+1}.${k+1}`;
 }
@@ -1237,37 +964,6 @@ function stepLabelAt(g){
 /* ---------------- readouts ---------------- */
 const heroReadout=$('#heroReadout'), storyReadout=$('#storyReadout'), heroGlyph=$('#heroGlyph'), hudGlyph=$('#hudGlyph'), heroAxes=$('#heroAxes');
 const axis=$('#axis'), railTrack=$('#railTrack'), railOut=$('#railOut');
-const instrument={active:false,g:0,target:0,follow:0,motion:null,arrivalMotion:null,fromG:0,fromFollow:0};
-const instrumentStage=$('#instrumentStage'),instrumentForm=$('#instrumentForm'),instrumentReply=$('#instrumentReply');
-const previousStage=$('#previousStage'),nextStage=$('#nextStage');
-let railIsInstrument=false,heroVisible=true;
-new IntersectionObserver(entries=>{heroVisible=entries[0].isIntersecting;request();}).observe(heroGLEl);
-function isHeroArea(){const r=heroGLEl.getBoundingClientRect();return r.top<innerHeight*.8&&r.bottom>innerHeight*.45;}
-function animateArrival(word,delay=0){
-  if(!word||typeof word.animate!=='function') return;
-  word.getAnimations().forEach(a=>a.cancel());
-  return word.animate(reduce?[
-    {color:getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()},
-    {color:getComputedStyle(word).color}
-  ]:[{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0 0 0)'}],
-    {duration:reduce?120:560,delay:reduce?0:delay,easing:'cubic-bezier(.16,1,.3,1)'});
-}
-function instrumentView(g){
-  const i=clamp(Math.floor(g),0,11),done=g>=11.996;
-  const name=done?'Reply':g>.004?STAGES[i].name:'Start';
-  const form=done?'on your screen':STAGES[i].form;
-  if(instrumentStage.textContent!==name) instrumentStage.textContent=name;
-  if(instrumentForm.textContent!==form) instrumentForm.textContent=form;
-  if(instrumentReply.hidden===done){instrumentReply.hidden=!done;if(done&&!instrument.arrivalMotion) animateArrival($('.arrival-word',instrumentReply));}
-}
-function settleMotion(){
-  if(reduce){
-    if(instrument.motion){instrument.motion.cancel();instrument.motion=null;}
-    instrument.g=instrument.target;instrument.follow=instrument.target>.004?1:0;
-    $$('.depth-sheet,.arrival-word').forEach(el=>{if(el.getAnimations) el.getAnimations().forEach(a=>a.cancel());});
-  }
-  request();
-}
 function axesAt(g){const u=clamp(g-0.5,0,11),i=Math.floor(u),f=u-i,a=STAGES[i].ax,b=STAGES[Math.min(11,i+1)].ax;return [lerp(a[0],b[0],ease(f)),lerp(a[1],b[1],ease(f))];}
 function setGlyph(el,g,out,syncSpace){
   const [w,h]=axesAt(g);const ws=w.toFixed(1),hs=h.toFixed(0);
@@ -1298,11 +994,9 @@ function setRail(g){
   railTrack.style.setProperty('--p',(g/12).toFixed(4));
   if(!dragging) axis.value=String(Math.round(g*100));
   const i=clamp(Math.floor(g),0,11);
-  const sub=railIsInstrument?'':stepLabelAt(g);
+  const sub=stepLabelAt(g);
   const txt=g<=0.004?'Start · before 01':g>=11.996?'12 / 12 · Done':`${pad(i+1)} / 12 · ${STAGES[i].name}`;
-  const ariaTxt=sub?`${txt} · step ${sub}`:railIsInstrument?`${txt} · ${g>=11.996?'on your screen':STAGES[i].form}`:txt;
-  previousStage.disabled=g<=.004;nextStage.disabled=g>=11.996;
-  axis.setAttribute('aria-label',railIsInstrument?'Move Paris through the twelve stages':'Token position along the twelve stages');
+  const ariaTxt=sub?`${txt} · step ${sub}`:txt;
   if(railOut.textContent!==txt) railOut.textContent=txt;
   if(axis.getAttribute('aria-valuetext')!==ariaTxt) axis.setAttribute('aria-valuetext',ariaTxt);
   let curChanged=false;
@@ -1327,8 +1021,8 @@ $$('input[name="effort"]').forEach(r=>r.addEventListener('change',()=>{
 }));
 
 const KV_COPY={
-  sparse:'V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*',
-  dense:'Illustrative dense attention reads all stored history. KV format and precision determine storage; this switch gives no measured bandwidth or speed ratio.'
+  sparse:'Sparse k=1,024 + 128-token window, with heavily compressed layers: ≈ 10% of V3.2’s KV memory at 1M*',
+  dense:'Dense Full KV: every historical key/value slab attended & stored — 10× memory & bandwidth vs. sparse*'
 };
 $$('input[data-sync="kv"]').forEach(r=>r.addEventListener('change',()=>{
   if(!r.checked) return;
@@ -1487,10 +1181,6 @@ function setBtns(){
 }
 function startRun(view,narr){
   if(run.narr) NARR.stop();
-  if(instrument.motion){instrument.motion.cancel();instrument.motion=null;}
-  if(instrument.arrivalMotion){instrument.arrivalMotion.cancel();instrument.arrivalMotion=null;}
-  depthScene=null;
-  instrument.active=false;
   run.on=true;run.paused=false;run.view=view;run.narr=!!(narr&&NARR.clips);
   run.g=0;run.t0=performance.now();run.hold=false;run.tEnd=0;run.sy=scrollY;
   setCap(capHero,'');setCap(capStory,'');
@@ -1551,58 +1241,13 @@ addEventListener('keydown',e=>{
 });
 
 /* ---------------- axis input ---------------- */
-function seekPosition(g,direct){
-  depthScene=null;
-  if(run.on||run.paused||run.hold) cancelRun();
-  if(instrument.arrivalMotion){instrument.arrivalMotion.cancel();instrument.arrivalMotion=null;}
-  g=clamp(g,0,12);
-  if(isHeroArea()){
-    if(instrument.motion){instrument.motion.cancel();instrument.motion=null;}
-    instrument.active=true;instrument.target=g;
-    if(direct) instrument.g=g;
-    instrument.fromG=instrument.g;instrument.fromFollow=instrument.follow;
-    const destination=g>.004?1:0;
-    if(g>=11.996) instrument.arrivalMotion=animateArrival($('.arrival-word',instrumentReply),direct?0:560);
-    if(reduce||typeof heroGLEl.animate!=='function'){
-      instrument.g=g;instrument.follow=destination;
-    }else{
-      // A finite native animation clocks the canvas as well as the token's UI.
-      // It can be scrubbed, reversed from its current state, or cancelled.
-      const motion=heroGLEl.animate([{'--token-travel':0},{'--token-travel':1}],
-        {duration:560,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'});
-      instrument.motion=motion;
-      motion.onfinish=()=>{
-        if(instrument.motion!==motion) return;
-        instrument.g=g;instrument.follow=destination;instrument.motion=null;motion.cancel();request();
-      };
-    }
-  }else{
-    if(instrument.motion){instrument.motion.cancel();instrument.motion=null;}
-    instrument.active=false;
-    // A disclosure's toggle event is queued; a fast axis input can arrive first.
-    layout();
-    window.scrollTo({top:scrollForG(g),behavior:'instant'});
-    gT=gS=g;
-  }
-  request();
-}
 axis.addEventListener('input',()=>{
-  dragging=true;seekPosition(Number(axis.value)/100,true);
-});
-function stepPosition(direction){
-  const g=isHeroArea()?(instrument.active?instrument.target:(run.on||run.hold?run.g:0)):gFromScroll();
-  const target=direction>0?(g<=.004?.5:Math.min(12,Math.floor(g)+1.5)):
-    g>=11.996?11.5:Math.max(0,Math.floor(g)-.5);
-  seekPosition(target,false);
-}
-previousStage.addEventListener('click',()=>stepPosition(-1));
-nextStage.addEventListener('click',()=>stepPosition(1));
-$('#exploreToken').addEventListener('click',()=>seekPosition(.5,false));
-$('#readJourney').addEventListener('click',()=>{
-  if(instrument.motion){instrument.motion.cancel();instrument.motion=null;}
-  if(instrument.arrivalMotion){instrument.arrivalMotion.cancel();instrument.arrivalMotion=null;}
-  depthScene=null;
-  instrument.active=false;request();
+  dragging=true;
+  if(run.on||run.paused||run.hold) cancelRun();
+  const g=Number(axis.value)/100;
+  window.scrollTo({top:scrollForG(g),behavior:'instant'});
+  gT=gS=g;
+  request();
 });
 const endDrag=()=>{dragging=false;request();};
 axis.addEventListener('change',endDrag);
@@ -1611,10 +1256,9 @@ axis.addEventListener('keyup',endDrag);
 axis.addEventListener('blur',endDrag);
 
 /* ---------------- loop ---------------- */
-let gT=0,gS=0,raf=0,lastT=0,depthScene=null,lastStoryG=0;
-function request(){if(!raf&&!document.hidden) raf=requestAnimationFrame(frame);}
+let gT=0,gS=0,raf=0,lastT=0;
+function request(){if(!raf) raf=requestAnimationFrame(frame);}
 function onScroll(){
-  if(depthScene&&Math.abs(scrollY-depthScene.y)>4) depthScene=null;
   const gs=gFromScroll();
   if(run.on&&run.view==='hero'&&heroGLEl){
     const hr=heroGLEl.getBoundingClientRect();
@@ -1626,46 +1270,9 @@ function onScroll(){
 }
 addEventListener('scroll',onScroll,{passive:true});
 addEventListener('resize',()=>{layout();onScroll();});
-// Native disclosure works without script; refresh the animation's measurements
-// after either depth changes, without scrolling, resetting controls, or opening
-// any other stage on the learner's behalf.
-document.addEventListener('toggle',e=>{
-  if(!(e.target instanceof HTMLDetailsElement)) return;
-  // Reflow changes the scroll-to-scene map. Keep the token where it was while
-  // the reader opens depth; the next actual scroll or axis action resumes it.
-  if(e.target.closest('.station')&&!run.on) depthScene={g:lastStoryG,y:scrollY};
-  if(e.target.matches('.playback-options')&&!e.target.open&&run.on&&run.view==='hero') pauseRun(true);
-  if(e.target.matches('.stage-detail')){
-    const sheet=$('.depth-sheet',e.target);
-    if(sheet&&typeof sheet.animate==='function'){
-      sheet.getAnimations().forEach(a=>a.cancel());
-      if(e.target.open&&!reduce) sheet.animate([{clipPath:'inset(0 0 100% 0)'},{clipPath:'inset(0 0 0 0)'}],
-        {duration:320,easing:'cubic-bezier(.16,1,.3,1)'});
-      else if(e.target.open){
-        const summary=$('summary',e.target);
-        summary.animate([{color:getComputedStyle(document.documentElement).getPropertyValue('--token-ink').trim()},{color:getComputedStyle(summary).color}],{duration:120});
-      }
-    }
-  }
-  layout();onScroll();
-},true);
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){
-    if(run.on) pauseRun(true);
-    if(raf){cancelAnimationFrame(raf);raf=0;}
-    if(instrument.motion){instrument.motion.cancel();instrument.motion=null;instrument.g=instrument.target;instrument.follow=instrument.target>.004?1:0;}
-    $$('.depth-sheet,.arrival-word').forEach(el=>{if(el.getAnimations) el.getAnimations().forEach(a=>a.cancel());});
-  }else{layout();onScroll();}
-});
-const replyWord=$('#s-12 .arrival-word');
-if(replyWord){
-  const arrivalObserver=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){animateArrival(replyWord);arrivalObserver.disconnect();}},{threshold:.6});
-  arrivalObserver.observe(replyWord);
-}
 let GL=null;
 function frame(now){
   raf=0;const dt=lastT?Math.min(0.1,(now-lastT)/1000):0.016;lastT=now;let more=false;
-  if(document.hidden) return;
   if(reduce||dragging){gS=gT;}else{gS+=(gT-gS)*(1-Math.exp(-dt/0.12));if(Math.abs(gT-gS)<2e-4) gS=gT;else more=true;}
   if(run.on){
     if(run.narr){const n=NARR.now();if(n){run.g=n.g;setCap(run.view==='hero'?capHero:capStory,n.cap);}}
@@ -1678,32 +1285,16 @@ function frame(now){
     else if(run.paused&&run.hold) follow=1;
     else if(run.tEnd){const k=reduce?1:(now-run.tEnd)/1200;follow=k<1?1-k:0;if(k<1) more=true;}
   }
-  if(instrument.active){
-    const destination=instrument.target>.004?1:0;
-    if(reduce||!heroVisible){
-      if(instrument.motion){instrument.motion.cancel();instrument.motion=null;}
-      instrument.g=instrument.target;instrument.follow=destination;
-    }else if(instrument.motion){
-      const progress=instrument.motion.effect.getComputedTiming().progress||0;
-      instrument.g=lerp(instrument.fromG,instrument.target,progress);
-      instrument.follow=lerp(instrument.fromFollow,destination,progress);
-      more=true;
-    }
-    follow=instrument.follow;
-  }
-  const gHero=instrument.active?instrument.g:run.view==='hero'&&(run.on||run.hold)?run.g:0;
+  const gHero=run.view==='hero'&&(run.on||run.hold)?run.g:0;
   const storyRun=run.on&&run.view==='story';
-  const gStory=storyRun?run.g:depthScene?depthScene.g:gS;
-  lastStoryG=gStory;
-  railIsInstrument=isHeroArea();
-  const gHud=railIsInstrument?gHero:(run.on||run.hold)?run.g:gStory;
-  setRail(gHud);setSteps(gStory);
-  instrumentView(gHero);
+  const gStory=storyRun?run.g:gS;
+  const gHud=(run.on||run.hold)?run.g:gS;
+  setRail(gHud);setSteps(gS);
   readout(heroReadout,gHero);setGlyph(heroGlyph,gHero,heroAxes,false);
   readout(storyReadout,gStory);setGlyph(hudGlyph,gStory,null,true);
   if(GL){
     if(GL.stepOrbit(dt,gStory)) more=true;
-    GL.draw(gHero,gStory,storyRun?1:(gStory>=11.999?finaleF():0),follow);
+    GL.draw(gHero,gStory,storyRun?1:(gS>=11.999?finaleF():0),follow);
   }
   if(run.on&&run.narr) placeCap(run.view);
   if(more) request();
@@ -2130,7 +1721,7 @@ function initGL(){
       labels:[
         ['embedding table · 129,280 × 7,168*',V(EX,6.6,EZ),0,0.21],
         ['E[12842] → float[7,168]',V(-3.6,4.3,-1.2),0.08,0.21],
-        [()=>KV_MODE==='dense'?'dense: attend stored history':'CSA: selected + recent KV',V(-9.6,yA-1.0,AZ),0.22,0.46],
+        [()=>KV_MODE==='dense'?'dense full KV · 10× memory & bandwidth':'indexer keeps top-k=1,024 · ≈10% KV*',V(-9.6,yA-1.0,AZ),0.22,0.46],
         ['RMSNorm, then attention',V(0.6,yA+1.9,0),0.22,0.46],
         ['router · top-6 of 384* (layer 18)',V(0.8,yM+0.9,0),0.48,0.66],
         ['6 routed experts (filled)',epos(120).add(V(0.3,0.9,0)),0.52,0.66],
@@ -2172,7 +1763,7 @@ function initGL(){
       labels:[
         ['all prompt tokens in parallel',V(TX-4,4.5,0),0.1,0.5],
         ['KV cache · keys + values per layer',V(5,13.7,0),0.3,0.95],
-        [()=>KV_MODE==='dense'?'illustrative dense KV cache':'hybrid KV · compressed + local',V(6.4,10.6,1.2),0.42,0.95],
+        [()=>KV_MODE==='dense'?'dense full KV · 10× cache memory':'compressed: 1 entry/block · ≈10% KV*',V(6.4,10.6,1.2),0.42,0.95],
         ['“ Paris” lives here now',slotW.clone().add(V(0.6,0.8,0)),0.62,0.95],
         ['other requests join (continuous batching)',V(-8.6,1.9,2.4),0.66,0.95],
         ['time to first token grows with prompt length',V(TX-3.6,T.top+1.2,0),0.3,0.55]

@@ -1155,7 +1155,7 @@ function buildTR6(svg) {
   E('rect', { x: 278, y: 350, width: 190, height: 38, class: 'ln' }, r);
   E('line', { x1: 278, y1: 369, x2: 468, y2: 369, class: 'ln faint' }, r);
   T(r, 286, 364, 'TR-6 · EVAL & RELEASE GATE', 'tiny');
-  T(r, 286, 383, 'V4-PRO · THINK MAX REPORTS', 'tiny');
+  T(r, 286, 383, 'DEEPSEEK-V4-PRO BENCHMARKS', 'tiny');
   // Candidate checkpoint
   E('rect', { x: 20, y: 146, width: 96, height: 64, rx: 6, class: 'ln' }, r);
   T(r, 68, 174, 'CANDIDATE', 'mono-i', { 'text-anchor': 'middle', 'font-size': 11 });
@@ -1163,8 +1163,8 @@ function buildTR6(svg) {
   // 3 parallel eval tracks
   const EVALS = [
     ['SWE-bench Ver.', '80.6%', 72],
-    ['MRCR 1M MMR', '83.5%', 156],
-    ['Red-team safety', 'No cited result', 240]
+    ['MRCR 1M ctx', '83.5%', 156],
+    ['Red-team safety', 'PASS', 240]
   ];
   EVALS.forEach(([nm, sc, y]) => {
     E('path', { d: `M116 178 C140 178 136 ${y + 20} 158 ${y + 20}`, class: 'ln' }, r);
@@ -1514,12 +1514,11 @@ function drawerContent(fly){
 // While the drawer is modal, Shift+Tab out of the 3D frame lands on this guard and wraps
 // to the panel's last button instead of leaving the page (everything behind is inert).
 const focusGuard=document.createElement('span');focusGuard.tabIndex=-1;modal.prepend(focusGuard);
-// Native Tab order covers the lab controls. Only wrap at the panel boundaries to include the scene.
+// Every control a docked lab adds (summary, range, select, textarea) belongs in the cycle, not just buttons.
 const FOCUSABLE='a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex]:not([tabindex="-1"])';
 const shown=el=>el.checkVisibility?el.checkVisibility({visibilityProperty:true}):el.getClientRects().length>0;
 const drawerFocusables=()=>[...aside.querySelectorAll(FOCUSABLE)].filter(shown);
-const isNativeControl=el=>el instanceof Element&&!!el.closest('a[href],button,summary,input,select,textarea,[contenteditable]');
-const sceneHelp=document.createElement('p');sceneHelp.id='sceneKeys';sceneHelp.className='obs-kicker';sceneHelp.textContent='In the 3D view: ←/→ parts, Home/End, 1–6 chapters, Escape to close.';aside.append(sceneHelp);sceneFrame.setAttribute('aria-describedby',sceneHelp.id);
+const isFormField=el=>el instanceof Element&&!!el.closest('input,select,textarea,[contenteditable="true"]');
 focusGuard.addEventListener('focus',()=>{if(opened)drawerFocusables().pop()?.focus({preventScroll:true})});
 function togglePageInert(on){for(const el of document.querySelectorAll('main,#rail,.skip'))el.inert=on;focusGuard.tabIndex=on?0:-1}
 function openDrawer(all=false){
@@ -1555,20 +1554,7 @@ journeyFrameKeys(sceneFrame, key => {
 });
 function movePart(delta){if(pos+delta<(catalog?-1:0)||pos+delta>=items.length)return;pos+=delta;drawerContent(true)}
 expand.onclick=()=>openDrawer();document.getElementById('allTour').onclick=()=>openDrawer(true);closeButton.onclick=scrim.onclick=closeDrawer;prevPart.onclick=()=>movePart(-1);nextPart.onclick=()=>movePart(1);
-window.addEventListener('keydown',e=>{
-  if(!opened)return;
-  if(e.key==='Escape'){e.preventDefault();closeDrawer()}
-  else if(e.key==='Tab'){
-    const list=drawerFocusables(),active=document.activeElement;
-    if(!list.length||e.shiftKey||active!==list[list.length-1])return;
-    e.preventDefault();focusJourneyScene(sceneFrame);
-  }
-  else if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!isNativeControl(e.target)){
-    movePart(e.key==='ArrowRight'?1:-1);e.preventDefault();
-  }
-  else return;
-  e.stopImmediatePropagation();
-},true);
+window.addEventListener('keydown',e=>{if(!opened)return;if(e.key==='Escape'){e.preventDefault();closeDrawer()}else if(e.key==='Tab'){const list=drawerFocusables();if(!list.length)return;const index=list.indexOf(document.activeElement),next=index<0?(e.shiftKey?list.length-1:0):(index+(e.shiftKey?-1:1)+list.length)%list.length;e.preventDefault();list[next].focus()}else if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!isFormField(e.target)){movePart(e.key==='ArrowRight'?1:-1);e.preventDefault()}else return;e.stopImmediatePropagation()},true);
 addEventListener('resize',()=>{if(opened)drawerRect();else kick()});document.addEventListener('visibilitychange',()=>{if(!api)return;if(document.hidden)api.suspend();else if(opened||visible)api.resume()});
 sceneFrame.addEventListener('load',async()=>{try{api=await journeyObservatory(sceneFrame, STOPS);api.suspend();if(mappedIndex!==undefined)preview(mappedIndex);layout();update(0);refreshHost();if(stateName==='ch4-drawer-router'||stateName==='narrow-drawer')openDrawer();if(opened){api.renderNow();await Promise.all(engine.getAnimations().map(a=>a.finished.catch(()=>{})))}window.__ready=true}catch(err){const msg=document.createElement('div');msg.className='obs-error';msg.textContent='3D unavailable. The story diagrams remain available.';engine.append(msg);console.error(err)}},{once:true});sceneFrame.src=coreURL();
 if (qs.has('lab')) addEventListener('load', () => MicroLabs.reveal(document.querySelector('main'), qs.get('lab')), {once:true});

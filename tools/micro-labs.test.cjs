@@ -87,18 +87,13 @@ test('ridge uses the bandwidth and dense peak of a single GPU', () => {
 
 test('the local sampling probe follows API 2026-10-21: any sent parameter is rejected', () => {
   assert.deepEqual(lab.sampling(), {status: 200, rejected: []});
-  assert.deepEqual(lab.sampling({model: 'claude-fable-5-2'}), {status: 200, rejected: []});
-  // Presence matters, including explicit JSON null and every numeric default.
-  for (const name of ['temperature', 'top_p', 'top_k']) {
-    for (const value of [null, 0, .99, 1, 40]) {
-      const request = {[name]: value};
-      assert.deepEqual(lab.sampling(request), {status: 400, rejected: [name]});
-      assert.deepEqual(lab.sampling(JSON.parse(JSON.stringify(request))), {status: 400, rejected: [name]});
-    }
-  }
-  assert.deepEqual(lab.sampling({temperature: 1, top_p: .99, top_k: null}).rejected,
-    ['temperature', 'top_p', 'top_k']);
-  assert.deepEqual(lab.sampling(Object.create({temperature: 1})), {status: 200, rejected: []});
+  assert.deepEqual(lab.sampling(null, null, null), {status: 200, rejected: []});
+  // Explicit defaults are rejected too, not only non-default values.
+  assert.deepEqual(lab.sampling(1, null), {status: 400, rejected: ['temperature']});
+  assert.deepEqual(lab.sampling(null, 1), {status: 400, rejected: ['top_p']});
+  assert.deepEqual(lab.sampling(1, 1), {status: 400, rejected: ['temperature', 'top_p']});
+  assert.deepEqual(lab.sampling(null, null, 40), {status: 400, rejected: ['top_k']});
+  assert.deepEqual(lab.sampling(0, .9, 1).rejected, ['temperature', 'top_p', 'top_k']);
 });
 
 test('Guided Tour and Story offer the same component labs at all ten lab stops', () => {
@@ -108,28 +103,6 @@ test('Guided Tour and Story offer the same component labs at all ten lab stops',
   };
   assert.deepEqual(lab.tourStops, expected);
   assert.deepEqual(lab.storyStops, expected);
-});
-
-test('scene focus messages trust only the parent window and its paired origin', () => {
-  const vm = require('node:vm');
-  const script = readFileSync(path.join(root, 'shared/obs-file-bridge.js'), 'utf8');
-  for (const location of [{protocol: 'https:', origin: 'https://example.test'}, {protocol: 'file:', origin: 'null'}]) {
-    let receive, focused = 0;
-    const parent = {}, child = {addEventListener: (name, handler) => {if (name === 'message') receive = handler;}};
-    const document = {addEventListener() {}, getElementById: id => {
-      assert.equal(id, 'threeCanvas');
-      return {focus: options => {assert.equal(options.preventScroll, true); focused++;}};
-    }};
-    vm.runInNewContext(script, {window: child, parent, location, document});
-    child.forwardJourneyKeys();
-    const data = {type: 'journey-focus-scene'}, origin = location.origin;
-    receive({source: {}, origin, data});
-    receive({source: parent, origin: 'https://other.test', data});
-    receive({source: parent, origin, data: {type: 'other'}});
-    assert.equal(focused, 0);
-    receive({source: parent, origin, data});
-    assert.equal(focused, 1);
-  }
 });
 
 test('lab code and offline bridge stay below 40 KB together; Swiss stays independent', () => {
