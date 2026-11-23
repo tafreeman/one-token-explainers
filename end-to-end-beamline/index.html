@@ -508,9 +508,8 @@ output_config: { effort: "high" }</code>
 
     <article class="step beat" data-beat="6d">
       <h3>Pick the next token</h3>
-      <p>The sampler turns probabilities into one choice, and on Fable 5.2 its settings are Anthropic’s, not yours. Once thinking is done, the model writes a tool call. To fill in the city, it attends straight back to <span class="tokref">“ Paris”</span> in your prompt and writes <span class="tokref">Paris</span>, with no leading space after the quote mark, which makes it a different token ID.</p>
+      <p>The sampler turns the model’s probability distribution into a choice for the next token. Once thinking is done, the model writes a tool call. To fill in the city, it attends straight back to <span class="tokref">“ Paris”</span> in your prompt and writes <span class="tokref">Paris</span>, with no leading space after the quote mark, which makes it a different token ID.</p>
       <code class="eq">{"type":"tool_use","name":"get_weather","input":{"city":"Paris"}}</code>
-      <table class="spec"><tr><td>temperature · top_p · top_k</td><td>any value sent is rejected (HTTP 400) on API 2026-10-21; earlier versions reject non-default values</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="6e">
@@ -1259,7 +1258,7 @@ function measure() {
 }
 const studyLabs = {
   '1c': ['bpe'], '3c': ['kl'], '5b': ['mix'], '5c': ['attention', 'rope'], '5d': ['kv'],
-  '5e': ['moe'], '6a': ['roof'], '6c': ['roof'], '6d': ['sample'], '6e': ['stream']
+  '5e': ['moe'], '6a': ['roof'], '6c': ['roof'], '6e': ['stream']
 };
 for (const [beat, labs] of Object.entries(studyLabs)) {
   const host = document.createElement('div');

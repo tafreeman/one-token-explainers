@@ -85,22 +85,6 @@ test('ridge uses the bandwidth and dense peak of a single GPU', () => {
   assert.equal(lab.roofline(4096, 1024).decode.bound, 'compute');
 });
 
-test('the local sampling probe follows API 2026-10-21: any sent parameter is rejected', () => {
-  assert.deepEqual(lab.sampling(), {status: 200, rejected: []});
-  assert.deepEqual(lab.sampling({model: 'claude-fable-5-2'}), {status: 200, rejected: []});
-  // Presence matters, including explicit JSON null and every numeric default.
-  for (const name of ['temperature', 'top_p', 'top_k']) {
-    for (const value of [null, 0, .99, 1, 40]) {
-      const request = {[name]: value};
-      assert.deepEqual(lab.sampling(request), {status: 400, rejected: [name]});
-      assert.deepEqual(lab.sampling(JSON.parse(JSON.stringify(request))), {status: 400, rejected: [name]});
-    }
-  }
-  assert.deepEqual(lab.sampling({temperature: 1, top_p: .99, top_k: null}).rejected,
-    ['temperature', 'top_p', 'top_k']);
-  assert.deepEqual(lab.sampling(Object.create({temperature: 1})), {status: 200, rejected: []});
-});
-
 test('Guided Tour and Story offer the same component labs at all ten lab stops', () => {
   const expected = {
     3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],

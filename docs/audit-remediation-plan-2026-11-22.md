@@ -2,6 +2,12 @@
 
 Prepared November 22, 2026, America/Chicago. Implementation progress is recorded below; the original audit evidence and planning baseline are retained.
 
+**November 23 follow-up:** PR #8 restores the four-format landing page and
+always-visible Swiss lesson and technical material. The later token instrument,
+factual corrections, API simulation, keyboard/focus improvements and regression
+coverage from PR #7 remain. Previous Swiss-first/progressive-disclosure notes
+below are historical progress, not the present design.
+
 The next release should correct misleading mechanisms and protocol examples, complete keyboard access, and make the existing lessons survive rendering failures. Then build three complete learning exercises and one reproducible trace. A live frontier model, a renderer rewrite and a new testing framework are not prerequisites.
 
 ## Confirmed product direction

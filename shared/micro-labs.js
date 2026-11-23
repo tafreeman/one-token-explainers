@@ -128,19 +128,10 @@
     return {ridge, prefill: point(prompt * batch), decode: point(batch)};
   }
 
-  // Claude API version 2026-10-21 rejects any request that sends a sampling parameter,
-  // even at its default value (docs: api/migration-2026-10-21, "Sampling parameters are removed").
-  const API_VERSION = '2026-10-21';
-  const samplingParams = ['temperature', 'top_p', 'top_k'];
-  function sampling(request = {}) {
-    const rejected = samplingParams.filter(name => Object.hasOwn(request, name));
-    return {status: rejected.length ? 400 : 200, rejected};
-  }
-
   const stopLabs = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
     16: ['mix'], 17: ['moe'], 24: ['roof'], 25: ['roof'], 26: ['stream']};
   const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope,
-    kvFootprints, maxContext, routeExperts, roofline, sampling, storyStops: stopLabs, tourStops: stopLabs};
+    kvFootprints, maxContext, routeExperts, roofline, storyStops: stopLabs, tourStops: stopLabs};
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
 
@@ -405,32 +396,6 @@
     update();
   }
 
-  function sampleLab(box) {
-    const request = el('pre', '', 'ml-wire'), response = el('div', '', 'ml-readout');
-    const choices = {temperature: ['null', '1', '0.5', '0'], top_p: ['null', '1', '0.99', '0.9'], top_k: ['null', '1', '40']};
-    const inputs = samplingParams.map(name => {
-      const field = el('label', name, 'ml-field'), select = el('select');
-      select.setAttribute('aria-label', name);
-      for (const value of ['', ...choices[name]]) {
-        const option = el('option', value || 'Omit'); option.value = value; select.append(option);
-      }
-      field.append(select); box.append(field); select.onchange = update;
-      return select;
-    });
-    response.setAttribute('role', 'status');
-    box.append(request, response);
-    note(box, 'Local sampling-parameter check for Claude Fable 5.2 on API version ' + API_VERSION + '. Sending temperature, top_p or top_k at any value, including null or a default, returns a 400. This checks these three fields only; no request is sent.');
-    function update() {
-      const params = {model: 'claude-fable-5-2', thinking: {type: 'adaptive'}};
-      inputs.forEach((select, i) => {if (select.value !== '') params[samplingParams[i]] = JSON.parse(select.value);});
-      const result = sampling(params);
-      request.textContent = 'anthropic-version: ' + API_VERSION + '\n\n' + JSON.stringify(params, null, 2);
-      response.textContent = result.status === 400 ? 'HTTP 400 · invalid_request_error · remove ' + result.rejected.join(', ') :
-        'Sampling-parameter check passes · local simulation';
-    }
-    update();
-  }
-
   function couplingLab(box, kind) {
     const fig = graphic(box, '0 0 280 105', kind === 'mix' ? 'Four residual streams pass through a mixing matrix' :
       'Current and reference distributions for two possible tokens');
@@ -466,7 +431,7 @@
     stream: ['Step through the UTF-8 stream', box => bpeLab(box, true)],
     attention: ['Inspect causal attention', attentionLab], rope: ['Rotate a query and key', ropeLab],
     kv: ['Compare KV cache sizes', kvLab], moe: ['Adjust the expert router', moeLab],
-    roof: ['Explore the B200 roofline', roofLab], sample: ['Probe the sampling contract', sampleLab],
+    roof: ['Explore the B200 roofline', roofLab],
     mix: ['Follow the four residual streams', box => couplingLab(box, 'mix')],
     kl: ['Inspect the KL penalty', box => couplingLab(box, 'kl')]
   };

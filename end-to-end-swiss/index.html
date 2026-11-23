@@ -125,18 +125,13 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
 .prov b{font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
 .prov i{font-style:normal;white-space:nowrap}
 .lead{margin:0 0 clamp(28px,5vh,48px);font-size:1.16rem;line-height:1.52;color:var(--ink-2);max-width:40rem}
-.step{padding:24px 0 32px;border-top:1px solid var(--rule);max-width:40rem;color:var(--ink-2)}
+.step{min-height:44vh;padding:24px 0 32px;border-top:1px solid var(--rule);max-width:40rem;color:var(--ink-2)}
 .step.on{color:var(--ink)}
 .step h3{margin:0 0 .5em;font-size:1.28rem;line-height:1.2;letter-spacing:-.01em;font-variation-settings:"wdth" 92,"wght" 680,"opsz" 32}
 .step h3 .sn{font:500 .7em/1 var(--mono);font-variation-settings:"wdth" 87.5;letter-spacing:.04em;margin-right:.7em;vertical-align:.12em;font-variant-numeric:tabular-nums}
 .step p{margin:0 0 1em;max-width:62ch}
-.stage-detail>summary,.technical-detail>summary,.playback-options>summary,.other-presentations>summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:600}
-.stage-detail>summary{border-top:1px solid var(--rule)}
-.stage-detail[open]>summary{margin-bottom:16px}
-.stage-detail:not([open]) .when-open,.stage-detail[open] .when-closed{display:none}
+.playback-options>summary,.other-presentations>summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:600}
 .technical-detail{margin-top:12px}
-.technical-detail>summary{font-size:.9rem;color:var(--ink-2)}
-.technical-detail[open]>summary{margin-bottom:8px}
 .playback-options{flex-basis:100%}
 .playback-options>.actions{margin:8px 0 4px}
 .other-presentations{grid-column:1/-1;border-top:1px solid var(--rule)}
@@ -231,7 +226,7 @@ code,pre,.mono{font-family:var(--mono);font-variation-settings:"wdth" 87.5}
   .stage-hud .readout{display:none}
   .stage .caption{left:50%;right:auto;translate:-50% 0;max-width:calc(100% - 32px);text-align:center}
   .station{min-height:56svh}
-  .stage-detail>summary,.technical-detail>summary{scroll-margin-top:42svh}
+  .step{min-height:48vh}
   .sources{grid-template-columns:minmax(0,1fr)}
   .ticks a{display:none}
 }
@@ -442,89 +437,81 @@ body{padding-bottom:calc(var(--rail) + env(safe-area-inset-bottom,0px))}
     <section class="station" id="s-1" data-i="0" aria-labelledby="h-1">
       <div class="st-title"><span class="st-num" aria-hidden="true">01</span><h2 id="h-1">Read almost everything.</h2></div>
       <p class="lead">Pretraining starts as a stream of documents. Somewhere in it is a page that says “…the Eiffel Tower is in Paris.” Its “&nbsp;Paris” is our token.</p>
-      <details class="stage-detail" id="depth-1">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 1</span></summary>
+      <div class="stage-detail" id="depth-1">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">1.1</span>Pool the sources</h3>
         <p>Crawled web pages, code, books, papers, math and many languages are pooled into one stream. Anthropic’s recent system cards describe the mix as public web data, licensed data, data from users who opted in, and data generated internally. They don’t publish proportions or totals.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 1.1</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Pretraining tokens</dt><dd>33T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Claude’s data volume</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">1.2</span>Remove duplicates</h3>
         <p>Near-duplicate documents are found with MinHash signatures and dropped, so the model isn’t trained on the same text hundreds of times. Deduplication cuts memorised output and wasted compute.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 1.2</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>sig  = minhash(shingles(doc))
 keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           <dl class="spec">
           <div><dt>Method</dt><dd>MinHash + LSH</dd><dd class="src">Lee et al., 2021</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">1.3</span>Filter and mix</h3>
         <p>Classifiers drop spam, boilerplate, low-quality text and personal data. What’s left is reweighted so code, math and careful prose count for more than raw web text.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 1.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Mixture weights</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 02 TOKENS -->
     <section class="station" id="s-2" data-i="1" aria-labelledby="h-2">
       <div class="st-title"><span class="st-num" aria-hidden="true">02</span><h2 id="h-2">Cut into tokens.</h2></div>
       <p class="lead">The model never sees letters. A byte-level tokenizer cuts text into pieces from a fixed vocabulary, and each piece becomes an integer ID.</p>
-      <details class="stage-detail" id="depth-2">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 2</span></summary>
+      <div class="stage-detail" id="depth-2">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">2.1</span>Byte-pair encoding</h3>
         <p>BPE starts from raw bytes and repeatedly merges the most frequent adjacent pair. Frequent words end up as one piece with their leading space attached, so “&nbsp;Paris” is one token, not five letters.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 2.1</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
 # [382, 304, 12842, 13]   illustrative IDs</code></pre>
           <dl class="spec">
           <div><dt>Algorithm</dt><dd>Byte-level BPE</dd><dd class="src">Sennrich et al., 2016</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">2.2</span>A fixed vocabulary</h3>
         <p>Every ID points at one row of a table the model learns. A bigger vocabulary means shorter sequences but a bigger table.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 2.2</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Vocabulary</dt><dd>129,280<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Fable 5.2 tokenizer</dt><dd>Introduced with Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Tokens vs. older Claude</dt><dd>≈ 30% more than before Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">2.3</span>Images take another road</h3>
         <p>Claude also reads images. A vision encoder cuts an image into patches and turns each patch into a vector. Those vectors sit in the same sequence as the text, but they’re vectors, not IDs.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 2.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Image input</dt><dd>Supported</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 03 PRETRAIN -->
@@ -532,58 +519,53 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <div class="st-title"><span class="st-num" aria-hidden="true">03</span><h2 id="h-3">Predict the next one.</h2></div>
       <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— 1M-token context</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— figures marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">Pretraining is one objective repeated trillions of times: given everything so far, put probability on the next token. The tower of layers you’ll meet again in stage 7 is built here.</p>
-      <details class="stage-detail" id="depth-3">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 3</span></summary>
+      <div class="stage-detail" id="depth-3">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">3.1</span>Forward, in parallel</h3>
         <p>A batch of sequences flows up the tower at once. A causal mask lets position <i>n</i> see only positions ≤ <i>n</i>, so every position in every sequence is its own prediction problem.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.1</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Total parameters</dt><dd>1.6T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Active per token</dt><dd>49B<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Claude’s size</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">3.2</span>Score the guess</h3>
         <p>After “…the Eiffel Tower is in”, the loss is the negative log of the probability given to “&nbsp;Paris”. A multi-token-prediction head also predicts the token after that, which adds training signal at every position.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.2</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>loss = cross_entropy(logits[:, :-1], ids[:, 1:]) + λ · mtp_loss</code></pre>
           <dl class="spec">
           <div><dt>MTP depth</dt><dd>1 extra token<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">3.3</span>Adjust every weight</h3>
         <p>Gradients flow back down the same layers and the optimizer moves every weight a little. DeepSeek‑V4 uses Muon for most matrices and AdamW for embeddings, the output head and norms. Pretraining uses FP8 mixed precision; quantization-aware training (QAT) produces FP4 expert weights for the released model.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Optimizer</dt><dd>Muon + AdamW<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Pretraining precision</dt><dd>FP8 mixed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Released expert weights</dt><dd>FP4 via QAT<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">3.4</span>Stretch the context</h3>
         <p>Most training runs at a shorter context. Then the rotary position frequencies are rescaled (YaRN, ×16) and training continues on long documents, so attention can reach a million positions.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 3.4</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
           <dl class="spec">
           <div><dt>Context, representative</dt><dd>65,536 → 1,048,576<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Fable 5.2 context</dt><dd>1M tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 04 POST-TRAIN -->
@@ -591,8 +573,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <div class="st-title"><span class="st-num" aria-hidden="true">04</span><h2 id="h-4">Learn what good looks like.</h2></div>
       <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no training recipe</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— the recipe marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">A pretrained model only continues text. Post-training turns the same tower into an assistant that follows instructions, uses tools and reasons toward answers it can check.</p>
-      <details class="stage-detail" id="depth-4">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 4</span></summary>
+      <div class="stage-detail" id="depth-4">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">4.1</span>Imitate</h3>
@@ -601,8 +582,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step">
         <h3><span class="sn">4.2</span>Try, grade, reinforce</h3>
         <p>For a prompt with a checkable answer, the policy samples a group of attempts. Verifiers grade them: the tests pass, the final answer matches. Each score is compared with the group’s mean, so no separate value model is needed. Rewarding correct answers is also how a model learns to think before it answers.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 4.2</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>A_i = (r_i − mean(r)) / std(r)
 θ  ← θ + η · ∇ Σ_i A_i · log π_θ(attempt_i)
 # simplified: GRPO also clips π_θ / π_old to 1 ± ε, PPO-style</code></pre>
@@ -610,49 +590,45 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           <div><dt>Method</dt><dd>GRPO</dd><dd class="src">Shao et al., 2024</dd></div>
           <div><dt>Group of 8 in the drawing</dt><dd>Illustrative</dd><dd class="src">—</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">4.3</span>Principles as feedback</h3>
         <p>Anthropic’s Constitutional AI writes down a set of principles. The model critiques and compares responses against them, and that AI feedback trains a preference model used alongside human feedback.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 4.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Method</dt><dd>Constitutional AI (RLAIF)</dd><dd class="src">Bai et al., 2022</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">4.4</span>Stay near the anchor</h3>
         <p>A KL penalty to the frozen starting model keeps the policy from drifting into reward hacks. DeepSeek‑V4 trains separate domain experts this way, then distils them into one model on-policy.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 4.4</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Recipe, representative</dt><dd>SFT → GRPO per domain → distillation<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
           <div><dt>Claude’s recipe</dt><dd class="unk">Not published in detail</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 05 RELEASE -->
     <section class="station" id="s-5" data-i="4" aria-labelledby="h-5">
       <div class="st-title"><span class="st-num" aria-hidden="true">05</span><h2 id="h-5">Pass the gate.</h2></div>
       <p class="lead">Before a frontier model ships, it is tested for what it can do and for what it could be misused to do. After this gate the weights are frozen: everything training changed is now fixed, and no request will change it.</p>
-      <details class="stage-detail" id="depth-5">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 5</span></summary>
+      <div class="stage-detail" id="depth-5">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">5.1</span>Evaluate</h3>
         <p>Capability suites, agentic tasks and dangerous-capability evaluations (cyber, biology, autonomy) run on the final checkpoint. Anthropic publishes the results in a system card.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 5.1</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Framework</dt><dd>Responsible Scaling Policy</dd><dd class="src">Anthropic</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">5.2</span>Red-team, then set safeguards</h3>
@@ -661,30 +637,27 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step">
         <h3><span class="sn">5.3</span>Ship with classifiers</h3>
         <p>Deployed models run with safety classifiers beside them. On Fable 5.2 a classifier can end a reply with <code>stop_reason: "refusal"</code> and a <code>stop_details</code> category, such as cyber.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 5.3</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>if (resp.stop_reason === "refusal")
   handle(resp.stop_details.category)</code></pre>
           <dl class="spec">
           <div><dt>Refusal signal</dt><dd>HTTP 200 · "refusal"</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 06 REQUEST -->
     <section class="station" id="s-6" data-i="5" aria-labelledby="h-6">
       <div class="st-title"><span class="st-num" aria-hidden="true">06</span><h2 id="h-6">Your request arrives.</h2></div>
       <p class="lead">Months later you ask “What’s the weather in Paris right now?” with a <code>get_weather</code> tool attached. The API is stateless: every call carries the whole conversation. What the call builds is temporary, activations and a KV cache that end with the request, apart from any prefix the prompt cache keeps for reuse, 5 minutes by default.</p>
-      <details class="stage-detail" id="depth-6">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 6</span></summary>
+      <div class="stage-detail" id="depth-6">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">6.1</span>One call</h3>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 6.1</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>POST /v1/messages
 { "model": "claude-fable-5-2",
   "max_tokens": 64000, "stream": true,
@@ -697,17 +670,16 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           <div><dt>Price</dt><dd>$8 in · $40 out / MTok</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Max output</dt><dd>128K tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">6.2</span>Rendered in a fixed order</h3>
         <p>Tools, then system, then messages are rendered through the chat template into one token sequence. The order matters: prompt caching matches the longest identical prefix, so stable content goes first.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 6.2</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Render order</dt><dd>tools → system → messages</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">6.3</span>The same tokenizer</h3>
@@ -724,16 +696,15 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           </div>
           <output class="effort-out" data-out="cache">Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 6.4</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Cache read</dt><dd>$0.20 / MTok</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Minimum prefix</dt><dd>512–4,096 tokens, by model</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 07 FORWARD PASS -->
@@ -741,20 +712,18 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <div class="st-title"><span class="st-num" aria-hidden="true">07</span><h2 id="h-7">One pass up the tower.</h2></div>
       <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no internals</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— every figure, marked&nbsp;<span class="rep">*</span></i></span></p>
       <p class="lead">This is the engine. The token’s vector rides a residual stream up 61 layers; each layer reads from the stream and writes back to it. Anthropic doesn’t publish Claude’s internals, so this stage uses DeepSeek‑V4‑Pro’s published design as a representative frontier architecture.</p>
-      <details class="stage-detail" id="depth-7">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 7</span></summary>
+      <div class="stage-detail" id="depth-7">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">7.1</span>Look up a vector</h3>
         <p>The ID selects one row of the embedding table: a lookup, not a multiplication. Out comes a vector of 7,168 numbers, the start of the residual stream.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.1</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>h = E[12842]        # float[7168]</code></pre>
           <dl class="spec">
           <div><dt>Hidden size</dt><dd>7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Embedding table</dt><dd>129,280 × 7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">7.2</span>Attend, sparsely</h3>
@@ -768,8 +737,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           </div>
           <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.2</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
 out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
           <dl class="spec">
@@ -778,55 +746,51 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
           <div><dt>Sliding window</dt><dd>128 tokens<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>V4-Pro stored KV at 1M</dt><dd>≈ 10% of V3.2’s<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">7.3</span>Route to 6 of 384 experts</h3>
         <p>A router scores 384 expert networks and keeps the top 6, and one shared expert always runs. Their outputs are weighted and summed. That’s why only 49B of the 1.6T parameters touch this token.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.3</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>out = shared(x) + Σ_{j ∈ top6(router(x))} g_j · expert_j(x)</code></pre>
           <dl class="spec">
           <div><dt>Experts</dt><dd>384 routed + 1 shared<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Active per token</dt><dd>6 routed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>First layers</dt><dd>Hash routing<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
         <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. The drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections)<span class="rep">*</span>.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.4</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>for layer in layers:
     h = h + layer.attn(rmsnorm(h))
     h = h + layer.moe(rmsnorm(h))</code></pre>
           <dl class="spec">
           <div><dt>Layers</dt><dd>61<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">7.5</span>Score the vocabulary</h3>
         <p>A final RMSNorm and the LM head turn the vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 7.5</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
           <dl class="spec">
           <div><dt>After “ Paris”</dt><dd>“ right” 0.31</dd><dd class="src">Illustrative</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 08 PREFILL -->
     <section class="station" id="s-8" data-i="7" aria-labelledby="h-8">
       <div class="st-title"><span class="st-num" aria-hidden="true">08</span><h2 id="h-8">Read the whole prompt at once.</h2></div>
       <p class="lead">Serving runs the frozen tower in two phases. Prefill pushes every prompt token up the tower in one parallel pass.</p>
-      <details class="stage-detail" id="depth-8">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 8</span></summary>
+      <div class="stage-detail" id="depth-8">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">8.1</span>Parallel and compute-bound</h3>
@@ -843,34 +807,31 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
           </div>
           <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 8.2</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>KV storage</dt><dd>FP8 + BF16 RoPE dims<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">8.3</span>Batched with strangers</h3>
         <p>A scheduler re-forms the batch at every iteration. Your prefill joins other users’ decode steps whenever cache memory is free, and finished requests leave without waiting for the rest.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 8.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Batching</dt><dd>Continuous</dd><dd class="src">Yu et al., OSDI 2022</dd></div>
           <div><dt>Cache memory</dt><dd>Paged blocks</dd><dd class="src">Kwon et al., SOSP 2023</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 09 THINK -->
     <section class="station" id="s-9" data-i="8" aria-labelledby="h-9">
       <div class="st-title"><span class="st-num" aria-hidden="true">09</span><h2 id="h-9">Think before answering.</h2></div>
       <p class="lead">On Fable 5.2, thinking is always on. The model writes reasoning tokens through the same decode loop before it writes its answer.</p>
-      <details class="stage-detail" id="depth-9">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 9</span></summary>
+      <div class="stage-detail" id="depth-9">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">9.1</span>Effort sets the depth</h3>
@@ -886,36 +847,32 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
           </div>
           <output class="effort-out" id="effortOut">16 thinking tokens in the drawing (illustrative; real runs use far more)</output>
         </fieldset>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 9.1</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Effort levels</dt><dd>low → max</dd><dd class="src">Anthropic docs</dd></div>
-          <div><dt>budget_tokens</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">9.2</span>Never returned raw</h3>
         <p>The raw chain of thought never leaves the server. The response carries thinking blocks that are empty by default (<code>display: "omitted"</code>) or hold a summary (<code>"summarized"</code>). Thinking is billed the same either way.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 9.2</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>thinking: { type: "adaptive", display: "summarized" }</code></pre>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">9.3</span>Reasoning picks the tool</h3>
         <p>Here the model works out that it can’t know today’s weather and should call <code>get_weather</code>. Every reasoning step attends over the KV cache, “&nbsp;Paris” included.</p>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 10 DECODE -->
     <section class="station" id="s-10" data-i="9" aria-labelledby="h-10">
       <div class="st-title"><span class="st-num" aria-hidden="true">10</span><h2 id="h-10">One token per step.</h2></div>
       <p class="lead">After prefill, generation is a loop: one pass up the tower for each new token, every pass reading the whole KV cache.</p>
-      <details class="stage-detail" id="depth-10">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 10</span></summary>
+      <div class="stage-detail" id="depth-10">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">10.1</span>Memory-bound</h3>
@@ -923,43 +880,34 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.2</span>Sample</h3>
-        <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: on API version 2026-10-21, a request that sends <code>temperature</code>, <code>top_p</code> or <code>top_k</code> at any value is rejected. Earlier versions reject only non-default values.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 10.2</span></summary>
-          <dl class="spec">
-          <div><dt>Sampling parameters</dt><dd>Rejected (400)</dd><dd class="src">Anthropic docs</dd></div>
-        </dl>
-        </details>
+        <p>The model produces a probability distribution over possible next tokens. Sampling selects one token from that distribution, which becomes the next step in the generated reasoning, tool call or answer. The exact sampling policy for Fable 5.2 is controlled by the model provider.</p>
       </article>
       <article class="step">
         <h3><span class="sn">10.3</span>Draft, then verify</h3>
         <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. An accepted draft gives two tokens for one pass. Anthropic doesn’t publish how Claude is served.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 10.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Technique</dt><dd>Speculative decoding</dd><dd class="src">Leviathan et al., 2023</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">10.4</span>“Paris”, again</h3>
         <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. Inside JSON the word has no leading space, so it’s a different token ID from “&nbsp;Paris”; attention copies it from the prompt anyway. The cache grows by one entry per token.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 10.4</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
   "input": { "city": "Paris" } }</code></pre>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 11 STREAM -->
     <section class="station" id="s-11" data-i="10" aria-labelledby="h-11">
       <div class="st-title"><span class="st-num" aria-hidden="true">11</span><h2 id="h-11">Stream it out.</h2></div>
       <p class="lead">Token IDs are decoded back into text and sent to your app as server-sent events while generation is still running.</p>
-      <details class="stage-detail" id="depth-11">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 11</span></summary>
+      <div class="stage-detail" id="depth-11">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">11.1</span>Detokenize</h3>
@@ -968,42 +916,38 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       <article class="step">
         <h3><span class="sn">11.2</span>Stream</h3>
         <p>Text and tool input arrive as <code>content_block_delta</code> events over SSE. A single response can run to 128K output tokens.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 11.2</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>event: content_block_delta
 data: {"delta": {"type": "input_json_delta",
         "partial_json": "{\"city\": \"Par"}}</code></pre>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">11.3</span>Stop, with a reason</h3>
         <p>Generation ends with a stop reason, such as <code>end_turn</code>, <code>max_tokens</code>, <code>refusal</code>, <code>pause_turn</code> when a server-tool loop hits its limit, or, here, <code>tool_use</code>.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 11.3</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Stop reason</dt><dd>"tool_use"</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- 12 TOOL LOOP -->
     <section class="station" id="s-12" data-i="11" aria-labelledby="h-12">
       <div class="st-title"><span class="st-num" aria-hidden="true">12</span><h2 id="h-12">Call a tool. Continue.</h2></div>
       <p class="lead">The model can’t check the weather itself. It stops, your code does the work, and the conversation goes back in.</p>
-      <details class="stage-detail" id="depth-12">
-        <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 12</span></summary>
+      <div class="stage-detail" id="depth-12">
         <div class="depth-sheet">
       <article class="step">
         <h3><span class="sn">12.1</span>Your code runs the tool</h3>
         <p>Claude doesn’t execute <code>get_weather</code>; your app does, then appends a <code>tool_result</code>. Treat that result as untrusted input. Server tools such as web search and code execution run on Anthropic’s side instead.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 12.1</span></summary>
+        <div class="technical-detail">
           <pre class="eq"><code>{ "type": "tool_result", "tool_use_id": "toolu_…",
   "content": "{\"temp_c\": 18, \"conditions\": \"clear\"}" }   # illustrative</code></pre>
-        </details>
+        </div>
       </article>
       <article class="step">
         <h3><span class="sn">12.2</span>A new request, a warm prefix</h3>
@@ -1024,15 +968,14 @@ data: {"delta": {"type": "input_json_delta",
       <article class="step">
         <h3><span class="sn">12.4</span>Long sessions</h3>
         <p>When a long agent session nears the context limit, server-side compaction (beta) summarizes earlier turns so the loop can keep going.</p>
-        <details class="technical-detail">
-          <summary>Technical detail<span class="vh"> for step 12.4</span></summary>
+        <div class="technical-detail">
           <dl class="spec">
           <div><dt>Compaction trigger</dt><dd>150K tokens (default)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
-        </details>
+        </div>
       </article>
         </div>
-      </details>
+      </div>
     </section>
 
     <!-- FINALE -->
@@ -1202,12 +1145,10 @@ function layout(){
   LAY=stEls.map(el=>{
     const r=el.getBoundingClientRect(),top=r.top+y0,bottom=r.bottom+y0;
     const stepEls=$$('.step',el),n=stepEls.length,W=(1-A0)/n;
-    const detail=$('.stage-detail',el),expanded=!detail||detail.open;
-    // Closed details have no useful child geometry. Spread the existing scene
-    // beats across the overview instead, keeping the complete visual journey.
-    const steps=stepEls.map((s,k)=>expanded?s.getBoundingClientRect().top+y0:lerp(top,bottom,A0+W*k));
+    // With every step visible, scene positions follow actual page geometry.
+    const steps=stepEls.map(s=>s.getBoundingClientRect().top+y0);
     const knots=[{y:top,t:0}];steps.forEach((y,k)=>knots.push({y,t:A0+W*k}));knots.push({y:bottom,t:1});
-    return {el,top,bottom,stepEls,n,W,knots,expanded};
+    return {el,top,bottom,stepEls,n,W,knots,expanded:true};
   });
   const fr=finaleEl.getBoundingClientRect();LAY.finale={top:fr.top+y0,bottom:fr.bottom+y0};
   layoutTicks();
@@ -1629,27 +1570,12 @@ addEventListener('resize',()=>{layout();onScroll();});
 // Native disclosure works without script; refresh the animation's measurements
 // after either depth changes, without scrolling, resetting controls, or opening
 // any other stage on the learner's behalf.
+// Keep optional hero and source disclosures responsive; lesson content is always visible.
 document.addEventListener('toggle',e=>{
   if(!(e.target instanceof HTMLDetailsElement)) return;
-  // Reflow changes the scroll-to-scene map. Keep the token where it was while
-  // the reader opens depth; the next actual scroll or axis action resumes it.
-  if(e.target.closest('.station')&&!run.on) depthScene={g:lastStoryG,y:scrollY};
   if(e.target.matches('.playback-options')&&!e.target.open&&run.on&&run.view==='hero') pauseRun(true);
-  if(e.target.matches('.stage-detail')){
-    const sheet=$('.depth-sheet',e.target);
-    if(sheet&&typeof sheet.animate==='function'){
-      sheet.getAnimations().forEach(a=>a.cancel());
-      if(e.target.open&&!reduce) sheet.animate([{clipPath:'inset(0 0 100% 0)'},{clipPath:'inset(0 0 0 0)'}],
-        {duration:320,easing:'cubic-bezier(.16,1,.3,1)'});
-      else if(e.target.open){
-        const summary=$('summary',e.target);
-        summary.animate([{color:getComputedStyle(document.documentElement).getPropertyValue('--token-ink').trim()},{color:getComputedStyle(summary).color}],{duration:120});
-      }
-    }
-  }
   layout();onScroll();
-},true);
-document.addEventListener('visibilitychange',()=>{
+},true);document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
     if(run.on) pauseRun(true);
     if(raf){cancelAnimationFrame(raf);raf=0;}

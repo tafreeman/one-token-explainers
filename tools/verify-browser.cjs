@@ -157,8 +157,11 @@ async function focusOrder(browser, base, local = false) {
     assert(scene, 'Tab never reached the drawer scene');
     const frame = page.frames().find(f => f.url().includes('obs-core.html'));
     await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
-    await page.keyboard.press('Shift+Tab');
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'partNext', 'Scene Shift+Tab did not wrap inside the drawer');
+    // An embedded browsing context may require multiple reverse Tab presses to
+    // leave its own tabbable descendants. Check the user-facing invariant rather
+    // than assuming the canvas is always its first internal Tab stop.
+    assert(await tabUntil(() => document.activeElement.id === 'partNext', 30, 'Shift+Tab'),
+      'Scene Shift+Tab did not return to the drawer after traversing iframe focus stops');
     await page.keyboard.press('Tab');
     await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
     // The scene can have real component buttons after its canvas; keep their native order too.
@@ -253,27 +256,21 @@ async function focusOrder(browser, base, local = false) {
   } finally { await page.close(); }
 }
 
-async function samplingContract(browser, base) {
+// Keep the teaching path focused on sampling as a mechanism, not request-validation errors.
+async function samplingTeachingScope(browser, base) {
   const page = await browser.newPage({reducedMotion: 'reduce'});
   try {
-    await ready(page, base + 'end-to-end-beamline/?rm=1&study=1&lab=sample',
+    await ready(page, base + 'end-to-end-beamline/?rm=1&study=1',
       'document.documentElement.dataset.ready === "1"');
-    const lab = page.locator('.micro-lab[data-lab="sample"]');
-    if (!await lab.evaluate(el => el.open)) await lab.locator('summary').click();
-    const payload = async () => JSON.parse((await lab.locator('pre').textContent()).split('\n\n')[1]);
-    for (const name of ['temperature', 'top_p', 'top_k']) {
-      assert(!Object.hasOwn(await payload(), name), 'Omitted ' + name + ' was serialized');
-      for (const value of ['null', '1']) {
-        await lab.getByLabel(name, {exact: true}).selectOption(value);
-        assert.equal((await payload())[name], value === 'null' ? null : 1);
-        assert.match(await lab.locator('[role="status"]').textContent(), /remove/);
-        assert.match(await lab.locator('[role="status"]').textContent(), new RegExp(name));
-      }
-      await lab.getByLabel(name, {exact: true}).selectOption('');
-    }
-    assert.doesNotMatch(await lab.locator('[role="status"]').textContent(), /HTTP 200/);
-    assert.match(await lab.locator('[role="status"]').textContent(), /sampling.parameter check passes/i);
-    console.log('Sampling request preview preserves omission and rejects explicit null/defaults');
+    assert.equal(await page.locator('.micro-lab[data-lab="sample"]').count(), 0);
+    const beamline = await page.locator('[data-beat="6d"]').innerText();
+    assert.match(beamline, /sampler turns the model.s probability distribution/i);
+    assert.doesNotMatch(beamline, /HTTP 400|temperature · top_p · top_k/i);
+    await page.goto(base + 'end-to-end-swiss/index.html?rm=1');
+    const swiss = await page.locator('#s-10').innerText();
+    assert.match(swiss, /Sampling selects one token from that distribution/i);
+    assert.doesNotMatch(swiss, /HTTP 400|Rejected \(400\)/i);
+    console.log('Sampler lessons teach token choice without an API error probe');
   } finally { await page.close(); }
 }
 
@@ -287,7 +284,6 @@ async function swissKVComparison(browser, base, artifacts) {
       assert.equal(initial.length, 2);
       for (const text of initial) assert.match(text, /V4-Pro at 1M: ≈10% of V3\.2’s stored KV/);
       // Act through each real radio label, proving the duplicate controls stay in sync.
-      await page.locator('#s-7 .stage-detail > summary').click();
       await page.locator('label').filter({has: page.locator('input[name="kvMode7"][value="dense"]')}).click();
       assert.equal(await page.locator('input[data-sync="kv"][value="dense"]:checked').count(), 2);
       const dense = await outputs.allTextContents();
@@ -295,7 +291,6 @@ async function swissKVComparison(browser, base, artifacts) {
       assert.match(dense[0], /Illustrative dense attention/);
       assert.doesNotMatch(dense[0], /10[×x]|10%/);
       await page.screenshot({path: path.join(artifacts, 'Swiss-dense-' + width + '.png')});
-      await page.locator('#s-8 .stage-detail > summary').click();
       await page.locator('label').filter({has: page.locator('input[data-sync="kv"][value="sparse"]')}).last().click();
       assert.equal(await page.locator('input[data-sync="kv"][value="sparse"]:checked').count(), 2);
       assert.deepEqual(await outputs.allTextContents(), initial);
@@ -306,80 +301,54 @@ async function swissKVComparison(browser, base, artifacts) {
   }
 }
 
-async function progressiveDepth(browser, base, artifacts, local = false) {
-  for (const [width, height] of [[1440, 900], [390, 844]]) {
-    const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
-    const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    try {
-      if (local) await page.context().setOffline(true);
-      const entry = local ? pathToFileURL(path.join(root, 'index.html')).href : base;
-      await ready(page, entry + '?rm=1#s-7', 'window.THREE && document.querySelector("#heroCanvas").width > 300');
-      assert.match(page.url(), /end-to-end-swiss\/index\.html\?rm=1#s-7$/);
-      assert.equal(await page.locator('.stage-detail').count(), 12);
-      assert.equal(await page.locator('.stage-detail[open]').count(), 0, 'overview is the default');
-      const stage = page.locator('#s-7');
-      const detail = stage.locator('.stage-detail');
-      const summary = detail.locator(':scope > summary');
-      await summary.focus();
-      const before = await summary.evaluate(el => el.getBoundingClientRect().top);
-      await summary.press('Enter');
-      await page.waitForFunction(() => document.querySelector('#s-7 .stage-detail').open);
-      assert(Math.abs(await summary.evaluate(el => el.getBoundingClientRect().top) - before) < 4,
-        'expansion keeps its entry point in place');
-      assert(await stage.locator('input[name="kvMode7"]').first().isVisible());
-      const technical = stage.locator('.technical-detail').first();
-      assert(!await technical.locator('.spec').isVisible(), 'technical data starts collapsed');
-      await technical.locator('summary').focus();
-      await technical.locator('summary').press('Enter');
-      assert(await technical.locator('.spec').isVisible(), 'keyboard reveals technical data');
-      await page.addScriptTag({path: axePath});
-      const violations = await page.evaluate(async () => (await axe.run(document, {
-        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
-      })).violations.map(v => ({id: v.id, targets: v.nodes.map(n => n.target)})));
-      assert.deepEqual(violations, [], 'expanded depth accessibility');
-      await page.screenshot({path: path.join(artifacts, 'Swiss-depth-' + (local ? 'file-' : '') + width + '.png')});
-      await technical.locator('summary').press('Enter');
-      await stage.locator('label').filter({has: page.locator('input[value="dense"]')}).click();
-      await summary.focus();
-      await summary.press('Enter');
-      await page.waitForFunction(() => !document.querySelector('#s-7 .stage-detail').open);
-      assert(!await stage.locator('input[name="kvMode7"]').first().isVisible());
-      assert.equal(await page.evaluate(() => document.activeElement.closest('.station')?.id), 's-7');
-      await summary.press('Enter');
-      assert(await stage.locator('input[name="kvMode7"][value="dense"]').isChecked(), 'depth changes preserve controls');
-      await summary.press('Enter');
-      await page.locator('#axis').evaluate(el => {
-        el.value = '1140';
-        el.dispatchEvent(new Event('input', {bubbles: true}));
-        el.dispatchEvent(new Event('change', {bubbles: true}));
-      });
-      await page.waitForFunction(() => document.querySelector('#railOut').textContent.includes('Tool loop'));
-      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-      await page.screenshot({path: path.join(artifacts, 'Swiss-overview-' + (local ? 'file-' : '') + width + '.png')});
+
+async function swissFullLessons(browser, base, artifacts, local=false) {
+  for(const [width,height] of [[1440,900],[390,844]]){
+    const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    try{
+      if(local) await page.context().setOffline(true);
+      const landing=local?pathToFileURL(path.join(root,'index.html')).href:base;
+      await page.goto(landing+'?rm=1');
+      assert.equal(await page.locator('.grid .card').count(),4,'four-explainer landing page');
+      assert(!page.url().includes('end-to-end-swiss'),'homepage does not redirect');
+      const swiss=local?pathToFileURL(path.join(root,'end-to-end-swiss/index.html')).href:base+'end-to-end-swiss/index.html';
+      await ready(page,swiss+'?rm=1#s-7','window.THREE && document.querySelector("#heroCanvas").width > 300');
+      assert.equal(await page.locator('.stage-detail').count(),12);
+      assert.equal(await page.locator('.technical-detail').count(),33);
+      assert.equal(await page.locator('.step').count(),43);
+      assert.equal(await page.locator('.stage-detail > summary,.technical-detail > summary').count(),0,'no forced expansion');
+      const stage=page.locator('#s-7');
+      await stage.locator('input[name="kvMode7"]').first().scrollIntoViewIfNeeded();
+      assert(await stage.locator('input[name="kvMode7"]').first().isVisible(),'controls shown directly');
+      assert(await stage.locator('.technical-detail .spec').first().isVisible(),'technical specifications shown directly');
+      await page.addScriptTag({path:axePath});
+      const violations=await page.evaluate(async()=>(await axe.run(document,{
+        runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}
+      })).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
+      assert.deepEqual(violations,[],'full lesson accessibility');
+      await page.screenshot({path:path.join(artifacts,'Swiss-full-'+(local?'file-':'')+width+'.png')});
       await page.locator('.playback-options > summary').click();
       await page.locator('#runHero').click();
-      assert.equal(await page.locator('#runHero').getAttribute('aria-pressed'), 'true');
+      assert.equal(await page.locator('#runHero').getAttribute('aria-pressed'),'true');
       await page.locator('.playback-options > summary').click();
-      await page.waitForFunction(() => document.querySelector('#runHero').getAttribute('aria-pressed') === 'false');
-      assert.deepEqual(errors, []);
-      console.log('Swiss', local ? 'file' : 'HTTP', width, 'single entry, keyboard depth, state retention, collapsed axis and playback pause passed');
-    } finally { await page.close(); }
+      await page.waitForFunction(()=>document.querySelector('#runHero').getAttribute('aria-pressed')==='false');
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      assert.deepEqual(errors,[]);
+      console.log('Swiss',local?'file':'HTTP',width,'full lessons and four-way landing pass');
+    }finally{await page.close();}
   }
 }
-
-async function depthWithoutScript(browser, base) {
-  const page = await browser.newPage({javaScriptEnabled: false, viewport: {width: 390, height: 844}});
-  try {
-    await page.goto(base + 'end-to-end-swiss/index.html');
-    const stage = page.locator('#s-7');
-    await stage.locator('.stage-detail > summary').click();
-    const technical = stage.locator('.technical-detail').first();
-    await technical.locator('summary').click();
-    assert(await technical.locator('.spec').isVisible(), 'written depth works without JavaScript');
-    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    console.log('Swiss phone written depth works without JavaScript');
-  } finally { await page.close(); }
+async function depthWithoutScript(browser,base){
+  const page=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
+  try{
+    await page.goto(base+'end-to-end-swiss/index.html');
+    const stage=page.locator('#s-7');
+    assert(await stage.locator('.step').first().isVisible());
+    assert(await stage.locator('.technical-detail .spec').first().isVisible());
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    console.log('Swiss full lessons visible without JavaScript');
+  }finally{await page.close();}
 }
 
 async function tokenInstrument(browser, base, artifacts) {
@@ -434,8 +403,7 @@ async function tokenInstrument(browser, base, artifacts) {
       });
       await page.waitForFunction(() => document.querySelector('#railOut').textContent.includes('Forward pass'));
       if(width===390) assert(await page.locator('#railOut').isVisible(), 'stage context stays visible on the written route');
-      await page.locator('#depth-7 > summary').click();
-      assert(await page.locator('#depth-7').evaluate(el=>el.open));
+      assert(await page.locator('#s-7 .step').first().isVisible(),'written steps remain visible');
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1));
       assert.deepEqual(errors,[]);
       console.log('Swiss instrument',width,motion,'scrub, keyboard, arrival, step bounds and reading continuity passed');
@@ -463,8 +431,7 @@ async function instrumentFallback(browser, base, artifacts) {
     await page.waitForFunction(()=>!document.querySelector('#instrumentReply').hidden);
     await page.screenshot({path:path.join(artifacts,'Swiss-instrument-static-fallback.png')});
     await page.locator('#readJourney').click();
-    await page.locator('#depth-1 > summary').click();
-    assert(await page.locator('#depth-1').evaluate(el=>el.open));
+    assert(await page.locator('#s-1 .step').first().isVisible(),'fallback text remains visible');
     assert.deepEqual(errors,[]);
     console.log('Swiss phone instrument and text work without WebGL or Web Animations');
   }finally{await page.close();}
@@ -583,32 +550,6 @@ async function drawerPerformance(browser, base) {
   } finally { await page.close(); }
 }
 
-async function depthContinuity(browser, base) {
-  for (const reducedMotion of ['no-preference', 'reduce']) {
-    const page = await browser.newPage({viewport: {width:1000,height:760}, reducedMotion});
-    try {
-      await ready(page, base + 'end-to-end-swiss/index.html', 'window.THREE && document.querySelector("#heroCanvas").width > 300');
-      await page.locator('#ticks a[href="#s-7"]').click();
-      await page.waitForTimeout(2000);
-      const summary = page.locator('#depth-7 > summary');
-      const before = await page.evaluate(() => ({y:scrollY, scene:document.querySelector('#storyReadout').textContent}));
-      const top = await summary.evaluate(el => el.getBoundingClientRect().top);
-      for (const open of [true, false]) {
-        await summary.click();
-        await page.waitForFunction(expected => document.querySelector('#depth-7').open === expected, open);
-        await page.waitForTimeout(650);
-        assert(Math.abs(await page.evaluate(() => scrollY) - before.y) < 4, 'disclosure does not shift the reading position');
-        assert(Math.abs(await summary.evaluate(el => el.getBoundingClientRect().top) - top) < 4, 'summary stays in place');
-        assert.equal(await page.locator('#storyReadout').textContent(), before.scene, 'detail reflow preserves the current token scene');
-      }
-      await page.locator('#axis').fill('850');
-      await page.waitForFunction(() => document.querySelector('#storyReadout [data-k="name"]').textContent === 'Think');
-      assert.notEqual(await page.locator('#storyReadout').textContent(), before.scene, 'intentional axis navigation releases the scene');
-      console.log('Swiss', reducedMotion, 'mouse detail opening and closing preserve scroll and token continuity');
-    } finally { await page.close(); }
-  }
-}
-
 async function main() {
   const artifacts = process.env.JOURNEY_SCREENSHOTS || await fs.mkdtemp(path.join(os.tmpdir(), 'journey-layouts-'));
   await fs.mkdir(artifacts, {recursive:true});
@@ -627,12 +568,11 @@ async function main() {
       await focusOrder(browser, base);
       await focusOrder(browser, base, true);
     }
-    if (runs('sampling')) await samplingContract(browser, base);
+    if (runs('sampling')) await samplingTeachingScope(browser, base);
     if (runs('claims')) await swissKVComparison(browser, base, artifacts);
     if (runs('depth')) {
-      await depthContinuity(browser, base);
-      await progressiveDepth(browser, base, artifacts);
-      await progressiveDepth(browser, base, artifacts, true);
+      await swissFullLessons(browser, base, artifacts);
+      await swissFullLessons(browser, base, artifacts, true);
       await depthWithoutScript(browser, base);
     }
     if (runs('instrument')) {

@@ -25,15 +25,13 @@ training, post-training, inference, serving, streaming, and the tool loop.
 
 Success means a learner can explain the major stages and distinguish a public API
 contract, a documented model mechanism, and an illustrative teaching example.
-Start with the simplest useful explanation in one interface. Reveal additional
-depth only when the learner chooses to expand it, preserving their place and a
-clear way to collapse back to the simpler explanation. Learners should not need
-to choose a separate page or format to reach an appropriate depth.
+Let learners choose a presentation style; the Swiss route shows all written
+mechanisms and specifications while the other formats emphasize different modes
+of visual inspection.
 
-These are learning goals, not measured learning gains. The root entry now opens
-the Swiss explanation, with an overview, optional **How it works** expansions and
-optional **Technical detail**. The separate presentations remain available; their
-additional content has not all been consolidated into this interface.
+These are learning goals, not measured learning gains. The root entry offers four explainer formats. Swiss exposes the complete lesson,
+including code and specifications, without stage-level disclosure controls.
+The separate formats remain complementary rather than consolidated.
 
 Swiss also offers **Explore the token**: the learner moves Paris through the
 existing 3D stages with an axis or arrows, then sees it in the illustrative reply.
@@ -58,7 +56,7 @@ Learners can use the hosted site or open local pages with their sibling assets
 present. Viewing does not require a build step. An optional Express server is
 available through `npm run dev`.
 
-Swiss is the default learning interface. The current implementation also retains
+Swiss is one of four first-class learning interfaces. The current implementation also retains
 separate formats, which are source material for further consolidation:
 
 - **One Token, End to End (Swiss):** a twelve-stage lifecycle explanation.
@@ -107,8 +105,7 @@ for different learner groups remain open validation work.
 ## Product Principles
 
 1. Make guided teaching understandable across a range of starting knowledge.
-2. Begin with the simplest useful explanation in one interface; expand into more
-   depth only by learner choice, with a clear route back and no loss of place.
+2. Make the four formats discoverable and keep the full written explanation accessible without mandatory expansion.
 3. Preserve the boundary between documented facts and teaching models.
 4. Keep essential understanding available through text and accessible controls,
    alongside narration and 3D.
