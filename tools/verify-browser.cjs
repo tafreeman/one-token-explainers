@@ -15,7 +15,7 @@ const warp = process.argv.includes('--warp');
 // 24-thread workstation; CI's 4-vCPU runner passes its own calibrated WARP_P95_BUDGET_MS.
 const WARP_P95_BUDGET_MS = Number(process.env.WARP_P95_BUDGET_MS) || 100;
 const WARP_TRIALS = 5;
-// --only=layout,keyboard,context,mirrors runs a subset; default runs every section.
+// --only=layout,keyboard,focus,context,mirrors runs a subset; default runs every section.
 const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
 const only = onlyArg ? new Set(onlyArg.slice(7).split(',')) : null;
 const runs = section => !only || only.has(section);
@@ -104,6 +104,91 @@ async function keyboard(browser, base, local) {
     await page.waitForFunction(() => !window.__journey.state.opened);
     assert.deepEqual(pageErrors, []);
     console.log(local ? 'Local file' : 'HTTP', 'iframe shortcuts passed');
+  } finally { await page.close(); }
+}
+
+// Keyboard-only use of the drawer labs and the Observatory panels: focus order, visibility, trap.
+async function focusOrder(browser, base) {
+  const page = await browser.newPage({viewport: {width: 1440, height: 900}, reducedMotion: 'reduce'});
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  const tabUntil = async (test, limit = 60) => {
+    for (let i = 0; i < limit; i++) {
+      await page.keyboard.press('Tab');
+      const state = await page.evaluate(test);
+      if (state) return state;
+    }
+    return null;
+  };
+  try {
+    // Story drawer: Tab reaches the docked router lab's summary and slider and never leaves the panel.
+    await ready(page, base + 'journey-story/?rm=1&state=ch4-drawer-router', 'window.__ready && window.__journey.state.opened');
+    const summary = await tabUntil(() => {
+      const el = document.activeElement;
+      if (!el.closest('#obsAside')) return 'escaped:' + el.tagName;
+      return el.matches('.micro-lab[data-lab="moe"] > summary') && 'summary';
+    });
+    assert.equal(summary, 'summary', 'Tab never reached the drawer lab summary');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('#obsAside .micro-lab[data-lab="moe"] input[type="range"]');
+    const slider = await tabUntil(() => {
+      const el = document.activeElement;
+      if (!el.closest('#obsAside')) return 'escaped:' + el.tagName;
+      return el.matches('.micro-lab[data-lab="moe"] input[type="range"]') && 'slider';
+    });
+    assert.equal(slider, 'slider', 'Tab never reached the drawer lab slider');
+    const before = await page.evaluate(() => ({pos: window.__journey.state.pos, value: +document.activeElement.value}));
+    await page.keyboard.press('ArrowRight');
+    const after = await page.evaluate(() => ({pos: window.__journey.state.pos, value: +document.activeElement.value}));
+    assert.deepEqual(after, {pos: before.pos, value: before.value + 1}, 'ArrowRight on a lab slider moved the drawer');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__journey.state.opened);
+
+    // Observatory: the canvas focus ring is visible at 3:1, and hidden panels leave the Tab order.
+    await ready(page, base + 'shared/obs-core.html?rm=1', 'window.__ready');
+    const inert = () => page.evaluate(() => ['tocDrawer', 'tocReopenBtn', 'detailPanel']
+      .map(id => document.getElementById(id).inert));
+    assert.deepEqual(await inert(), [false, true, true], 'initial panel inert state');
+    await page.keyboard.press('Tab');
+    const ring = await page.evaluate(() => {
+      const canvas = document.getElementById('threeCanvas');
+      canvas.focus();
+      const style = getComputedStyle(canvas), probe = document.createElement('i');
+      probe.style.color = 'var(--bg-studio)';
+      document.body.append(probe);
+      const lum = c => c.match(/[\d.]+/g).slice(0, 3).map(v => +v / 255)
+        .map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4)
+        .reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+      const [a, b] = [lum(style.outlineColor), lum(getComputedStyle(probe).color)].sort((x, y) => y - x);
+      probe.remove();
+      return {visible: canvas.matches(':focus-visible'), style: style.outlineStyle,
+        width: parseFloat(style.outlineWidth), contrast: (a + .05) / (b + .05)};
+    });
+    assert(ring.visible && ring.style !== 'none' && ring.width >= 2, 'canvas focus ring: ' + JSON.stringify(ring));
+    // Proxy: the ring is measured against the studio background colour, not the WebGL pixels under it.
+    assert(ring.contrast >= 3, 'canvas focus ring contrast vs --bg-studio ' + ring.contrast.toFixed(2));
+    await page.focus('#btnTocCollapse');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.getElementById('tocDrawer').inert && document.activeElement.id === 'tocReopenBtn');
+    const leaked = await tabUntil(() => {
+      const el = document.activeElement;
+      return el.closest('#tocDrawer, #detailPanel') ? el.id || el.tagName : false;
+    }, 40);
+    assert.equal(leaked, null, 'Tab reached a hidden panel: ' + leaked);
+    await page.focus('#tocReopenBtn');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => !document.getElementById('tocDrawer').inert && document.activeElement.id === 'tocFilter');
+    await page.focus('.toc-item');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => !document.getElementById('detailPanel').inert);
+    await page.focus('#btnExitFocus');
+    await page.keyboard.press('Enter');
+    // Closing the inspector returns focus to the index row that opened it.
+    await page.waitForFunction(() => document.getElementById('detailPanel').inert &&
+      document.activeElement.matches('#tocDrawer .toc-item'));
+    assert.deepEqual(errors, []);
+    console.log('Story drawer lab and Observatory panel focus order passed');
   } finally { await page.close(); }
 }
 
@@ -234,6 +319,7 @@ async function main() {
       await keyboard(browser, base, false);
       await keyboard(browser, base, true);
     }
+    if (runs('focus')) await focusOrder(browser, base);
     if (runs('context')) for (const [name,route,condition] of pages) {
       if (name === 'Swiss') await contextRecovery(browser,base,name,route,condition,'#heroCanvas','#heroGL.gl-lost');
       if (name === 'Beamline') await contextRecovery(browser,base,name,route,condition,'#stage','.gl-lost .render-fallback');

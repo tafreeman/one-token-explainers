@@ -31,7 +31,7 @@ This tells the same story as [`end-to-end-swiss/`](../end-to-end-swiss/), drawn 
 - **Fact fixes applied on 2026-11-22:**
   - The docs date (was 2026-11-03).
   - The tokenizer is now "introduced with Opus 4.7".
-  - Sampling: *non-default* temperature, top_p and top_k values return a 400.
+  - Sampling: *non-default* temperature, top_p and top_k values return a 400. On API version 2026-10-21 any value sent returns a 400, and the Study probe follows that rule.
   - Stop reasons are framed as examples, and `pause_turn` is added.
   - The 10% KV figure now credits the sparse *and* heavily compressed layers.
   - FP8 training is kept separate from the FP4 experts that quantization-aware training produces in the released model.

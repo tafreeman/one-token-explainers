@@ -891,6 +891,8 @@
       outline-offset: 2px;
     }
     .toc-item:focus-visible { outline-offset: -2px; }
+    /* The canvas fills its stage, so draw its ring inside the edge; the id rule above sets outline:none. */
+    #threeCanvas:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
 
     /* Accessible Text View panel (also embedded in the error overlay) */
     #textView {
@@ -5934,6 +5936,36 @@ let gantryShell=null;
       window.addEventListener('resize', handleViewportResize);
     }
 
+    // Panels that slide away keep their buttons in the Tab order unless they are inert.
+    // One observer covers every path that toggles their classes (buttons, TOC picks, Escape,
+    // narrow-layout start). If focus sits inside a panel as it hides, it moves somewhere visible.
+    function bindPanelInert() {
+      const byId = id => document.getElementById(id);
+      const toc = byId('tocDrawer'), reopen = byId('tocReopenBtn'), detail = byId('detailPanel');
+      // Closing the inspector clears .is-selected first, so remember the row that opened it.
+      let lastPick = null;
+      const panels = [
+        [toc, () => toc.classList.contains('collapsed'),
+          () => detail.classList.contains('open') ? byId('btnExitFocus') : reopen],
+        [reopen, () => !reopen.classList.contains('visible'), () => byId('tocFilter')],
+        [detail, () => !detail.classList.contains('open'),
+          () => (!toc.classList.contains('collapsed') && lastPick?.isConnected && lastPick) || byId('threeCanvas')],
+      ];
+      function sync() {
+        if (detail.classList.contains('open')) lastPick = toc.querySelector('.toc-item.is-selected') || lastPick;
+        const next = panels.map(([el, hidden]) => hidden());
+        panels.forEach(([el], i) => { if (!next[i]) el.inert = false; });
+        panels.forEach(([el, , fallback], i) => {
+          if (!next[i] || el.inert) return;
+          if (el.contains(document.activeElement)) fallback()?.focus({preventScroll: true});
+          el.inert = true;
+        });
+      }
+      const watch = new MutationObserver(sync);
+      for (const [el] of panels) watch.observe(el, {attributes: true, attributeFilter: ['class']});
+      sync();
+    }
+
     // Measures the real header/footer boxes into --hdr-h / --ftr-h so banner, drawer and detail sheet never sit under a wrapped bar
     function bindChromeMeasure() {
       const stage = document.getElementById('stage');
@@ -8220,6 +8252,7 @@ let gantryShell=null;
           document.getElementById('tocDrawer').classList.add('collapsed');
           document.getElementById('tocReopenBtn').classList.add('visible');
         }
+        if(!EMBED)bindPanelInert();
         if(!EMBED){applySceneTheme();watchExternalTheme()}
         applyPauseUI();
         (function () {
