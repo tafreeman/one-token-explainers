@@ -25,6 +25,7 @@ Follow the token by scrolling or using the chapter rail.
 - **Opening a 3D view:** click it, or activate its Expand pill.
 - **Moving the camera:** drag to orbit, and use the wheel or pinch to zoom.
 - **Previous and Next:** these move through the step's components, then through adjacent steps.
+- **Drawer keyboard:** Tab and Shift+Tab traverse the native lab controls and the 3D scene. Range and text-editing keys stay with their control. In the focused scene, arrows step through parts, Home/End jump to the boundaries and 1–6 jump chapters.
 - **Closing:** Close, Escape or the exposed scrim returns you to your original position and focus.
 - **Recap:** opens the 31-component overview.
 

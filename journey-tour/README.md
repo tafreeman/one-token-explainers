@@ -20,13 +20,13 @@ Thirty stops through DeepSeek-V4-Pro, the same model as the [story](../journey-s
 ## Controls
 
 - **Moving through stops:** Start the journey, then use Next, Previous or the arrow keys.
-- **Jumping:** the chapter rail and keys 1–6 jump by chapter. Home and End select the first and last stops.
+- **Jumping:** the chapter rail and keys 1–6 jump by chapter. Number shortcuts work while the chapter rail or the 3D view is focused. Home and End select the first and last stops outside native lab controls.
 - **More detail:** opens the component record.
 - **Free roam:** Escape or Explore freely enables orbit and zoom.
 - **All components:** opens the 31-item index.
 - **Text view:** contains the entire story and the component reference.
 
-If keys 1–6 don't respond, click outside the 3D view first, because focus inside the engine iframe swallows them.
+Keys in the focused 3D view reach the surrounding tour over HTTP and `file://`. Lab controls keep their own native keys.
 
 ## Validation states
 

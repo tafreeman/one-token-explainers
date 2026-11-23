@@ -132,8 +132,8 @@
   // even at its default value (docs: api/migration-2026-10-21, "Sampling parameters are removed").
   const API_VERSION = '2026-10-21';
   const samplingParams = ['temperature', 'top_p', 'top_k'];
-  function sampling(temperature = null, topP = null, topK = null) {
-    const rejected = samplingParams.filter((_, i) => [temperature, topP, topK][i] !== null);
+  function sampling(request = {}) {
+    const rejected = samplingParams.filter(name => Object.hasOwn(request, name));
     return {status: rejected.length ? 400 : 200, rejected};
   }
 
@@ -407,9 +407,10 @@
 
   function sampleLab(box) {
     const request = el('pre', '', 'ml-wire'), response = el('div', '', 'ml-readout');
-    const choices = {temperature: ['1', '0.5', '0'], top_p: ['1', '0.99', '0.9'], top_k: ['1', '40']};
+    const choices = {temperature: ['null', '1', '0.5', '0'], top_p: ['null', '1', '0.99', '0.9'], top_k: ['null', '1', '40']};
     const inputs = samplingParams.map(name => {
       const field = el('label', name, 'ml-field'), select = el('select');
+      select.setAttribute('aria-label', name);
       for (const value of ['', ...choices[name]]) {
         const option = el('option', value || 'Omit'); option.value = value; select.append(option);
       }
@@ -418,15 +419,14 @@
     });
     response.setAttribute('role', 'status');
     box.append(request, response);
-    note(box, 'Local simulation of Claude Fable 5.2 on API version ' + API_VERSION + '. Sending temperature, top_p or top_k at any value, even its default, returns a 400. Earlier API versions reject only non-default values. Thinking is adaptive and always on.');
+    note(box, 'Local sampling-parameter check for Claude Fable 5.2 on API version ' + API_VERSION + '. Sending temperature, top_p or top_k at any value, including null or a default, returns a 400. This checks these three fields only; no request is sent.');
     function update() {
-      const values = inputs.map(s => s.value === '' ? null : +s.value);
-      const result = sampling(...values);
       const params = {model: 'claude-fable-5-2', thinking: {type: 'adaptive'}};
-      values.forEach((v, i) => {if (v !== null) params[samplingParams[i]] = v;});
+      inputs.forEach((select, i) => {if (select.value !== '') params[samplingParams[i]] = JSON.parse(select.value);});
+      const result = sampling(params);
       request.textContent = 'anthropic-version: ' + API_VERSION + '\n\n' + JSON.stringify(params, null, 2);
       response.textContent = result.status === 400 ? 'HTTP 400 · invalid_request_error · remove ' + result.rejected.join(', ') :
-        'HTTP 200 · the model samples with its own defaults';
+        'Sampling-parameter check passes · local simulation';
     }
     update();
   }
