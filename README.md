@@ -4,6 +4,23 @@ Scroll-driven 3D explainers that follow one token through a large language model
 
 **Live site:** <https://tafreeman.github.io/one-token-explainers/>
 
+The root entry now opens the Swiss explanation directly, preserving query and hash.
+Choose **Explore the token** to move Paris through the twelve stages with the
+axis or previous/next arrows. The same token changes form and arrives in the
+illustrative reply. **Read stage by stage** starts the written overview.
+Expand **How it works** for an explanation,
+then **Technical detail** for code and specifications. Each stage keeps its own
+depth and control state; changing depth does not require another page. **Watch or
+listen** contains the existing animation and narration controls. Closing it pauses
+active hero playback.
+
+Opening detail keeps the current token scene and reading position; scrolling or
+moving the axis resumes navigation. Reduced motion uses immediate scene changes
+with brief color feedback. Text and controls remain usable without WebGL.
+
+The other presentations remain available under **Other presentations** in Swiss's
+Sources section and at their existing URLs.
+
 ## What is here
 
 Each explainer has its own folder: open its `index.html`, and read its `README.md` for controls, sources, lineage and known limits. A file sits in `shared/` only when more than one explainer uses it.
@@ -56,7 +73,7 @@ npm run verify:browser
 npm run verify:warp
 ```
 
-`lint` syntax-checks the shared scripts and every inline `<script>` block, then runs the fact gate. `verify:browser` serves the site and loads Swiss, Beamline, Story, Tour and the Observatory at 1440×900 and 390×844. It checks for horizontal overflow, console errors and axe-core WCAG 2.1 AA violations, and it tests iframe keyboard bridging over HTTP and `file://`, keyboard focus order (Tab reaches the Story drawer's lab controls, the Observatory canvas shows a 3:1 focus ring, and hidden Observatory panels leave the Tab order), WebGL context loss and restore, the mirror order, and SRI rejection of altered bytes. Pass `--only=layout,keyboard,focus,context,mirrors` to run some of these. Set `JOURNEY_SCREENSHOTS` to keep the layout screenshots. `verify:warp` runs on Windows. It opens the Story router drawer under Microsoft's software renderer (WARP) and requires fewer than 90 draw calls, a camera-nudge p95 under 100 ms, and no frames during 900 ms of idle. WARP renders on the CPU, so the 100 ms budget assumes a 24-thread machine. The gate judges the median of five trials. Set `WARP_P95_BUDGET_MS` on smaller hosts; CI's 4-vCPU runner uses 150 ms.
+`lint` syntax-checks the shared scripts and every inline `<script>` block, then runs the fact gate. `verify:browser` serves the site and loads Swiss, Beamline, Story, Tour and the Observatory at 1440×900 and 390×844. It checks for horizontal overflow, console errors and axe-core WCAG 2.1 AA violations, and it tests iframe keyboard bridging over HTTP and `file://`, keyboard focus order (Tab reaches the Story drawer's lab controls, the Observatory canvas shows a 3:1 focus ring, and hidden Observatory panels leave the Tab order), WebGL context loss and restore, the mirror order, and SRI rejection of altered bytes. Swiss depth checks cover the root entry, keyboard expansion, expanded accessibility, retained controls, scene/scroll continuity, collapsed-stage axis navigation, playback pause, and written detail without JavaScript. Instrument checks cover desktop/phone scrubbing, keyboard bounds, reply arrival, reduced motion, idle scheduling and fallback without WebGL or Web Animations. Pass `--only=layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors` to run some of these. Set `JOURNEY_SCREENSHOTS` to keep the layout screenshots. `verify:warp` runs on Windows. It opens the Story router drawer under Microsoft's software renderer (WARP) and requires fewer than 90 draw calls, a camera-nudge p95 under 100 ms, and no frames during 900 ms of idle. WARP renders on the CPU, so the 100 ms budget assumes a 24-thread machine. The gate judges the median of five trials. Set `WARP_P95_BUDGET_MS` on smaller hosts; CI's 4-vCPU runner uses 150 ms.
 
 ### Component labs
 

@@ -15,7 +15,7 @@ const warp = process.argv.includes('--warp');
 // 24-thread workstation; CI's 4-vCPU runner passes its own calibrated WARP_P95_BUDGET_MS.
 const WARP_P95_BUDGET_MS = Number(process.env.WARP_P95_BUDGET_MS) || 100;
 const WARP_TRIALS = 5;
-// --only=layout,keyboard,focus,context,mirrors runs a subset; default runs every section.
+// --only=layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors runs a subset; default runs every section.
 const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
 const only = onlyArg ? new Set(onlyArg.slice(7).split(',')) : null;
 const runs = section => !only || only.has(section);
@@ -108,21 +108,28 @@ async function keyboard(browser, base, local) {
 }
 
 // Keyboard-only use of the drawer labs and the Observatory panels: focus order, visibility, trap.
-async function focusOrder(browser, base) {
+async function focusOrder(browser, base, local = false) {
   const page = await browser.newPage({viewport: {width: 1440, height: 900}, reducedMotion: 'reduce'});
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  const tabUntil = async (test, limit = 60) => {
+  const tabUntil = async (test, limit = 60, key = 'Tab') => {
     for (let i = 0; i < limit; i++) {
-      await page.keyboard.press('Tab');
+      await page.keyboard.press(key);
+      assert(await page.evaluate(() => !window.__journey?.state.opened ||
+        !!document.activeElement.closest('#obsDialog')), 'Tab escaped the open Story dialog');
       const state = await page.evaluate(test);
       if (state) return state;
     }
     return null;
   };
   try {
+    const address = route => local ? pathToFileURL(path.join(root, route, 'index.html')).href : base + route + '/';
+    if (local) await page.context().setOffline(true);
     // Story drawer: Tab reaches the docked router lab's summary and slider and never leaves the panel.
-    await ready(page, base + 'journey-story/?rm=1&state=ch4-drawer-router', 'window.__ready && window.__journey.state.opened');
+    await ready(page, address('journey-story') + '?rm=1&state=ch4-room-router', 'window.__ready');
+    await page.focus('#obsExpand');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__journey.state.opened);
     const summary = await tabUntil(() => {
       const el = document.activeElement;
       if (!el.closest('#obsAside')) return 'escaped:' + el.tagName;
@@ -142,8 +149,62 @@ async function focusOrder(browser, base) {
     const after = await page.evaluate(() => ({pos: window.__journey.state.pos, value: +document.activeElement.value}));
     assert.deepEqual(after, {pos: before.pos, value: before.value + 1}, 'ArrowRight on a lab slider moved the drawer');
     await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Shift+Tab');
+    assert(await page.locator('#obsAside .micro-lab[data-lab="moe"] > summary').evaluate(el => el === document.activeElement),
+      'Shift+Tab did not return from the slider to its disclosure');
+    await page.keyboard.press('Tab');
+    const scene = await tabUntil(() => document.activeElement.id === 'obsFrame');
+    assert(scene, 'Tab never reached the drawer scene');
+    const frame = page.frames().find(f => f.url().includes('obs-core.html'));
+    await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
+    await page.keyboard.press('Shift+Tab');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'partNext', 'Scene Shift+Tab did not wrap inside the drawer');
+    await page.keyboard.press('Tab');
+    await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
+    // The scene can have real component buttons after its canvas; keep their native order too.
+    assert(await tabUntil(() => document.activeElement.id === 'obsClose'), 'Scene Tab did not reach the panel');
+    assert(await tabUntil(() => document.activeElement.id === 'partNext', 60, 'Shift+Tab'),
+      'Reverse Tab did not traverse the scene and wrap inside the drawer');
+    await page.keyboard.press('Tab');
+    await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
+
+    // Another real docked lab exercises a textarea, not only the router's range input.
+    await page.keyboard.press('Home');
+    for (let i = 0; i < 5 && !await page.locator('#obsAside .micro-lab[data-lab="bpe"]').count(); i++) {
+      await page.keyboard.press('ArrowRight');
+      await page.waitForTimeout(30);
+    }
+    assert(await page.locator('#obsAside .micro-lab[data-lab="bpe"]').count(), 'BPE drawer lab missing');
+    assert(await tabUntil(() => document.activeElement.matches('.micro-lab[data-lab="bpe"] > summary')));
+    await page.keyboard.press('Enter');
+    assert(await tabUntil(() => document.activeElement.matches('#obsAside textarea')));
+    await page.keyboard.press('Control+End');
+    const textBefore = await page.evaluate(() => ({pos: window.__journey.state.pos, caret: document.activeElement.selectionStart}));
+    await page.keyboard.press('ArrowLeft');
+    const textAfter = await page.evaluate(() => ({pos: window.__journey.state.pos, caret: document.activeElement.selectionStart}));
+    assert.equal(textAfter.pos, textBefore.pos, 'Textarea arrows moved the drawer');
+    assert(textAfter.caret < textBefore.caret, 'Textarea ArrowLeft did not move the caret');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !window.__journey.state.opened);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'obsExpand', 'Close did not restore the actual opener');
+
+    // Character shortcuts work only in the chapter rail or the focused scene.
+    await ready(page, address('journey-tour') + '?rm=1#stop-22', 'window.__ready');
+    await page.locator('#tourCard summary').first().focus();
+    await page.keyboard.press('1');
+    assert.equal(await page.evaluate(() => location.hash), '#stop-22', 'An unrelated summary triggered a chapter shortcut');
+    await page.locator('#tourRail button').first().focus();
+    await page.keyboard.press('2');
+    await page.waitForFunction(() => location.hash === '#stop-5');
+    await page.frameLocator('#tourStage').locator('#threeCanvas').focus();
+    await page.keyboard.press('4');
+    await page.waitForFunction(() => location.hash === '#stop-13');
+
+    if (local) {
+      assert.deepEqual(errors, []);
+      console.log('Local file drawer traversal, native controls and scoped shortcuts passed');
+      return;
+    }
 
     // Observatory: the canvas focus ring is visible at 3:1, and hidden panels leave the Tab order.
     await ready(page, base + 'shared/obs-core.html?rm=1', 'window.__ready');
@@ -190,6 +251,223 @@ async function focusOrder(browser, base) {
     assert.deepEqual(errors, []);
     console.log('Story drawer lab and Observatory panel focus order passed');
   } finally { await page.close(); }
+}
+
+async function samplingContract(browser, base) {
+  const page = await browser.newPage({reducedMotion: 'reduce'});
+  try {
+    await ready(page, base + 'end-to-end-beamline/?rm=1&study=1&lab=sample',
+      'document.documentElement.dataset.ready === "1"');
+    const lab = page.locator('.micro-lab[data-lab="sample"]');
+    if (!await lab.evaluate(el => el.open)) await lab.locator('summary').click();
+    const payload = async () => JSON.parse((await lab.locator('pre').textContent()).split('\n\n')[1]);
+    for (const name of ['temperature', 'top_p', 'top_k']) {
+      assert(!Object.hasOwn(await payload(), name), 'Omitted ' + name + ' was serialized');
+      for (const value of ['null', '1']) {
+        await lab.getByLabel(name, {exact: true}).selectOption(value);
+        assert.equal((await payload())[name], value === 'null' ? null : 1);
+        assert.match(await lab.locator('[role="status"]').textContent(), /remove/);
+        assert.match(await lab.locator('[role="status"]').textContent(), new RegExp(name));
+      }
+      await lab.getByLabel(name, {exact: true}).selectOption('');
+    }
+    assert.doesNotMatch(await lab.locator('[role="status"]').textContent(), /HTTP 200/);
+    assert.match(await lab.locator('[role="status"]').textContent(), /sampling.parameter check passes/i);
+    console.log('Sampling request preview preserves omission and rejects explicit null/defaults');
+  } finally { await page.close(); }
+}
+
+async function swissKVComparison(browser, base, artifacts) {
+  for (const [width, height] of [[1440, 900], [390, 844]]) {
+    const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
+    try {
+      await ready(page, base + 'end-to-end-swiss/?rm=1', 'window.THREE && document.querySelector("#heroCanvas").width > 300');
+      const outputs = page.locator('output[data-out="kv"]');
+      const initial = await outputs.allTextContents();
+      assert.equal(initial.length, 2);
+      for (const text of initial) assert.match(text, /V4-Pro at 1M: ≈10% of V3\.2’s stored KV/);
+      // Act through each real radio label, proving the duplicate controls stay in sync.
+      await page.locator('#s-7 .stage-detail > summary').click();
+      await page.locator('label').filter({has: page.locator('input[name="kvMode7"][value="dense"]')}).click();
+      assert.equal(await page.locator('input[data-sync="kv"][value="dense"]:checked').count(), 2);
+      const dense = await outputs.allTextContents();
+      assert.equal(dense[0], dense[1]);
+      assert.match(dense[0], /Illustrative dense attention/);
+      assert.doesNotMatch(dense[0], /10[×x]|10%/);
+      await page.screenshot({path: path.join(artifacts, 'Swiss-dense-' + width + '.png')});
+      await page.locator('#s-8 .stage-detail > summary').click();
+      await page.locator('label').filter({has: page.locator('input[data-sync="kv"][value="sparse"]')}).last().click();
+      assert.equal(await page.locator('input[data-sync="kv"][value="sparse"]:checked').count(), 2);
+      assert.deepEqual(await outputs.allTextContents(), initial);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      await page.screenshot({path: path.join(artifacts, 'Swiss-sparse-' + width + '.png')});
+      console.log('Swiss', width, 'KV comparison preserves the storage baseline and synchronized controls');
+    } finally { await page.close(); }
+  }
+}
+
+async function progressiveDepth(browser, base, artifacts, local = false) {
+  for (const [width, height] of [[1440, 900], [390, 844]]) {
+    const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    try {
+      if (local) await page.context().setOffline(true);
+      const entry = local ? pathToFileURL(path.join(root, 'index.html')).href : base;
+      await ready(page, entry + '?rm=1#s-7', 'window.THREE && document.querySelector("#heroCanvas").width > 300');
+      assert.match(page.url(), /end-to-end-swiss\/index\.html\?rm=1#s-7$/);
+      assert.equal(await page.locator('.stage-detail').count(), 12);
+      assert.equal(await page.locator('.stage-detail[open]').count(), 0, 'overview is the default');
+      const stage = page.locator('#s-7');
+      const detail = stage.locator('.stage-detail');
+      const summary = detail.locator(':scope > summary');
+      await summary.focus();
+      const before = await summary.evaluate(el => el.getBoundingClientRect().top);
+      await summary.press('Enter');
+      await page.waitForFunction(() => document.querySelector('#s-7 .stage-detail').open);
+      assert(Math.abs(await summary.evaluate(el => el.getBoundingClientRect().top) - before) < 4,
+        'expansion keeps its entry point in place');
+      assert(await stage.locator('input[name="kvMode7"]').first().isVisible());
+      const technical = stage.locator('.technical-detail').first();
+      assert(!await technical.locator('.spec').isVisible(), 'technical data starts collapsed');
+      await technical.locator('summary').focus();
+      await technical.locator('summary').press('Enter');
+      assert(await technical.locator('.spec').isVisible(), 'keyboard reveals technical data');
+      await page.addScriptTag({path: axePath});
+      const violations = await page.evaluate(async () => (await axe.run(document, {
+        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
+      })).violations.map(v => ({id: v.id, targets: v.nodes.map(n => n.target)})));
+      assert.deepEqual(violations, [], 'expanded depth accessibility');
+      await page.screenshot({path: path.join(artifacts, 'Swiss-depth-' + (local ? 'file-' : '') + width + '.png')});
+      await technical.locator('summary').press('Enter');
+      await stage.locator('label').filter({has: page.locator('input[value="dense"]')}).click();
+      await summary.focus();
+      await summary.press('Enter');
+      await page.waitForFunction(() => !document.querySelector('#s-7 .stage-detail').open);
+      assert(!await stage.locator('input[name="kvMode7"]').first().isVisible());
+      assert.equal(await page.evaluate(() => document.activeElement.closest('.station')?.id), 's-7');
+      await summary.press('Enter');
+      assert(await stage.locator('input[name="kvMode7"][value="dense"]').isChecked(), 'depth changes preserve controls');
+      await summary.press('Enter');
+      await page.locator('#axis').evaluate(el => {
+        el.value = '1140';
+        el.dispatchEvent(new Event('input', {bubbles: true}));
+        el.dispatchEvent(new Event('change', {bubbles: true}));
+      });
+      await page.waitForFunction(() => document.querySelector('#railOut').textContent.includes('Tool loop'));
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      await page.screenshot({path: path.join(artifacts, 'Swiss-overview-' + (local ? 'file-' : '') + width + '.png')});
+      await page.locator('.playback-options > summary').click();
+      await page.locator('#runHero').click();
+      assert.equal(await page.locator('#runHero').getAttribute('aria-pressed'), 'true');
+      await page.locator('.playback-options > summary').click();
+      await page.waitForFunction(() => document.querySelector('#runHero').getAttribute('aria-pressed') === 'false');
+      assert.deepEqual(errors, []);
+      console.log('Swiss', local ? 'file' : 'HTTP', width, 'single entry, keyboard depth, state retention, collapsed axis and playback pause passed');
+    } finally { await page.close(); }
+  }
+}
+
+async function depthWithoutScript(browser, base) {
+  const page = await browser.newPage({javaScriptEnabled: false, viewport: {width: 390, height: 844}});
+  try {
+    await page.goto(base + 'end-to-end-swiss/index.html');
+    const stage = page.locator('#s-7');
+    await stage.locator('.stage-detail > summary').click();
+    const technical = stage.locator('.technical-detail').first();
+    await technical.locator('summary').click();
+    assert(await technical.locator('.spec').isVisible(), 'written depth works without JavaScript');
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    console.log('Swiss phone written depth works without JavaScript');
+  } finally { await page.close(); }
+}
+
+async function tokenInstrument(browser, base, artifacts) {
+  for (const [width, height, motion] of [[1440,900,'no-preference'],[390,844,'no-preference'],[1440,900,'reduce'],[390,844,'reduce']]) {
+    const page = await browser.newPage({viewport:{width,height},reducedMotion:motion});
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    try {
+      await ready(page, base + 'end-to-end-swiss/index.html', 'window.THREE && document.querySelector("#heroCanvas").width > 300');
+      assert.equal(await page.locator('#exploreToken').count(), 1, 'instrument has a visible starting action');
+      const scene = await page.locator('#heroGL').boundingBox();
+      assert(scene.height >= height * .4, 'the artifact leads the first viewport');
+      const initialScroll = await page.evaluate(() => scrollY);
+      await page.locator('#exploreToken').click();
+      await page.waitForFunction(() => document.querySelector('#instrumentStage').textContent === 'Corpus');
+      await page.locator('#axis').evaluate(el => {
+        el.value='650';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      await page.waitForFunction(() => document.querySelector('#instrumentStage').textContent === 'Forward pass');
+      if(width===390){
+        assert(await page.locator('#railOut').isVisible(), 'phone keeps the current stage visible');
+        assert.match(await page.locator('#railOut').textContent(), /Forward pass/);
+      }
+      assert(Math.abs(await page.evaluate(() => scrollY) - initialScroll) < 4, 'hero scrubbing stays with the artifact');
+      assert.match(await page.locator('#instrumentForm').textContent(), /vector/);
+      await page.locator('#axis').press('End');
+      await page.waitForFunction(() => !document.querySelector('#instrumentReply').hidden);
+      assert.match(await page.locator('#instrumentReply').textContent(), /Paris/);
+      assert(await page.locator('#nextStage').isDisabled());
+      await page.screenshot({path:path.join(artifacts,'Swiss-instrument-arrival-'+motion+'-'+width+'.png')});
+      await page.locator('#axis').press('Home');
+      await page.waitForFunction(() => document.querySelector('#instrumentReply').hidden);
+      assert(await page.locator('#previousStage').isDisabled());
+      if(width===1440&&motion==='no-preference'){
+        await page.waitForFunction(() => document.querySelector('#heroGL').getAnimations().length===0);
+        await page.waitForTimeout(200);
+        const idle=await page.evaluate(async()=>{
+          const original=requestAnimationFrame;let callbacks=0;
+          window.requestAnimationFrame=fn=>original(t=>{callbacks++;fn(t);});
+          try{await new Promise(resolve=>setTimeout(resolve,400));return callbacks;}
+          finally{window.requestAnimationFrame=original;}
+        });
+        assert.equal(idle,0,'settled instrument does not keep an idle render loop');
+      }
+      await page.locator('#nextStage').click();
+      await page.waitForFunction(() => document.querySelector('#instrumentStage').textContent === 'Corpus');
+      await page.locator('#previousStage').click();
+      await page.locator('#readJourney').click();
+      await page.waitForFunction(() => scrollY>0&&document.querySelector('#heroGL').getBoundingClientRect().bottom<innerHeight*.45);
+      await page.locator('#axis').evaluate(el => {
+        el.value='650';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      await page.waitForFunction(() => document.querySelector('#railOut').textContent.includes('Forward pass'));
+      if(width===390) assert(await page.locator('#railOut').isVisible(), 'stage context stays visible on the written route');
+      await page.locator('#depth-7 > summary').click();
+      assert(await page.locator('#depth-7').evaluate(el=>el.open));
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1));
+      assert.deepEqual(errors,[]);
+      console.log('Swiss instrument',width,motion,'scrub, keyboard, arrival, step bounds and reading continuity passed');
+    } finally {await page.close();}
+  }
+}
+
+async function instrumentFallback(browser, base, artifacts) {
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  try{
+    await page.addInitScript(()=>{
+      Element.prototype.animate=undefined;
+      const getContext=HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext=function(kind,...args){
+        return /webgl/i.test(kind)?null:getContext.call(this,kind,...args);
+      };
+    });
+    await page.goto(base+'end-to-end-swiss/index.html');
+    await page.waitForFunction(()=>document.documentElement.classList.contains('no-gl'));
+    assert(await page.locator('.instrument-fallback').isVisible());
+    await page.locator('#exploreToken').click();
+    await page.waitForFunction(()=>document.querySelector('#instrumentStage').textContent==='Corpus');
+    await page.locator('#axis').press('End');
+    await page.waitForFunction(()=>!document.querySelector('#instrumentReply').hidden);
+    await page.screenshot({path:path.join(artifacts,'Swiss-instrument-static-fallback.png')});
+    await page.locator('#readJourney').click();
+    await page.locator('#depth-1 > summary').click();
+    assert(await page.locator('#depth-1').evaluate(el=>el.open));
+    assert.deepEqual(errors,[]);
+    console.log('Swiss phone instrument and text work without WebGL or Web Animations');
+  }finally{await page.close();}
 }
 
 async function contextRecovery(browser, base, name, route, condition, selector, fallback) {
@@ -305,6 +583,32 @@ async function drawerPerformance(browser, base) {
   } finally { await page.close(); }
 }
 
+async function depthContinuity(browser, base) {
+  for (const reducedMotion of ['no-preference', 'reduce']) {
+    const page = await browser.newPage({viewport: {width:1000,height:760}, reducedMotion});
+    try {
+      await ready(page, base + 'end-to-end-swiss/index.html', 'window.THREE && document.querySelector("#heroCanvas").width > 300');
+      await page.locator('#ticks a[href="#s-7"]').click();
+      await page.waitForTimeout(2000);
+      const summary = page.locator('#depth-7 > summary');
+      const before = await page.evaluate(() => ({y:scrollY, scene:document.querySelector('#storyReadout').textContent}));
+      const top = await summary.evaluate(el => el.getBoundingClientRect().top);
+      for (const open of [true, false]) {
+        await summary.click();
+        await page.waitForFunction(expected => document.querySelector('#depth-7').open === expected, open);
+        await page.waitForTimeout(650);
+        assert(Math.abs(await page.evaluate(() => scrollY) - before.y) < 4, 'disclosure does not shift the reading position');
+        assert(Math.abs(await summary.evaluate(el => el.getBoundingClientRect().top) - top) < 4, 'summary stays in place');
+        assert.equal(await page.locator('#storyReadout').textContent(), before.scene, 'detail reflow preserves the current token scene');
+      }
+      await page.locator('#axis').fill('850');
+      await page.waitForFunction(() => document.querySelector('#storyReadout [data-k="name"]').textContent === 'Think');
+      assert.notEqual(await page.locator('#storyReadout').textContent(), before.scene, 'intentional axis navigation releases the scene');
+      console.log('Swiss', reducedMotion, 'mouse detail opening and closing preserve scroll and token continuity');
+    } finally { await page.close(); }
+  }
+}
+
 async function main() {
   const artifacts = process.env.JOURNEY_SCREENSHOTS || await fs.mkdtemp(path.join(os.tmpdir(), 'journey-layouts-'));
   await fs.mkdir(artifacts, {recursive:true});
@@ -319,7 +623,22 @@ async function main() {
       await keyboard(browser, base, false);
       await keyboard(browser, base, true);
     }
-    if (runs('focus')) await focusOrder(browser, base);
+    if (runs('focus')) {
+      await focusOrder(browser, base);
+      await focusOrder(browser, base, true);
+    }
+    if (runs('sampling')) await samplingContract(browser, base);
+    if (runs('claims')) await swissKVComparison(browser, base, artifacts);
+    if (runs('depth')) {
+      await depthContinuity(browser, base);
+      await progressiveDepth(browser, base, artifacts);
+      await progressiveDepth(browser, base, artifacts, true);
+      await depthWithoutScript(browser, base);
+    }
+    if (runs('instrument')) {
+      await tokenInstrument(browser, base, artifacts);
+      await instrumentFallback(browser, base, artifacts);
+    }
     if (runs('context')) for (const [name,route,condition] of pages) {
       if (name === 'Swiss') await contextRecovery(browser,base,name,route,condition,'#heroCanvas','#heroGL.gl-lost');
       if (name === 'Beamline') await contextRecovery(browser,base,name,route,condition,'#stage','.gl-lost .render-fallback');
