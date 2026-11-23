@@ -39,3 +39,8 @@ jobs:
       - run: npm ci
       - run: npm exec -- playwright install chromium
       - run: npm run verify:warp
+        env:
+          # WARP runs on the CPU. With the browser pinned to 4 cores (this runner's size), the
+          # router drawer measured p95 137-206 ms on this branch and 307-374 ms on main before
+          # Phase 5, so 260 ms catches a slide back toward main. 100 ms is the 24-thread budget.
+          WARP_P95_BUDGET_MS: '260'

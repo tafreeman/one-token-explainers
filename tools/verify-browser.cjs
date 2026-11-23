@@ -11,6 +11,9 @@ const {createApp} = require('../server');
 const root = path.resolve(__dirname, '..');
 const axePath = require.resolve('axe-core/axe.min.js');
 const warp = process.argv.includes('--warp');
+// WARP rasterizes on the CPU, so latency scales with cores. 100 ms is the budget on a
+// 24-thread workstation; CI's 4-vCPU runner passes its own calibrated WARP_P95_BUDGET_MS.
+const WARP_P95_BUDGET_MS = Number(process.env.WARP_P95_BUDGET_MS) || 100;
 // --only=layout,keyboard,context,mirrors runs a subset; default runs every section.
 const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
 const only = onlyArg ? new Set(onlyArg.slice(7).split(',')) : null;
@@ -200,10 +203,10 @@ async function drawerPerformance(browser, base) {
       return {adapter:stats.quality.renderer, pixels:stats.quality.buffer, calls:stats.renderer.calls,
         p95:samples[Math.ceil(.95 * samples.length) - 1], idleFrames:api.stats().frames - stats.frames};
     });
-    console.log('Open router drawer', JSON.stringify(report));
+    console.log('Open router drawer', JSON.stringify({...report, cpus: os.cpus().length, budget: WARP_P95_BUDGET_MS}));
     assert.match(report.adapter, /Microsoft Basic Render Driver|WARP/i);
     assert(report.calls < 90, 'drawer draw-call budget');
-    assert(report.p95 < 100, 'WARP p95 must be below 100 ms');
+    assert(report.p95 < WARP_P95_BUDGET_MS, 'WARP p95 ' + report.p95.toFixed(1) + ' ms must be below ' + WARP_P95_BUDGET_MS + ' ms');
     assert.equal(report.idleFrames, 0);
   } finally { await page.close(); }
 }
