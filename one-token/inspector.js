@@ -82,7 +82,7 @@
       const params = new URLSearchParams({
         embed: '1',
         reader: '1',
-        skin: realm === 'MODEL' ? 'blueprint' : 'light',
+        skin: 'light',
         realm,
         focus: ids.join(',')
       });
@@ -122,7 +122,10 @@
       const primary = [target.lab, ...(extraLabs[target.slug] || [])];
       prefixHitRate = pdDisaggregated = undefined;
       const options = {
-        onRoute: (k, bias) => engine?.setRouting(k, bias),
+        onRoute: (k, bias) => {
+          scene.setRouting?.(k, bias);
+          engine?.setRouting(k, bias);
+        },
         onPrefixCache: ratio => {
           prefixHitRate = ratio;
           engine?.setPrefixCache(ratio);
@@ -142,21 +145,31 @@
       steering.className = 'micro-lab inspect-steering';
       steering.dataset.lab = 'steer';
       const summary = document.createElement('summary');
-      summary.textContent = 'Try causal feature steering';
+      summary.textContent = 'Try causal feature steering & logit lens';
       steering.append(summary);
       steering.addEventListener('toggle', () => {
         if (!steering.open || steering.children.length > 1) return;
-        steering.append(JourneyMath.vectorDrawer().querySelector('.steer-section'));
+        const vDrawer = JourneyMath.vectorDrawer();
+        for (const section of vDrawer.querySelectorAll('.steer-section, .lens-section')) {
+          steering.append(section);
+        }
       });
       (target.slug === 'mhc-residual' ? labs : otherLabs).append(steering);
     }
 
     function mountLinks(target) {
       links.replaceChildren();
+      const stepId = document.body.dataset.step || '';
+      const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
       for (const key of ['story', 'tour', 'obs']) {
         const link = document.createElement('a');
         link.textContent = window.SuiteLinks.PAGES[key].name;
-        link.href = asset(window.SuiteLinks.urlFor(key, target.slug));
+        link.href = asset(window.SuiteLinks.urlFor(key, target.slug, {
+          from: 'reader',
+          pos: stepId,
+          label: stepId ? 'Step ' + stepId : '',
+          rm
+        }));
         links.append(link);
       }
     }
@@ -171,10 +184,14 @@
           y: window.scrollY,
           overflow: document.documentElement.style.overflow,
           inert: lesson.inert,
-          figureInert: figure?.inert
+          figureInert: figure?.inert,
+          mastInert: mast?.inert,
+          railInert: rail?.inert
         };
         document.documentElement.style.overflow = 'hidden';
         lesson.inert = true;
+        if (mast) mast.inert = true;
+        if (rail) rail.inert = true;
         drawer.hidden = false;
         document.body.dataset.inspect = 'open';
       }
@@ -201,6 +218,8 @@
       delete document.body.dataset.inspect;
       lesson.inert = previous.inert;
       if (figure) figure.inert = previous.figureInert;
+      if (mast) mast.inert = previous.mastInert;
+      if (rail) rail.inert = previous.railInert;
       document.documentElement.style.overflow = previous.overflow;
       window.scrollTo({left: previous.x, top: previous.y, behavior: 'instant'});
       const trigger = previous.trigger;

@@ -28,6 +28,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     ghostDash: new THREE.LineDashedMaterial({ color: colors.hardwareFrame, dashSize: 0.13, gapSize: 0.11 }),
     tokEdge: new THREE.LineBasicMaterial({ color: colors.mark }),
     cache: fill(colors.cache),
+    cacheLine: new THREE.LineBasicMaterial({ color: colors.cache }),
     tool: fill(colors.tool),
     fault: fill(colors.fault),
     attention: new THREE.LineBasicMaterial({ color: colors.attention })
@@ -284,7 +285,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       if(idx<2){
         // Doubled cache outline bars above prefix slabs (tools & system) on Cache Hit
         dbl=new THREE.Group();
-        dbl.add(polyline([V(-0.5,0.54,0),V(0.5,0.54,0)],MAT.edge),polyline([V(-0.5,0.65,0),V(0.5,0.65,0)],MAT.edge));
+        dbl.add(polyline([V(-0.5,0.54,0),V(0.5,0.54,0)],MAT.cacheLine),polyline([V(-0.5,0.65,0),V(0.5,0.65,0)],MAT.cacheLine));
         G.add(dbl);
       }
       return {name,b,dbl,pre:V(-9.4,y,0),post:V(x0+len/2,0.95,0),len};
@@ -295,8 +296,8 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const brMiss=polyline([V(0,1.45,0),V(0,1.62,0),V(px,1.62,0),V(px,1.45,0)],MAT.ghostDash);G.add(brMiss);
     const brHit=new THREE.Group();
     brHit.add(
-      polyline([V(0,1.45,0),V(0,1.58,0),V(px,1.58,0),V(px,1.45,0)],MAT.edge),
-      polyline([V(0,1.69,0),V(px,1.69,0)],MAT.edge)
+      polyline([V(0,1.45,0),V(0,1.58,0),V(px,1.58,0),V(px,1.45,0)],MAT.cacheLine),
+      polyline([V(0,1.69,0),V(px,1.69,0)],MAT.cacheLine)
     );
     G.add(brHit);
     // Prefill sweep indicator across either uncached suffix (hit) or entire stack (miss)
@@ -362,8 +363,9 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const LA=10, LM=17, yA=T.layerY(LA), yM=T.layerY(LM);
     const layerIdx7=t=>t<0.44?LA:t<0.48?lerp(LA,LM,seg(t,0.44,0.48)):LM;
     const act=at(box(5.5,0.1,5.5),0,yA,0);G.add(act);
-    const EX=-9,EZ=-4.4;G.add(at(box(3.2,6,1.4),EX,3,EZ));
-    const rl=[];for(let k=1;k<24;k++){const y=k*0.25;rl.push(V(EX-1.6,y,EZ+0.71),V(EX+1.6,y,EZ+0.71));}G.add(segs(rl));
+    const EX=-9,EZ=-4.4,EG=new THREE.Group();G.add(EG);
+    EG.add(at(box(3.2,6,1.4),EX,3,EZ));
+    const rl=[];for(let k=1;k<24;k++){const y=k*0.25;rl.push(V(EX-1.6,y,EZ+0.71),V(EX+1.6,y,EZ+0.71));}EG.add(segs(rl));
     const row=box(3.2,0.24,1.4);G.add(row);
     const AZ=3.2,AG=new THREE.Group();G.add(AG);
     const blocks=[-12.2,-10.6,-9.0,-7.4].map((x,k)=>{
@@ -399,6 +401,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const topBar=V(-4.2+23*0.24,yH+3.0+0.6,0);
     return {
       update(t){
+        EG.visible=t<0.23;
         row.visible=t<0.19;const ru=seg(t,0.06,0.16);row.position.set(lerp(EX,-4.4,ru),3.6,lerp(EZ,-1.2,ru));
         // Synchronize cutaway top, act highlight plate, MG ring, and HUD on exact layer 18 (index 17) during Step 7.3
         const li=layerIdx7(t);
@@ -470,12 +473,12 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       shape:shp([[0,CUBE],[0.06,V(0.5,0.5,0.5)],[0.5,V(0.5,0.5,0.5)],[0.62,SLICE]]),
       cams:[{t:0,c:cam(-6.2,0,-3,6.7,14,3,-28,18)},{t:0.62,c:cam(-12.6,0,-3,6.7,14,3,-28,18)}],
       labels:[
-        ['all prompt tokens in parallel',V(TX-4,4.5,0),0.1,0.5],
+        ['all prompt tokens in parallel',V(TX-4,4.5,0),0.05,0.34],
+        [()=>KV_MODE==='dense'?'illustrative dense KV cache':'hybrid KV · compressed + local',V(6.4,10.6,1.2),0.35,0.66],
         ['KV cache · keys + values per layer',V(5,13.7,0),0.3,0.95],
-        [()=>KV_MODE==='dense'?'illustrative dense KV cache':'hybrid KV · compressed + local',V(6.4,10.6,1.2),0.42,0.95],
         ['“ Paris” lives here now',slotW.clone().add(V(0.6,0.8,0)),0.62,0.95],
-        ['other requests join (continuous batching)',V(-8.6,1.9,2.4),0.66,0.95],
-        ['time to first token grows with prompt length',V(TX-3.6,T.top+1.2,0),0.3,0.55]
+        ['other requests join (continuous batching)',V(-8.6,1.9,2.4),0.66,0.98],
+        ['time to first token grows with prompt length',V(TX-3.6,T.top+1.2,0),0.2,0.36]
       ]
     };
   });
@@ -529,13 +532,13 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       cams:[{t:0,c:cam(-9.2,0,-2,11.4,15.8,2,-24,18)}],
       labels:[
         [t=>PARTS.filter((_,k)=>t>tk(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.6,0),0.16,1],
-        ['one pass up the tower per new token',V(TX,T.top+3.6,0),0.1,0.45],
-        ['attention copies “Paris” from the prompt',V(-3.2,T.top+1.6,0),0.5,0.66],
-        ['“Paris” ≠ “ Paris”: different IDs',V(4.4,-0.9,0),0.66,0.8],
-        ['stop_reason "tool_use"',V(4.4,-0.9,0),0.8,1],
-        ['memory-bound: each step reads the weights and the cache',V(-0.6,13.8,0),0.12,0.5],
-        ['MTP draft, verified next step',V(4.4,-0.9,0),0.22,0.62],
-        ['sampler · temperature, top_p, top_k fixed',V(TX-2.2,T.top+2.7,0),0.3,0.62]
+        ['one pass up the tower per new token',V(TX,T.top+3.6,0),0.06,0.28],
+        ['attention over the prompt steers logits to “Paris”',V(-3.2,T.top+1.6,0),0.72,0.86],
+        ['“Paris” ≠ “ Paris”: different IDs',V(4.4,-0.9,0),0.74,0.92],
+        ['stop_reason "tool_use"',V(4.4,-0.9,0),0.88,1],
+        ['memory-bound: each step reads the weights and the cache',V(-0.6,13.8,0),0.06,0.29],
+        ['MTP draft, verified next step',V(4.4,-0.9,0),0.52,0.74],
+        ['sampler · temperature, top_p, top_k fixed',V(TX-2.2,T.top+2.7,0),0.29,0.52]
       ]
     };
   });
@@ -557,11 +560,11 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       shape:shp([[0,CUBE],[0.08,V(1.1,1,1)],[0.2,V(1.1,1,1)],[0.3,V(0.5,0.6,0.3)],[0.62,V(0.5,0.6,0.3)],[0.74,V(1.4,0.44,0.3)],[0.92,V(1.4,0.44,0.3)],[1,CUBE]]),
       cams:[{t:0,c:cam(-12.3,0,-1.7,12.3,4.6,1.7,-22,22)}],
       labels:[
-        ['detokenize: IDs → UTF-8 bytes',V(FX,3.0,0),0.06,0.4],
-        ['server-sent events · content_block_delta',V(1.6,1.7,1.0),0.28,0.72],
-        ['stop_reason "tool_use"',V(SX,0.4,1.4),0.76,1],
-        ['your app',onScreen(0,4.3),0.44,1],
-        ['output safety classifier',V(1.6,2.1,0),0.12,1]
+        ['detokenize: IDs → UTF-8 bytes',V(FX,3.0,0),0.06,0.37],
+        ['server-sent events · content_block_delta',V(1.6,1.7,1.0),0.37,0.68],
+        ['stop_reason "tool_use"',V(SX,0.4,1.4),0.68,1],
+        ['your app',onScreen(0,4.3),0.44,0.68],
+        ['safety classifier (can end with "refusal")',V(1.6,2.1,0),0.72,1]
       ]
     };
   });
@@ -576,7 +579,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const MX=5.0,T=tower();T.G.scale.setScalar(0.5);T.G.position.x=MX;G.add(T.G);const mtop=T.top*0.5;
     const pre=[...Array(7)].map((_,k)=>{const b=box(0.32,0.32,0.32);b.position.set(0.9+k*0.38,0.16,1.2);G.add(b);return b;});
     const nw=[0,1].map(()=>{const b=box(0.42,0.42,0.42);G.add(b);return b;});
-    const dbl=[polyline([V(0.7,0.55,1.2),V(3.4,0.55,1.2)]),polyline([V(0.7,0.68,1.2),V(3.4,0.68,1.2)])];dbl.forEach(l=>G.add(l));
+    const dbl=[polyline([V(0.7,0.55,1.2),V(3.4,0.55,1.2)],MAT.cacheLine),polyline([V(0.7,0.68,1.2),V(3.4,0.68,1.2)],MAT.cacheLine)];dbl.forEach(l=>G.add(l));
     const W=[0.62,0.5,0.5,0.56,0.7,0.42,0.95,0.28],TI=6,ANS=['It’s',' 18',' °C',' and',' clear',' in',' Paris','.'];const slot=[];let x=7.0;W.forEach(w=>{slot.push(x+w/2);x+=w+0.08;});
     const ta=k=>0.66+k*0.022;
     const ans=W.map((w,k)=>{if(k===TI) return null;const b=box(w,1,1);G.add(b);return b;});
@@ -641,16 +644,16 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       shape:shp([[0,CUBE],[0.08,V(0.9,0.36,0.24)],[0.2,V(0.9,0.36,0.24)],[0.3,V(0.7,0.7,0.7)],[0.62,V(0.7,0.7,0.7)],[0.8,V(0.95,1,1)],[0.93,V(0.95,1,1)],[1,V(0.8,0.8,0.8)]]),
       cams:[{t:0,c:cam(-12.5,0,-2.8,14.2,9.6,2.7,-22,20)}],
       labels:[
-        ['your code runs get_weather',V(-3.6,2.9,0),0.04,0.3],
-        [()=>innerWidth<520?'tool_result · {"temp_c": 18, "clear"}':'tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.22,0.46],
-        [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok · reuse KV':'prefix cache miss · $8.00 / MTok · full prefill',V(2.0,1.4,1.2),0.48,0.74],
-        ['150K compaction → summary',V(CX0,1.55,CZ),0.78,1],
-        [t=>ANS.filter((_,k)=>t>ta(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.7,0),0.67,1],
-        [()=>CACHE_MODE==='hit'?'prefill only the new tokens':'prefill entire prompt stack',V(MX+1.5,mtop+0.6,0),0.52,0.72],
-        ['stop_reason "end_turn"',V(9.5,-0.9,0),0.82,1],
-        ['whole conversation sent again',V(0.5,5.6,0),0.32,0.56],
-        ['your app',V(-7,0.3,3.0),0.04,0.4],
-        ['your screen',V(13.7,3.7,0),0.86,1]
+        ['your code runs get_weather',V(-3.6,2.9,0),0.04,0.2],
+        [()=>innerWidth<520?'tool_result · {"temp_c": 18, "conditions": "clear"}':'tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.2,0.29],
+        [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok · reuse KV':'prefix cache miss · $8.00 / MTok · full prefill',V(2.0,1.4,1.2),0.29,0.53],
+        ['150K compaction → summary',V(CX0,1.55,CZ),0.76,1],
+        [t=>ANS.filter((_,k)=>t>ta(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.7,0),0.53,0.76],
+        [()=>CACHE_MODE==='hit'?'prefill only the new tokens':'prefill entire prompt stack',V(MX+1.5,mtop+0.6,0),0.42,0.53],
+        ['stop_reason "end_turn"',V(9.5,-0.9,0),0.68,0.76],
+        ['whole conversation sent again',V(0.5,5.6,0),0.36,0.46],
+        ['your app',V(-7,0.3,3.0),0.04,0.29],
+        ['your screen',V(13.7,3.7,0),0.62,0.76]
       ]
     };
   });
@@ -713,22 +716,23 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const pose = clamp(state.diagramPose ?? 0, 0, 12);
     const g = state.opening ? 0.22 : pose;
     const { p, s, i, t } = tokenAt(g);
-    const compact = viewportWidth < 610 || aspect < 0.85;
+    const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < 0.85;
+    const fullLine = Boolean(state.overview || (state.recap && state.camera === 'overhead'));
     setStations(g);
     foundation.visible = !!state.opening && !compact;
     for (const station of ST) {
       station.G.visible = state.opening ? station.i < (compact ? 1 : 3)
-        : (state.recap && state.camera === 'overhead') || station.i === i
-          || (station.i === i - 1 && t < 0.12) || (station.i === i + 1 && t > 0.88);
+        : fullLine || station.i === i
+          || (station.i === i - 1 && t < 0.04) || (station.i === i + 1 && t > 0.94);
     }
     TOKEN.position.copy(p);
     TOKEN.scale.copy(s).multiplyScalar(state.opening ? 1.65 : 1);
-    setLine(p.x);
+    setLine(fullLine ? LINE1 : p.x);
 
     let shot = storyCam(g);
     if (state.opening) shot = compact ? openingClose : openingCam;
-    if (state.recap && state.camera === 'overhead') shot = overview;
-    if (!state.opening && (state.camera === 'overhead' || state.camera === 'close' || compact)) {
+    if (fullLine) shot = overview;
+    if (!state.opening && !fullLine && (state.camera === 'overhead' || state.camera === 'close' || compact)) {
       const { b, az, el } = shot;
       shot = state.camera === 'overhead'
         ? { b, az: -26, el: 66 }
@@ -754,8 +758,18 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       camera.updateProjectionMatrix();
       activeCoverage = size.y * zoom / 2;
     }
-    const active = station.labels.find(([text, , start, end]) => text && t >= start && t <= end);
-    if (state.opening || state.recap || !active) return { anchor: p, label: '“ Paris”', activeCoverage };
+    const matches = station.labels.filter(([text, , start, end]) => text && t >= start && t <= end);
+    let active = matches[0];
+    if (matches.length > 1) {
+      // Prefer interactive mode labels (functions) or narrower step-specific intervals over broad station spans.
+      const minSpan = Math.min(...matches.map(([, , s0, e0]) => e0 - s0));
+      const specific = matches.filter(([lbl, , s0, e0]) => typeof lbl === 'function' || (e0 - s0) <= minSpan + 0.12);
+      const pool = specific.length ? specific : matches;
+      const [s0, e0] = [pool[0][2], pool[0][3]];
+      const uPool = clamp((t - s0) / Math.max(0.01, e0 - s0), 0, 0.999);
+      active = pool[Math.min(pool.length - 1, Math.floor(uPool * pool.length))];
+    }
+    if (state.opening || state.recap || fullLine || !active) return { anchor: p, label: '“ Paris”', activeCoverage };
     const [label, position] = active;
     const anchor = typeof position === 'function' ? position(t) : position.clone();
     return { anchor: anchor.add(V(i * SP, 0, 0)), label: typeof label === 'function' ? label(t) : label };

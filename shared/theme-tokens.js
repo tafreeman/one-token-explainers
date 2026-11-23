@@ -6,15 +6,17 @@
     ground: '#F6F5F2', plate: '#FFFFFF', inset: '#ECEAE3',
     line: '#D6D3CB', grid: '#B8B4AA', ink: '#16181A', muted: '#52575D',
     mark: '#B8320D', token: '#FF4A1C', attention: '#1E4EC8',
-    cache: '#855D14', tool: '#1C6B4C', fault: '#9E3E22',
+    cache: '#855D14', tool: '#1C6B4C', fault: '#9E3E22', silhouette: '#5E6268',
     'hardware-pale': '#EFECE6', 'hardware-deck': '#E4E0D6',
     'hardware-plinth': '#D4CFC4', 'hardware-body': '#B4AFA4', 'hardware-frame': '#8C877E'
   });
   const color = hex => Number.parseInt(hex.slice(1), 16);
+  // 3D Lambert/Basic materials share the canonical tokens; Lit surfaces use calibrated high-legibility albedos.
   const colors = Object.freeze({
-    ground: color(css.ground), line: color(css.line), grid: color(css.grid), ink: color(css.ink),
+    ground: color(css.ground), plate: color(css.plate), inset: color(css.inset),
+    line: color(css.line), grid: color(css.grid), ink: color(css.ink), muted: color(css.muted),
     mark: color(css.mark), token: color(css.token), attention: 0x2455D6,
-    cache: 0xC9973B, tool: 0x2C8C68, fault: 0xB85233, silhouette: 0x5E6268,
+    cache: 0xC9973B, tool: 0x2C8C68, fault: 0xB85233, silhouette: color(css.silhouette),
     hardwarePale: color(css['hardware-pale']), hardwareDeck: color(css['hardware-deck']),
     hardwarePlinth: color(css['hardware-plinth']), hardwareBody: color(css['hardware-body']),
     hardwareFrame: color(css['hardware-frame'])

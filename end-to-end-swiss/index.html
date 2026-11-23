@@ -568,7 +568,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">3.4</span>Stretch the context</h3>
-        <p>Most training runs at a shorter context. Then the rotary position frequencies are rescaled (YaRN, ×16) and training continues on long documents, so attention can reach a million positions.</p>
+        <p>Most training runs at a shorter context before staged long-context extension. In the representative config, rotary position frequencies are rescaled from a 65,536 base window (YaRN, ×16) so attention can reach 1,048,576 positions.</p>
         <div class="technical-detail">
           <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
           <dl class="spec">
@@ -790,9 +790,10 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">7.5</span>Score the vocabulary</h3>
-        <p>A final RMSNorm and the LM head turn the vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
+        <p>Before the output head, the four hyper-connection streams merge through a learned reduction back to one 7,168-dimensional vector<span class="rep">*</span>. A final RMSNorm (preserving shape) and the LM head turn that vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head sharing the output head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
         <div class="technical-detail">
-          <pre class="eq"><code>p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
+          <pre class="eq"><code>h = merge_4_to_1(streams)           # 4 × 7,168 → 7,168*
+p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
           <dl class="spec">
           <div><dt>After “ Paris”</dt><dd>“ right” 0.31</dd><dd class="src">Illustrative</dd></div>
         </dl>
@@ -901,7 +902,7 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.3</span>Draft, then verify</h3>
-        <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. An accepted draft gives two tokens for one pass. Anthropic doesn’t publish how Claude is served.</p>
+        <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. When a draft is accepted, one target pass verifies two tokens; the net speedup depends on draft cost and acceptance rate. Anthropic doesn’t publish how Claude is served.</p>
         <div class="technical-detail">
           <dl class="spec">
           <div><dt>Technique</dt><dd>Speculative decoding</dd><dd class="src">Leviathan et al., 2023</dd></div>
@@ -910,7 +911,7 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.4</span>“Paris”, again</h3>
-        <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. Inside JSON the word has no leading space, so it’s a different token ID from “&nbsp;Paris”; attention copies it from the prompt anyway. The cache grows by one entry per token.</p>
+        <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. Inside JSON the word has no leading space, so it’s a different token ID from “&nbsp;Paris”; attention over the prompt still steers the logits toward it. The cache grows by one entry per token.</p>
         <div class="technical-detail">
           <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
   "input": { "city": "Paris" } }</code></pre>
@@ -986,10 +987,10 @@ data: {"delta": {"type": "input_json_delta",
       </article>
       <article class="step">
         <h3><span class="sn">12.4</span>Long sessions</h3>
-        <p>When a long agent session nears the context limit, server-side compaction (beta) summarizes earlier turns so the loop can keep going.</p>
+        <p>When a long agent session nears the context limit, opt-in server-side compaction (beta, configurable threshold) summarizes earlier turns so the loop can keep going.</p>
         <div class="technical-detail">
           <dl class="spec">
-          <div><dt>Compaction trigger</dt><dd>150K tokens (default)</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Compaction trigger</dt><dd>150K tokens (opt-in default)</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
         </div>
       </article>
@@ -2288,7 +2289,7 @@ function initGL(){
       cams:[{t:0,c:cam(-12.5,0,-2.8,14.2,9.6,2.7,-22,20)}],
       labels:[
         ['your code runs get_weather',V(-3.6,2.9,0),0.04,0.3],
-        [()=>innerWidth<520?'tool_result · {"temp_c": 18, "clear"}':'tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.22,0.46],
+        [()=>innerWidth<520?'tool_result · {"temp_c": 18, "conditions": "clear"}':'tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.22,0.46],
         [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok · reuse KV':'prefix cache miss · $8.00 / MTok · full prefill',V(2.0,1.4,1.2),0.48,0.74],
         ['150K compaction → summary',V(CX0,1.55,CZ),0.78,1],
         [t=>ANS.filter((_,k)=>t>ta(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.7,0),0.67,1],

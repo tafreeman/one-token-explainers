@@ -137,12 +137,18 @@ async function layouts(browser, url, artifacts) {
         await capture(page, artifacts, label + '-opening');
         await gotoStep(page, '7.2');
         await checkLayout(page, label + ' attention');
+        if (viewport === phone) {
+          assert.ok((await page.locator('#mobile-pin').textContent()).trim().length > 0, label + ' mobile pin populated');
+        }
         await capture(page, artifacts, label + '-attention');
         await axe(page, label + ' Read');
         await switchView(page, 'spatial');
         await clickVisible(page, '#present');
         await mode(page, 'present');
         await step(page, '7.2');
+        if (viewport === phone) {
+          assert.ok(await page.locator('#step-name').isVisible(), label + ' mobile Present step-name visible');
+        }
         await capture(page, artifacts, label + '-present');
         await checkLayout(page, label + ' Present');
         await axe(page, label + ' Present');
@@ -162,6 +168,8 @@ async function navigation(browser, url, artifacts) {
     await trackAnimationFrames(page);
     await page.goto(url);
     await ready(page);
+    await clickVisible(page, '#next');
+    await step(page, '1.1');
     await page.locator('#follow').click();
     await step(page, '1.1');
     for (const id of ['1.3', '3.3', '6.4', '7.2', '10.4', '12.2']) {
@@ -175,6 +183,10 @@ async function navigation(browser, url, artifacts) {
     }
 
     await gotoStep(page, '7.2');
+    assert.ok(await page.locator('#step-7\\.2[data-active]').count(), 'active step should carry data-active');
+    await page.locator('input[name="kvMode7"][value="dense"]').check();
+    assert.match(await page.locator('#step-7\\.2 output[data-out="kv"]').textContent(), /Illustrative dense attention/);
+    await page.locator('input[name="kvMode7"][value="sparse"]').check();
     const y = await page.evaluate(() => scrollY);
     await page.mouse.move(200, 440);
     await page.mouse.wheel(0, 220);
@@ -199,6 +211,11 @@ async function navigation(browser, url, artifacts) {
 
     await clickVisible(page, '#present');
     await mode(page, 'present');
+    await clickVisible(page, '#explain');
+    await page.locator('#explanation').waitFor({state: 'visible'});
+    assert.ok((await page.locator('#explanation > p').textContent()).trim().length > 0, 'Present explanation prose');
+    await clickVisible(page, '#close-explanation');
+    await page.locator('#explanation').waitFor({state: 'hidden'});
     await clickVisible(page, '#studio-play');
     await page.waitForFunction(() => document.body.dataset.step !== '1.1');
     await page.keyboard.press('Escape');
@@ -278,12 +295,17 @@ async function inspect(browser, url, local, artifacts) {
     await back.waitFor();
     assert.ok(await back.evaluate(node => node === document.activeElement), 'inspector did not take focus');
     assert.ok(await page.locator('#lesson').evaluate(node => node.inert), 'lesson should be inert');
+    assert.ok(await page.locator('.mast').evaluate(node => node.inert), 'mast should be inert while inspector is open');
+    assert.ok(await page.locator('.rail').evaluate(node => node.inert), 'rail should be inert while inspector is open');
     assert.ok(await drawer.locator('[data-lab="kv"]').count(), 'the KV lab should be mounted');
+    const tourHref = await drawer.locator('.inspect-links a').first().getAttribute('href');
+    assert.match(tourHref, /from=reader&pos=7\.2/);
     await drawer.getByText('Explore the 3D cutaway', {exact: true}).click();
     const frame = drawer.locator('iframe');
     await frame.waitFor();
     const frameUrl = new URL(await frame.getAttribute('src'), url);
     assert.equal(frameUrl.searchParams.get('focus'), 'MD-2b,MD-2c');
+    assert.equal(frameUrl.searchParams.get('skin'), 'light');
     assert.equal((await stat(page)).suspended, true);
     await page.waitForFunction(() => document.querySelector('.inspect-status').textContent === '', null, {timeout});
     if (!local && artifacts) await capture(page, artifacts, 'inspector-1440');

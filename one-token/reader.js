@@ -12,7 +12,7 @@
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const pad = n => String(n).padStart(2, '0');
   const settings = {cache: 'hit', kv: 'sparse', effort: 'high'};
-  const state = {index: 0, localT: 0, view: 'diagram', camera: 'director', opening: true, present: false, recap: false};
+  const state = {index: 0, localT: 0, view: 'diagram', camera: 'director', opening: true, overview: false, present: false, recap: false};
   const readout = get('position'), slider = get('scrubber'), figure = get('figure');
   let host, suspended = false, raf = 0, timer = 0, studioOrigin, sceneBeat, speechTimer;
   let lastBoundary, lastScrollY = window.scrollY;
@@ -22,6 +22,7 @@
   const scene = {
     suspend() { suspended = true; host?.suspend(); },
     resume() { suspended = false; host?.resume(); },
+    setRouting(k, bias) { host?.setRouting?.(k, bias); },
     stats() { return host?.stats() || {frames: 0, calls: 0, revision: null}; }
   };
 
@@ -33,6 +34,7 @@
     document.body.dataset.step = stop.id;
     document.body.dataset.mode = state.present ? 'present' : 'read';
     document.body.dataset.view = state.view;
+    articles.forEach((el, idx) => el?.toggleAttribute('data-active', !state.opening && !state.overview && idx === state.index));
     get('token-form').textContent = form;
     get('token-id').textContent = (isArgument ? 'ID 9021' : 'ID 12842') + ' · illustrative';
     $('.space-mark').style.visibility = isArgument ? 'hidden' : '';
@@ -41,15 +43,17 @@
     const pose = g0 + (g1 - g0) * state.localT;
     const blend = state.opening ? 0 : clamp((pose - stop.stage + .28) / .28, 0, 1);
     const [width, weight] = stage.glyphAxes.map((axis, i) => Math.round(axis + (next.glyphAxes[i] - axis) * blend));
-    get('glyph').style.fontVariationSettings = '"wdth" ' + width + ', "wght" ' + weight + ', "opsz" 144';
-    get('plate-id').textContent = pad(stop.stage) + ' / 12';
-    get('figure-name').textContent = stage.name;
-    get('step-name').textContent = state.opening ? 'Word in a document' : stop.title;
+    const glyph = get('glyph');
+    glyph.style.fontVariationSettings = '"wdth" ' + width + ', "wght" ' + weight + ', "opsz" 144';
+    glyph.style.letterSpacing = width < 60 ? '0.015em' : '';
+    get('plate-id').textContent = state.overview ? '12 / 12' : pad(stop.stage) + ' / 12';
+    get('figure-name').textContent = state.overview ? 'The whole line' : stage.name;
+    get('step-name').textContent = state.opening ? 'Word in a document' : state.overview ? 'Twelve stages, one token' : stop.title;
     readout.textContent = pad(stop.stage) + ' / 12 · ' + stage.name;
     slider.value = state.index;
     slider.setAttribute('aria-valuetext', 'Step ' + stop.id + ', ' + stop.title);
-    get('previous').disabled = !state.index;
-    get('next').disabled = state.index === stops.length - 1;
+    get('previous').disabled = !state.index && !state.overview;
+    get('next').disabled = state.index === stops.length - 1 && !state.opening;
     for (const [i, link] of stageLinks.entries()) {
       if (i + 1 === stop.stage) link.setAttribute('aria-current', 'step');
       else link.removeAttribute('aria-current');
@@ -74,7 +78,8 @@
       updateExplanation();
     }
     const overallT = sceneBeat === 'f1' ? state.localT : (state.index + state.localT) / stops.length;
-    host?.update({...state, settings, stepId: stop.id, stage: stop.stage, diagramPose: pose, spatialBeat: sceneBeat || stop.spatialBeat, overallT});
+    const camera = state.view === 'spatial' ? state.camera : 'director';
+    host?.update({...state, camera, settings, stepId: stop.id, stage: stop.stage, diagramPose: pose, spatialBeat: sceneBeat || stop.spatialBeat, overallT});
   }
 
   function anchorY() {
@@ -101,12 +106,14 @@
       index = i;
     }
     const rect = articles[index].getBoundingClientRect();
+    const lineTop = get('line')?.getBoundingClientRect().top ?? Infinity;
+    const overview = !opening && lineTop <= y;
     if (state.index !== index || state.opening !== opening) {
       playback.selectPosition(stops[index].id, opening);
       if (location.hash.startsWith('#step-') && lastScrollY !== window.scrollY) recordHash('#step-' + stops[index].id);
     }
     lastScrollY = window.scrollY;
-    Object.assign(state, {index, opening, localT: opening ? 0 : clamp((y - rect.top) / Math.max(1, rect.height), 0, .999)});
+    Object.assign(state, {index, opening, overview, localT: opening ? 0 : clamp((y - rect.top) / Math.max(1, rect.height), 0, .999)});
     sceneBeat = null;
     draw();
   }
@@ -126,7 +133,7 @@
     if (inspector.isOpen) inspector.close();
     index = clamp(index, 0, stops.length - 1);
     const stop = stops[index];
-    Object.assign(state, {index, localT: 0, opening: false});
+    Object.assign(state, {index, localT: 0, opening: false, overview: false});
     sceneBeat = null;
     if (scroll && !state.present) scrollToElement(header ? sections[stop.stage - 1] : articles[index]);
     if (hash) recordHash(header ? '#s-' + stop.stage : '#step-' + stop.id);
@@ -140,8 +147,9 @@
   function togglePresent() {
     if (inspector.isOpen) inspector.close();
     if (!state.present) {
-      studioOrigin = {y: window.scrollY, index: state.index, opening: state.opening};
+      studioOrigin = {y: window.scrollY, index: state.index, opening: state.opening, overview: state.overview};
       state.present = true;
+      state.overview = false;
     } else {
       stopRun();
       state.present = false;
@@ -150,7 +158,9 @@
     get('explanation').hidden = true;
     get('explain').setAttribute('aria-expanded', false);
     draw();
-    if (!state.present) {
+    if (state.present) {
+      requestAnimationFrame(() => get('studio-play')?.focus({preventScroll: true}));
+    } else {
       if (studioOrigin.index === state.index && studioOrigin.opening === state.opening) window.scrollTo({top: studioOrigin.y, behavior: 'instant'});
       else scrollToElement(articles[state.index]);
       get('present').focus({preventScroll: true});
@@ -161,6 +171,7 @@
     playback.pause();
     if (recap || state.index === stops.length - 1) state.index = 0;
     state.opening = false;
+    state.overview = false;
     state.recap = recap;
     sceneBeat = null;
     const start = performance.now();
@@ -179,8 +190,22 @@
   function updateExplanation() {
     const dock = get('explanation');
     const stop = stops[state.index];
-    dock.querySelector('h2').textContent = stop.title;
-    dock.querySelector('p').textContent = articles[state.index].querySelector('p')?.textContent || '';
+    const article = articles[state.index];
+    dock.querySelector('h2').textContent = stop.id + ' · ' + stop.title;
+    dock.querySelector('p').textContent = article.querySelector('p')?.textContent || '';
+    const detailHost = get('explanation-detail');
+    if (detailHost) {
+      detailHost.replaceChildren();
+      const effortBox = article.querySelector('fieldset.effort');
+      if (effortBox) {
+        const clone = effortBox.cloneNode(true);
+        clone.querySelectorAll('input[type=radio]').forEach(r => { r.name = r.name + '_present'; });
+        clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        detailHost.append(clone);
+      }
+      const tech = article.querySelector('.technical-detail');
+      if (tech) detailHost.append(tech.cloneNode(true));
+    }
     const inspect = dock.querySelector('button[data-inspect]');
     inspect.hidden = !stop.conceptSlug;
     inspect.dataset.inspect = stop.conceptSlug || '';
@@ -244,8 +269,8 @@
   });
   get('camera').onchange = event => { state.camera = event.target.value; draw(); };
   get('present').onclick = togglePresent;
-  get('previous').onclick = () => move(state.index - 1);
-  get('next').onclick = () => move(state.index + 1);
+  get('previous').onclick = () => move(state.overview ? stops.length - 1 : state.index - 1);
+  get('next').onclick = () => move(state.opening ? 0 : state.index + 1);
   get('studio-play').onclick = () => run(false);
   get('runStory').onclick = () => run(true);
   get('explain').onclick = () => setExplanation(get('explanation').hidden);
@@ -271,20 +296,24 @@
     kv: {sparse: $('[data-out="kv"]').textContent, dense: 'Illustrative dense attention reads all stored history. KV format and precision determine storage; this switch gives no measured bandwidth or speed ratio.'},
     cache: {hit: $('[data-out="cache"]').textContent, miss: 'Cold prefix cache miss ($8.00 / MTok): the full prompt is processed again.'}
   };
-  get('lesson').addEventListener('change', event => {
-    const input = event.target;
+  function applySettingChange(input) {
     if (!input.matches('input[type=radio]')) return;
     const key = input.dataset.sync || 'effort';
     settings[key] = input.value;
     if (key === 'effort') {
       const effort = {low: 6, medium: 11, high: 16, xhigh: 21, max: 28};
-      get('effortOut').textContent = effort[input.value] + ' thinking tokens in the drawing (illustrative; real runs use far more)';
+      const text = effort[input.value] + ' thinking tokens in the drawing (illustrative; real runs use far more)';
+      get('effortOut').textContent = text;
+      document.querySelectorAll('input[name="effort"], input[name="effort_present"]').forEach(el => { el.checked = el.value === input.value; });
+      document.querySelectorAll('#explanation-detail .effort-out').forEach(el => { el.textContent = text; });
     } else {
       document.querySelectorAll('input[data-sync="' + key + '"]').forEach(el => { el.checked = el.value === input.value; });
       document.querySelectorAll('output[data-out="' + key + '"]').forEach(el => { el.textContent = descriptions[key][input.value]; });
     }
     draw();
-  });
+  }
+  get('lesson').addEventListener('change', event => applySettingChange(event.target));
+  get('explanation')?.addEventListener('change', event => applySettingChange(event.target));
   window.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || inspector.isOpen || get('audio-panel').matches(':popover-open')) return;
     if (event.key === 'Escape') {
@@ -295,11 +324,10 @@
     }
     if (event.target.closest('input, select, button, a, summary, textarea, [contenteditable]')) return;
     switch (event.key) {
-      case 'ArrowRight': move(state.index + 1); break;
-      case 'ArrowLeft': move(state.index - 1); break;
+      case 'ArrowRight': move(state.opening ? 0 : state.index + 1); break;
+      case 'ArrowLeft': move(state.overview ? stops.length - 1 : state.index - 1); break;
       case 'Home': move(0); break;
       case 'End': move(stops.length - 1); break;
-      case 'p': case 'P': togglePresent(); break;
       case ' ': if (state.present) run(false); else return; break;
       default: return;
     }

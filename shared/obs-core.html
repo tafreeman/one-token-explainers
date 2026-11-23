@@ -1373,9 +1373,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "DeepSeek-V4-Pro Hybrid CSA (4× sparse) + HCA (128× dense): 27% FLOPs & 10% KV cache vs V3.2 at 1M ctx",
         keyFactSource: "DeepSeek-V4 paper",
         what: 'A 3-way projection block with a wide Query manifold and a visibly narrower brass Key/Value cylinder beside it.',
-        doing: "Projects each token into Q/K/V (with Q low-rank 1,536 and Q/KV RMSNorm) and compresses KV memory using two interleaved layer types: CSA (4× compression + Lightning Indexer selecting top-1,024 blocks + 128-tok window) and HCA (128× compression + dense summary attention).",
-        narrative: "At 1M tokens, even DeepSeek-V3.2's MLA latent KV cache grows large. DeepSeek-V4-Pro interleaves CSA (fine-grained 4× compression + sparse top-1,024 selection) with HCA (aggressive 128× compression read densely), cutting 1M-context inference FLOPs to 27% and KV cache to 10% of DeepSeek-V3.2. Toggle HCA vs. CSA below to see the compression cylinder resize.",
-        equation: "CSA: kv_4x = compress_4x(x);  idx = lightning_indexer_top1024(q, kv_4x) + win_128\nHCA: kv_128x = compress_128x(x);  out = dense_attn_with_sinks(q, kv_128x)",
+        doing: "Projects each token into Q/K/V (with Q low-rank 1,536 and Q/KV RMSNorm) and compresses KV memory using two interleaved layer types: CSA (4× compression + Lightning Indexer selecting top-1,024 blocks + 128-tok window) and HCA (128× compressed summaries + recent uncompressed sliding window kv[-128:] with attention sinks).",
+        narrative: "At 1M tokens, even DeepSeek-V3.2's MLA latent KV cache grows large. DeepSeek-V4-Pro interleaves CSA (fine-grained 4× compression + sparse top-1,024 selection) with HCA (aggressive 128× compressed summaries read alongside the recent uncompressed 128-token window), cutting 1M-context inference FLOPs to 27% and KV cache to 10% of DeepSeek-V3.2. Toggle HCA vs. CSA below to see the compression cylinder resize.",
+        equation: "CSA: kv_4x = compress_4x(x);  idx = lightning_indexer_top1024(q, kv_4x) + kv[-128:]\nHCA: kv_128x = compress_128x(x);  out = dense_attn_with_sinks(q, kv_128x + kv[-128:])",
         subs: ["CSA: 4× KV + Top-1,024 Sparse", "HCA: 128× Compressed Summaries", "Q/KV RMSNorm + Attention Sinks", "10% KV Cache at 1M Context"]
       },
       {
@@ -1405,7 +1405,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "GB200 HBM3e bandwidth: 8.0 TB/s per GPU (576 TB/s NVL72 rack; reading KV cache is memory-bound)",
         keyFactSource: "NVIDIA GB200 NVL72 spec",
         what: 'A crossbar switching matrix with sliding brass contacts, a red-trimmed causal wall blocking future columns, and a side rack holding cached past Key/Value cartridges.',
-        doing: "Multi-head: heads attend independently with learnable attention sinks (letting heads abstain when nothing in a 1M context is relevant), scoring earlier tokens while blocking future ones and attends independently, scoring how relevant every earlier token is and blending their Value payloads while strictly blocking future tokens. The head outputs are then concatenated. Inference: earlier tokens’ Keys/Values are read from the KV cache instead of recomputed.",
+        doing: "Multi-head: heads attend independently with learnable attention sinks (letting heads abstain when nothing in a 1M context is relevant), scoring how relevant every earlier token is and blending their Value payloads while strictly blocking future tokens. The head outputs are then concatenated. Inference: earlier tokens’ Keys/Values are read from the KV cache instead of recomputed.",
         narrative: "Think of Attention as a fuzzy in-memory database join. When the model sees the word \"it\", its Query scans the Keys of earlier tokens, scores high on \"server\", and pulls \"server\"’s Value payload so the current token inherits that context. The KV cache exists only during inference. In training, the core processes all positions in parallel (teacher forcing) under a causal mask, with no KV cache, and stores activations for the backward pass. Some models mix in sliding-window or hybrid local/global attention layers to cut long-context cost.",
         equation: "per head h: scores = causal_mask( (Q_h @ K_h.T) / sqrt(d) );  out_h = softmax(scores) @ V_h\nattn_out = concat(out_1 .. out_H)   // inference: past K_h, V_h come from kv_cache",
         subs: ["Fuzzy Context Lookup", "Independent Heads, Concatenated", "Blocks Future Tokens (Causal)", "Inference: Reads/Writes KV Cache", "Tiled GPU Math (FlashAttention)", "Sliding-Window / Hybrid Variants"]
@@ -1418,12 +1418,12 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.0, 2.8, 7.2],
         labelY: 1.0,
         assembly: 'Angled Collector Pipe + Spine Collar',
-        keyFact: "Manifold-Constrained Hyper-Connections (mHC): 4-stream residual width (`hc_mult: 4`, `o_lora_rank: 1024`)",
+        keyFact: "Manifold-Constrained Hyper-Connections (mHC): hc_mult: 4 (4 × 7,168 stream width)",
         keyFactSource: "DeepSeek-V4-Pro config",
         what: 'An angled pipe manifold that combines the parallel attention heads and adds their result straight back onto the central data bus.',
-        doing: "Packages attention outputs back into 7,168 floats (via 16-group low-rank output projection) and mixes them across the 4-stream Manifold-Constrained Hyper-Connections (mHC) residual bus.",
-        narrative: "The central spine is the residual stream: an additive, accumulating state. Adding deltas (`x += attn_out`) instead of replacing `x` lets every layer enrich the token’s meaning while keeping earlier information available—and keeps training gradients flowing cleanly.",
-        equation: 'state = state + linear_project( concat(all_attention_heads) )',
+        doing: "Packages attention outputs back into 7,168 floats (via 16-group low-rank output projection) and mixes them across the 4 × 7,168 Manifold-Constrained Hyper-Connections (mHC) residual streams via learned pre-map (H_pre), doubly-stochastic residual mixing (H_res), and post-map (H_post).",
+        narrative: "The central spine is a 4-stream mHC residual bus (4 × 7,168). Instead of a single stream update, each sublayer reads a learned pre-map H_pre · streams, mixes the four streams through a doubly-stochastic matrix H_res, and adds H_post · sublayer_out—enriching representation capacity while keeping training gradients stable.",
+        equation: 'streams = H_res · streams + H_post · sublayer(H_pre · streams)   // 4 × 7,168 mHC residual bus',
         subs: ['Combines Attention Heads', 'Additive State Update (x += dx)', 'Preserves Clean Gradient Path']
       },
       {
@@ -1498,12 +1498,12 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.0, 2.6, 7.2],
         labelY: 1.0,
         assembly: 'Machined Crown Calibration Ring',
-        keyFact: "Last norm before the LM head; output stays 7,168 floats",
+        keyFact: "4 × 7,168 → learned merge → 7,168 → RMSNorm → 129,280 logits (RMSNorm preserves 7,168 shape)",
         keyFactSource: "DeepSeek-V4-Pro config",
         what: 'A heavy machined calibration ring capping the top of the N-layer Transformer tower.',
-        doing: "Applies one final numeric normalization pass to the finished token vector right before converting it into vocabulary scores.",
-        narrative: 'After dozens of additive updates up the central spine, this final leveling ring ensures clean, bounded numbers before the model scores every possible next word.',
-        equation: "final_vec = rms_norm(x_after_last_layer)",
+        doing: "Collapses the 4 × 7,168 mHC residual streams via a learned four-stream reduction into a single 7,168-float vector, then applies final RMSNorm (preserving the 7,168 shape) right before vocabulary projection into 129,280 logits.",
+        narrative: 'After 61 layers of 4-stream updates up the central spine, a learned merge reduces 4 × 7,168 back to 7,168 floats and this final leveling ring normalizes amplitudes (preserving the 7,168 shape) before the LM head scores every possible next word.',
+        equation: "x_7168 = learned_merge(streams_4x7168);  final_vec = rms_norm(x_7168)   // 4 × 7,168 → learned merge → 7,168 → RMSNorm → 129,280 logits",
         subs: ['Final Signal Normalization', 'Prepares Vector for Scoring']
       },
       {
@@ -1601,7 +1601,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         what: 'A 3-lane rail marshalling yard with a sliding brass bridge that merges new prompt chunks and active user streams onto the GPU without waiting.',
         doing: "Packs multiple users into every single GPU step (continuous batching), slices huge prompts into chunks (e.g., 512 tokens, configurable) so they don’t freeze other users, and checks if enough KV cache RAM is free.",
         narrative: 'Think of this like an OS thread scheduler or async event loop. Instead of making 100 users wait for the longest response to finish, it swaps finished requests out and slots new chunks in on every single token tick.',
-        equation: "gpu_batch = active_decode_users + next_prefill_chunk   // only if free_kv_blocks > 0",
+        equation: "gpu_batch = active_decode_users + next_prefill_chunk   // only if free_kv_blocks >= needed_new_blocks (0 when fitting an owned partial tail, ceil(tokens / block_size) when cold)",
         subs: ['Continuous Iteration Batching', 'Chunked Prefill (No Stalls)', 'VRAM Cache Admission']
       },
       {

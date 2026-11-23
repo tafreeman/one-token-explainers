@@ -4,6 +4,7 @@
   'use strict';
 
   const PAGES = {
+    reader:   { dir: '',                    name: 'One Token',   file: '../index.html' },
     swiss:    { dir: 'end-to-end-swiss',    name: 'Swiss',       file: '../end-to-end-swiss/index.html' },
     beamline: { dir: 'end-to-end-beamline', name: 'Beamline',    file: '../end-to-end-beamline/index.html' },
     story:    { dir: 'journey-story',       name: 'Story',       file: '../journey-story/index.html' },
@@ -160,7 +161,11 @@
     const p = new URLSearchParams();
     if (rm) p.set('rm', '1');
     let hash = '';
-    if (from === 'swiss') {
+    if (from === 'reader') {
+      if (pos && /^\d+\.\d+$/.test(String(pos))) hash = '#step-' + pos;
+      else if (pos && /^s-\d+$/.test(String(pos))) hash = '#' + pos;
+      else if (pos && Object.hasOwn(CONCEPTS, String(pos))) hash = '#concept=' + pos;
+    } else if (from === 'swiss') {
       const g = parseFloat(pos);
       if (Number.isFinite(g) && g > 0) p.set('g', g.toFixed(1));
       else if (/^s-\d+$/.test(String(pos || ''))) hash = '#' + pos;
@@ -187,7 +192,8 @@
     if (!href) return null;
     const customLabel = qs.get('fromLabel');
     const stageText = customLabel ? ' · ' + customLabel :
-      (from === 'swiss' && pos ? ' · Stage ' + Math.max(1, Math.min(12, Math.round(parseFloat(pos)) || 1)) :
+      (from === 'reader' && pos ? ' · Step ' + pos :
+      from === 'swiss' && pos ? ' · Stage ' + Math.max(1, Math.min(12, Math.round(parseFloat(pos)) || 1)) :
       from === 'beamline' && pos ? ' · Beat ' + pos :
       from === 'tour' && pos ? ' · Stop ' + pos : '');
     const link = document.createElement('a');

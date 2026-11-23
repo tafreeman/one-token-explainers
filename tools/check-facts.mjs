@@ -53,7 +53,10 @@ for (const k of ['core', 'story', 'tour']) {
   }
 }
 
-// Task 4: Swiss keeps one drawn stream but says V4 uses four; Beamline draws four strands.
+// Task 4: Reader & Swiss keep one drawn stream but say V4 uses four and merges 4x7168 -> 7168; Beamline draws four strands.
+check('Reader notes the 4-stream mHC and 4-to-1 output merge',
+  /drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams/.test(src.reader) &&
+  /merge_4_to_1\(streams\)/.test(src.reader));
 check('Swiss notes the 4-stream mHC', /drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams/.test(src.swiss));
 check('Beamline builds 4 mHC strands', /NSTR = 4\b/.test(src.beamline) && !/CylinderGeometry\(\.1, \.1, TOWER_TOP/.test(src.beamline));
 
@@ -98,6 +101,21 @@ check('Causal steering graph is explicitly labeled illustrative',
   /not measured DeepSeek-V4-Pro weights/.test(compMathSrc));
 check('Concept links use explicit file://-safe index.html targets',
   conceptSrc.includes('../end-to-end-swiss/index.html') && conceptSrc.includes('../journey-tour/index.html'));
+
+// Unified Reader & Audit W1-W4 guards across one-token/* and obs-core.
+const readerDiagramSrc = read('one-token/scene-diagram.js');
+const readerSpatialSrc = read('one-token/scene-spatial.js');
+check('No invalid narrow tool_result JSON in Reader, Swiss, or Beamline',
+  !/\{"temp_c":\s*18,\s*"clear"\}/.test(readerDiagramSrc) &&
+  !/\{"temp_c":\s*18,\s*"clear"\}/.test(src.swiss) &&
+  !/\{"temp_c":\s*18,\s*"sky":/.test(readerSpatialSrc) &&
+  !/\{"temp_c":\s*18,\s*"sky":/.test(src.beamline));
+check('Observatory MD-3 expresses learned 4x7168 -> 7168 merge before RMSNorm',
+  /4 × 7,168 → learned merge → 7,168 → RMSNorm/.test(src.core) &&
+  /H_res · streams \+ H_post · sublayer\(H_pre · streams\)/.test(src.core) &&
+  /free_kv_blocks >= needed_new_blocks/.test(src.core));
+check('Reader labels server-side compaction as opt-in and configurable',
+  /opt-in server-side compaction/.test(src.reader) && /150K tokens \(opt-in default\)/.test(src.reader));
 
 // Narration: inline manifests must match the shared manifest (file:// playback, audio timing).
 const inline = (html, id) => JSON.parse((html.match(new RegExp(`<script type="application/json" id="${id}">([\\s\\S]*?)</script>`)) || [])[1] || 'null');

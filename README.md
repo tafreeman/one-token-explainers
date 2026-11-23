@@ -22,7 +22,7 @@ and known limits. A file sits in `shared/` only when more than one explainer use
 
 | Path | Title | What it is | Narration | Design |
 |---|---|---|---|---|
-| [`index.html`](index.html) (`one-token/`) | **One Token, End to End (Unified Reader)** | One continuous twelve-stage lesson pairing Swiss's written structure with Diagram and Spatial 3D views, Present mode, and an inline Component Inspector. | 37-beat 9:41 full + 14-clip 4:38 quick summary | Unified mineral paper, Roboto Flex & Martian Mono, `shared/theme-tokens.js`, Three.js 0.160 |
+| [`index.html`](index.html) (`one-token/`) | **One Token, End to End (Unified Reader)** | One continuous twelve-stage lesson pairing Swiss's written structure with Diagram and Spatial 3D views, Present mode, and an inline Component Inspector. | 45-clip 9:41 full + 14-clip 4:38 quick summary | Unified mineral paper, Roboto Flex & Martian Mono, `shared/theme-tokens.js`, Three.js 0.160 |
 | [`end-to-end-swiss/`](end-to-end-swiss/) | **One Token, End to End (Swiss)** | Classic Swiss edition: " Paris" crosses twelve stages on one line, from training data to the streamed reply. | 14 clips, 4:38 | Swiss: orthographic 3D figures, Martian Mono, Three.js r128 |
 | [`end-to-end-beamline/`](end-to-end-beamline/) | **One Token, End to End (Beamline)** | Classic Beamline edition: eleven physical stations in a pale hall, with Watch and Study modes. | 45 clips, 9:41 | Beamline: Archivo, one floor track, Three.js 0.160 |
 | [`journey-story/`](journey-story/) | **One Token's Journey** | Six chapters take one token from raw text to the next token through DeepSeek-V4-Pro, with 3D rooms you can orbit and inspect. | 32 clips, 6:25 (shared) | Blueprint sheets plus the shared 3D engine |
@@ -72,7 +72,7 @@ npm run verify:warp
 
 ### Component labs
 
-- **Guided Tour** — [byte-pair merges](journey-tour/index.html?rm=1&lab=bpe#stop-3), [expert routing](journey-tour/index.html?rm=1&lab=moe#stop-17), [the B200 roofline](journey-tour/index.html?rm=1&lab=roof#stop-24), and [UTF-8 streaming](journey-tour/index.html?rm=1&lab=stream#stop-26). Each lab opens under **More detail** at its stop.
+- **Guided Tour** — [byte-pair merges](journey-tour/index.html?rm=1&lab=bpe#stop-3), [expert routing](journey-tour/index.html?rm=1&lab=moe#stop-17), [the GB200 roofline](journey-tour/index.html?rm=1&lab=roof#stop-24), and [UTF-8 streaming](journey-tour/index.html?rm=1&lab=stream#stop-26). Each lab opens under **More detail** at its stop.
 - **Story** — [the KL penalty](journey-story/index.html?rm=1&lab=kl), [causal attention](journey-story/index.html?rm=1&lab=attention), [rotary position encoding](journey-story/index.html?rm=1&lab=rope), [KV cache sizes](journey-story/index.html?rm=1&lab=kv), and [the four residual streams](journey-story/index.html?rm=1&lab=mix).
 - **Beamline Study** — mechanism-focused labs appear alongside the relevant steps, including MoE routing, the roofline and UTF-8 streaming.
 

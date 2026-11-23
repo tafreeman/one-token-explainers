@@ -6,7 +6,7 @@ window.ReaderPlayback = (() => {
     const audio = new Audio();
     audio.preload = 'none';
     const play = get('play-audio'), select = get('track'), caption = get('spoken-caption');
-    const status = get('audio-status');
+    const status = get('audio-status'), panel = get('audio-panel'), narrStory = get('narrStory');
     let clips = tracks.full, clipIndex = 0, loaded = -1, playing = false, generation = 0;
     let selection = null, lastCue = '';
     const seconds = n => Math.floor(n / 60) + ':' + String(Math.floor(n % 60)).padStart(2, '0');
@@ -16,6 +16,13 @@ window.ReaderPlayback = (() => {
       const offset = clips.slice(0, clipIndex).reduce((sum, c) => sum + c.dur, 0);
       get('audio-time').textContent = seconds(offset + (loaded === clipIndex ? audio.currentTime : 0)) + ' / ' + seconds(duration);
       play.textContent = playing ? 'Pause narration' : 'Play narration';
+      if (narrStory) {
+        narrStory.setAttribute('aria-pressed', playing);
+        const span = narrStory.querySelector('span');
+        if (span) span.textContent = playing ? 'Pause narration' : 'Narrated run';
+        const dur = narrStory.querySelector('.dur');
+        if (dur) dur.textContent = '(' + seconds(duration) + ')';
+      }
       const cue = loaded === clipIndex && playing
         ? clips[clipIndex].cues.findLast(c => c.t <= audio.currentTime)?.s || '' : '';
       caption.hidden = !cue || !get('captions').checked;
@@ -27,10 +34,13 @@ window.ReaderPlayback = (() => {
       audio.pause();
       paint();
     }
-    function failure() {
+    function failure(err) {
       pause();
       status.hidden = false;
-      status.textContent = 'This recording could not play. Try Play narration again, or continue with the written lesson.';
+      const blocked = err && (err.name === 'NotAllowedError' || /user.*interact|gesture|permission/i.test(String(err.message || '')));
+      status.textContent = blocked
+        ? 'Browser blocked automatic audio playback. Press Play narration again or enable Captions to read along.'
+        : 'This recording could not play. Try Play narration again, or continue with the written lesson.';
       loaded = -1;
     }
     function position() {
@@ -45,7 +55,13 @@ window.ReaderPlayback = (() => {
         const at = t * stage.length;
         id = stage[Math.floor(at)].id;
         localT = at % 1;
+      } else if (select.value === 'full' && selection?.id) {
+        // When two consecutive steps share one spatialBeat clip (e.g. 1.2 and 1.3 -> 1b),
+        // avoid yanking the reader backward to the earlier step at clip start.
+        const currentStop = stops.find(s => s.id === selection.id);
+        if (currentStop && currentStop.spatialBeat === clip.id) id = currentStop.id;
       }
+      selection = {id, opening: clip.id === 'hero'};
       onPosition(id, localT, select.value === 'full' ? clip.id : null);
       paint();
     }
@@ -54,13 +70,16 @@ window.ReaderPlayback = (() => {
       status.hidden = true;
       playing = true;
       onStart();
+      if (window.innerWidth < 768 && panel?.matches(':popover-open')) {
+        try { panel.hidePopover(); } catch {}
+      }
       if (loaded !== clipIndex) {
         loaded = clipIndex;
         audio.src = asset(clips[clipIndex].src);
       }
       position();
       try { await audio.play(); }
-      catch { if (attempt === generation) failure(); }
+      catch (err) { if (attempt === generation) failure(err); }
     }
     function selectPosition(id, opening) {
       pause();
@@ -84,16 +103,25 @@ window.ReaderPlayback = (() => {
       if (resume) start();
     });
     play.addEventListener('click', () => playing ? pause() : start());
+    narrStory?.addEventListener('click', () => {
+      if (playing) { pause(); return; }
+      selectPosition(stops[0].id, false);
+      start();
+    });
     get('captions').addEventListener('change', paint);
     get('muted').addEventListener('change', () => { audio.muted = get('muted').checked; });
     audio.addEventListener('timeupdate', () => {
-      if (playing) selection = {id: clips[clipIndex].stepId, opening: false};
-      position();
+      const activeGen = generation;
+      if (playing && activeGen === generation) position();
     });
-    audio.addEventListener('error', () => { if (playing && audio.error) failure(); });
+    audio.addEventListener('error', () => {
+      const activeGen = generation;
+      if (playing && activeGen === generation && audio.error) failure(audio.error);
+    });
     audio.addEventListener('ended', () => {
-      if (!playing) return;
-      if (clipIndex + 1 < clips.length) { clipIndex++; start(); }
+      const activeGen = generation;
+      if (!playing || activeGen !== generation) return;
+      if (clipIndex + 1 < clips.length) { selection = null; clipIndex++; start(); }
       else { pause(); clipIndex = 0; loaded = -1; paint(); }
     });
     return {pause, selectPosition, get playing() { return playing; }};

@@ -11,7 +11,7 @@
     { name: 'Post-train', tokenForm: 'part of a graded attempt', glyphAxes: [118, 700] },
     { name: 'Release', tokenForm: 'frozen into the weights', glyphAxes: [100, 620] },
     { name: 'Request', tokenForm: 'token in your prompt', glyphAxes: [132, 420] },
-    { name: 'Forward pass', tokenForm: 'vector · float[7,168]', glyphAxes: [25, 1000] },
+    { name: 'Forward pass', tokenForm: 'vector · float[7,168]', glyphAxes: [46, 860] },
     { name: 'Prefill', tokenForm: 'entry in the KV cache', glyphAxes: [78, 880] },
     { name: 'Think', tokenForm: 'context for reasoning', glyphAxes: [100, 250] },
     { name: 'Decode', tokenForm: 'copied into a tool call', glyphAxes: [68, 800] },

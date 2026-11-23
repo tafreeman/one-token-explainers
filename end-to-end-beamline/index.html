@@ -538,7 +538,7 @@ output_config: { effort: "high" }</code>
     <article class="step beat" data-beat="7a">
       <h3>Your app runs the tool</h3>
       <p>The model can’t call your weather service. Your code does, and keeps the result. Server tools such as web search and code execution are the exception: they run on Anthropic’s infrastructure, inside the same request. Treat every tool result as untrusted input.</p>
-      <code class="eq">result = get_weather(city="Paris")    # → {"temp_c": 18, "sky": "clear"}</code>
+      <code class="eq">result = get_weather(city="Paris")    # → {"temp_c": 18, "conditions": "clear"}</code>
       <table class="spec"><tr><td>Client tools</td><td>run by your app</td><td><i class="src">Anthropic</i></td></tr><tr><td>Server tools</td><td>web search · fetch · code</td><td><i class="src">Anthropic</i></td></tr><tr><td>Weather result</td><td>18 °C, clear</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
@@ -1265,9 +1265,9 @@ function screenFromJ(Jv, beat) {
     case 'serve-up': return { status: 'prefill…' };
     case 'decode': return { status: 'thinking…' };
     case 'stream': return { call: call.slice(0, Math.max(1, Math.round(call.length * sstep(.3, .95, u)))), stop: u > .9 ? 'stop_reason: "tool_use"' : '' };
-    case 'tool': return { call, result: u > .35 ? 'tool_result  {"temp_c": 18, "sky": "clear"}' : 'running get_weather…', stop: 'stop_reason: "tool_use"' };
-    case 'cached': return { call, result: 'tool_result  {"temp_c": 18, "sky": "clear"}', status: beamCacheBust ? 'cache bust · full prompt prefill' : 'cache hit · prefill new tokens' };
-    case 'answer': { const k = Math.round(ans.length * sstep(.55, .98, u)); return { call, result: 'tool_result  {"temp_c": 18, "sky": "clear"}', answer: ans.slice(0, k), stop: u > .97 ? 'stop_reason: "end_turn"' : '' }; }
+    case 'tool': return { call, result: u > .35 ? 'tool_result  {"temp_c": 18, "conditions": "clear"}' : 'running get_weather…', stop: 'stop_reason: "tool_use"' };
+    case 'cached': return { call, result: 'tool_result  {"temp_c": 18, "conditions": "clear"}', status: beamCacheBust ? 'cache bust · full prompt prefill' : 'cache hit · prefill new tokens' };
+    case 'answer': { const k = Math.round(ans.length * sstep(.55, .98, u)); return { call, result: 'tool_result  {"temp_c": 18, "conditions": "clear"}', answer: ans.slice(0, k), stop: u > .97 ? 'stop_reason: "end_turn"' : '' }; }
   }
   return {};
 }

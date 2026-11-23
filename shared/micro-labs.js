@@ -264,8 +264,8 @@
     const capDrop = svg('rect', {x: 276, y: 126, width: 0, height: 7, rx: 2, class: 'ml-drop'}, fig);
     const weights = el('div', '', 'ml-weights'), info = el('div', '', 'ml-readout');
     box.append(weights, info);
-    eq(box, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'gⱼ', 'A taller cell and a longer bar mean a larger share of the routed output.'], ' · expertⱼ']);
-    note(box, 'Illustrative affinities. When λ = 0 collapses routing onto hot experts under capacity factor C = 1.25, overflow tokens drop. Original affinities set the mix; the shared expert runs separately.');
+    eq(box, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'gⱼ', 'Normalized top-K shares sum to 1.00 (DeepSeek-V4-Pro applies a 2.5× routed scaling factor).'], ' · expertⱼ']);
+    note(box, 'Illustrative affinities: normalized top-6 shares sum to 1.00 (DeepSeek-V4-Pro applies a 2.5× routed scaling factor alongside the separate always-on shared expert). When λ = 0 collapses routing onto hot experts under capacity factor C = 1.25, overflow tokens drop.');
     const setTrace = id => {
       box.classList.toggle('has-focus', id != null);
       cells.forEach((c, idx) => c.classList.toggle('is-traced', id === idx));
@@ -289,7 +289,7 @@
       }
       const okW = (cap.routed / cap.total) * 274;
       setA(capOk, {width: okW.toFixed(1)}); setA(capDrop, {x: (2 + okW).toFixed(1), width: (274 - okW).toFixed(1)});
-      info.textContent = 'Σ gⱼ = ' + entries.reduce((s, e) => s + e.weight, 0).toFixed(2) + ' · busy experts ' + entries.filter(e => e.hot).length + '/' + entries.length +
+      info.textContent = 'Σ gⱼ = ' + entries.reduce((s, e) => s + e.weight, 0).toFixed(2) + ' (×2.5 routed scale in V4-Pro + 1 shared) · busy experts ' + entries.filter(e => e.hot).length + '/' + entries.length +
         (cap.dropped ? '\nCapacity C=1.25 overflow · ' + cap.dropped + '/' + cap.total + ' token slots dropped (illustrative)' : ' · 0/' + cap.total + ' dropped');
       setTrace(null);
     }
@@ -412,6 +412,7 @@
         svg('text', {x: 252, y: y + 4}, fig, 'y' + (i + 1));
       }
       eq(box, ['Y = ', ['mix', 'mHC_mix', 'Each output mixes ¾ of its stream and ¼ from a neighbor. Every row and column sums to one.'], ' · X']);
+      note(box, 'Illustrative fixed ¾ / ¼ doubly-stochastic mixing matrix. DeepSeek-V4-Pro learns dynamic H_pre, H_res, and H_post stream maps across 4 × 7,168 streams and merges them to 7,168 before final RMSNorm.');
     } else {
       const p = [.75, .25], ref = [.5, .5];
       for (let i = 0; i < 2; i++) {

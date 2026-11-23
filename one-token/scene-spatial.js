@@ -89,13 +89,13 @@ const Track = (() => {
   const mk = (x0, x1, z) => { const n = Math.ceil((x1 - x0) / SEGL); const a = new THREE.InstancedMesh(BOX, mat, n), b = new THREE.InstancedMesh(BOX, mat, n);
     a.instanceMatrix.setUsage(THREE.DynamicDrawUsage); b.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(a, b); return { x0, n, z, a, b }; };
   const main = mk(-3, X_SCREEN - .4, 0), back = mk(X_INTAKE - 1.2, X_SCREEN + 1.4, Z_BACK);
-  const ink = new THREE.Color(HEX.ink), steel = new THREE.Color(colors.grid);
+  const ink = new THREE.Color(HEX.ink), steel = new THREE.Color(colors.grid), brass = new THREE.Color(colors.cache);
   function put(m, i, x, z, len, w, col) { dummy.position.set(x, .02, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(Math.max(len, 1e-4), .012, Math.max(w, 1e-4)); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.setColorAt(i, col); }
   function fill(L, stateOf) {
     for (let i = 0; i < L.n; i++) {
       const x = L.x0 + (i + .5) * SEGL, st = stateOf(x, i);
       if (st === 'solid') { put(L.a, i, x, L.z, SEGL * 1.002, .1, ink); put(L.b, i, x, L.z, 0, 0, ink); }
-      else if (st === 'double') { put(L.a, i, x, L.z - .13, SEGL * 1.002, .06, ink); put(L.b, i, x, L.z + .13, SEGL * 1.002, .06, ink); }
+      else if (st === 'double') { put(L.a, i, x, L.z - .13, SEGL * 1.002, .06, brass); put(L.b, i, x, L.z + .13, SEGL * 1.002, .06, brass); }
       else if (st === 'gap') { put(L.a, i, x, L.z, 0, 0, ink); put(L.b, i, x, L.z, 0, 0, ink); }
       else { put(L.a, i, x, L.z, i % 2 ? 0 : SEGL * .55, .07, steel); put(L.b, i, x, L.z, 0, 0, ink); }
     }
@@ -199,8 +199,8 @@ const Tokenizer = (() => {
   shadow(X_TOK, 0, 2.2, 2.6, .45, g);
   // vision plate
   const vis = new THREE.Group(); g.add(vis);
-  const vtex = texCanvas(256, 256, (c) => { const gr = c.createLinearGradient(0, 0, 256, 256); gr.addColorStop(0, '#9AA3AB'); gr.addColorStop(1, '#2B3036'); c.fillStyle = gr; c.fillRect(0, 0, 256, 256);
-    c.fillStyle = '#E9EBEB'; c.beginPath(); c.moveTo(128, 40); c.lineTo(150, 210); c.lineTo(106, 210); c.closePath(); c.fill(); c.strokeStyle = theme.css.ground; c.lineWidth = 3; for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, 256); c.stroke(); c.beginPath(); c.moveTo(0, i * 64); c.lineTo(256, i * 64); c.stroke(); } });
+  const vtex = texCanvas(256, 256, (c) => { const gr = c.createLinearGradient(0, 0, 256, 256); gr.addColorStop(0, theme.css['hardware-body']); gr.addColorStop(1, theme.css.muted); c.fillStyle = gr; c.fillRect(0, 0, 256, 256);
+    c.fillStyle = theme.css.ground; c.beginPath(); c.moveTo(128, 40); c.lineTo(150, 210); c.lineTo(106, 210); c.closePath(); c.fill(); c.strokeStyle = theme.css.ground; c.lineWidth = 3; for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, 256); c.stroke(); c.beginPath(); c.moveTo(0, i * 64); c.lineTo(256, i * 64); c.stroke(); } });
   const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7), new THREE.MeshBasicMaterial({ map: vtex })); plate.rotation.x = -Math.PI / 2; plate.position.set(X_TOK - 2.6, .4, -3.3); vis.add(plate);
   box(1.86, .14, 1.86, M.steelL, X_TOK - 2.6, .3, -3.3, vis);
   const patches = new THREE.InstancedMesh(BOX, M.graphite, 16); patches.instanceMatrix.setUsage(THREE.DynamicDrawUsage); vis.add(patches);
@@ -336,7 +336,7 @@ const Post = (() => {
   const tether = new THREE.Line(tg, new THREE.LineDashedMaterial({ color: HEX.ink, dashSize: .3, gapSize: .2 })); tether.computeLineDistances(); g.add(tether);
   // constitution
   const ctex = texCanvas(256, 340, (c, w, h) => { c.fillStyle = theme.css.ground; c.fillRect(0, 0, w, h); c.fillStyle = theme.css.ink; c.font = '700 26px "Roboto Flex", sans-serif'; c.fillText('Constitution', 22, 46);
-    c.fillStyle = '#9AA3AB'; for (let i = 0; i < 12; i++) c.fillRect(22, 74 + i * 20, 160 + ((i * 53) % 50), 6); c.strokeStyle = theme.css.ink; c.lineWidth = 3; c.strokeRect(1.5, 1.5, w - 3, h - 3); });
+    c.fillStyle = theme.css['hardware-body']; for (let i = 0; i < 12; i++) c.fillRect(22, 74 + i * 20, 160 + ((i * 53) % 50), 6); c.strokeStyle = theme.css.ink; c.lineWidth = 3; c.strokeRect(1.5, 1.5, w - 3, h - 3); });
   const cons = new THREE.Group(); g.add(cons); cons.position.set(X_POST + 3.8, 0, -5.6);
   const sheet = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2), new THREE.MeshBasicMaterial({ map: ctex, side: THREE.DoubleSide })); sheet.position.set(0, 1.85, 0); sheet.rotation.y = -.35; cons.add(sheet);
   box(.08, .9, .08, M.steel, 0, .45, 0, cons); shadow(0, 0, 1.6, 1.2, .35, cons);
@@ -387,7 +387,7 @@ const Serve = (() => {
   // batch rows
   const batch = new THREE.InstancedMesh(BOX, lam(colors.hardwareFrame), 12); batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(batch);
   // thinking tiles (hollow)
-  const thinking = Array.from({ length: 9 }, () => { const e = edgesBox(.62, .32, .32, HEX.ink, g); e.visible = false; return e; });
+  const thinking = Array.from({ length: 11 }, () => { const e = edgesBox(.62, .32, .32, HEX.ink, g); e.visible = false; return e; });
   const draft = edgesBox(.66, .34, .34, HEX.token, g); draft.visible = false;
   // screen
   const scr = new THREE.Group(); g.add(scr); scr.position.set(X_SCREEN + 2.7, 0, 0);
@@ -396,7 +396,7 @@ const Serve = (() => {
   const surf = new THREE.Mesh(new THREE.PlaneGeometry(5.12, 3.3), new THREE.MeshBasicMaterial({ map: stex })); surf.position.set(0, 2.25, .125); scr.add(surf);
   // bench
   const bench = new THREE.Group(); g.add(bench); bench.position.set(X_BENCH, 0, Z_BACK - 2.6);
-  box(2.6, 1.3, 1.8, M.tool, 0, .65, 0, bench); box(1.0, .5, 1.86, lam(0x0F6B50), 0, .78, 0, bench); shadow(0, 0, 3.6, 2.8, .45, bench);
+  box(2.6, 1.3, 1.8, M.tool, 0, .65, 0, bench); box(1.0, .5, 1.86, lam(colors.tool), 0, .78, 0, bench); shadow(0, 0, 3.6, 2.8, .45, bench);
   // compaction block
   const compact = box(2.8, .34, .34, M.ink, X_INTAKE + 3.2, Y0, 0, g); compact.visible = false;
   let screenKey = '';
@@ -407,12 +407,12 @@ const Serve = (() => {
     c.fillStyle = theme.css.inset; c.fillRect(0, 0, w, 64); c.fillStyle = theme.css.ink; c.font = '600 28px "Roboto Flex", sans-serif'; c.fillText('your app', 32, 42);
     c.fillStyle = theme.css.muted; c.font = '500 22px "Martian Mono", monospace'; c.fillText('POST /v1/messages', w - 300, 42);
     // user bubble
-    c.fillStyle = theme.css.ink; c.fillRect(w - 600, 104, 568, 72); c.fillStyle = '#FFFFFF'; c.font = '500 27px "Roboto Flex", sans-serif'; c.fillText('What’s the weather in Paris right now?', w - 578, 150);
+    c.fillStyle = theme.css.ink; c.fillRect(w - 600, 104, 568, 72); c.fillStyle = theme.css.plate; c.font = '500 27px "Roboto Flex", sans-serif'; c.fillText('What’s the weather in Paris right now?', w - 578, 150);
     let y = 236; c.font = '500 25px "Martian Mono", monospace';
     const line = (txt, col = theme.css.ink, font) => { c.fillStyle = col; if (font) c.font = font; c.fillText(txt, 32, y); y += 46; };
     if (state.status) line(state.status, theme.css.muted);
     if (state.call) { c.strokeStyle = theme.css.ink; c.lineWidth = 2; c.strokeRect(24, y - 34, w - 48, 98); line('tool_use  get_weather', theme.css.ink, '600 25px "Martian Mono", monospace'); line(state.call, theme.css.ink, '500 25px "Martian Mono", monospace'); y += 14; }
-    if (state.result) { c.fillStyle = '#E3F3EC'; c.fillRect(24, y - 34, w - 48, 56); line(state.result, theme.css.tool); y += 10; }
+    if (state.result) { c.fillStyle = theme.css.inset; c.fillRect(24, y - 34, w - 48, 56); line(state.result, theme.css.tool); y += 10; }
     if (state.answer !== undefined) { c.font = '500 36px "Roboto Flex", sans-serif'; c.fillStyle = theme.css.ink; c.fillText(state.answer, 32, y + 12); y += 70; }
     if (state.stop) { c.font = '500 22px "Martian Mono", monospace'; c.fillStyle = theme.css.muted; c.fillText(state.stop, 32, h - 34); }
     stex.needsUpdate = true;
@@ -433,7 +433,7 @@ const Serve = (() => {
     if (batch.visible) batch.instanceMatrix.needsUpdate = true;
     // thinking tiles
     const tv = S.v.thinking;
-    thinking.forEach((e, i) => { const s = frac(a * .2 + i / 9); const x = lerp(X_TOWER + 3.6, X_STREAM - 3.1, Math.min(1, s * 1.15)); e.visible = tv > .02 && s < .96 && i < S.effort;
+    thinking.forEach((e, i) => { const s = frac(a * .2 + i / 11); const x = lerp(X_TOWER + 3.6, X_STREAM - 3.1, Math.min(1, s * 1.15)); e.visible = tv > .02 && s < .96 && i < S.effort;
       e.position.set(x, Y0 + Math.max(0, (.12 - s) * 30) * .4, -1.8); e.scale.setScalar(Math.max(.001, tv * clamp(s * 12))); });
     barrier.visible = laneM.visible = tv > .02 || S.v.lane > .02;
     // draft
@@ -546,7 +546,7 @@ const B = {
   '6a': { cam: [78, 11, 34, 88, 6.5, 1], loopJ: [J('serve-up', 0), J('serve-up', 1), 3.8], ph: .8, tags: ['kv'], kvFill: true, lamps: L6 },
   '6b': { cam: [100, 5.5, 14, 96, .8, -1.8], parkJ: J('decode', 0), hideBead: true, tags: ['thinking', 'notret'], show: { thinking: 1, logits: .8 }, kv: 15, kvTick: true, lamps: L6 },
   '6c': { cam: [98, 9, 26, 90, 6, 0], loopJ: [J('decode', 0), J('decode', 1), 2.6], ph: .7, tags: ['kv'], show: { draft: 1, logits: 1, lane: 1 }, kv: 15, kvTick: true, winner: 1, lamps: L6 },
-  '6d': { cam: [90, 4.5, 6.5, 96, 1.2, -.3], loopJ: [J('decode', .6), J('stream', .3), 2.8], ph: .7, tags: ['sampler'], show: { lane: 1 }, lamps: L6 },
+  '6d': { cam: [88, 6.2, 13.5, 97.5, 1.5, -.2], loopJ: [J('decode', .6), J('stream', .3), 2.8], ph: .7, tags: ['sampler'], show: { lane: 1 }, lamps: L6 },
   '6e': { cam: [106, 5, 17, 110.5, 2, 0], loopJ: [J('stream', .2), J('stream', 1), 3], ph: .95, tags: ['outcls', 'screen'], show: { lane: 1 }, lamps: L6 },
   p7: { cam: [93, 30, 42, 93, 0, -4], fov: 30, A: 1.78, loopJ: [J('tool', 0), J('tool', 1), 6.5], ph: .3, tags: ['s10', 's11'], lamps: L6 },
   '7a': { cam: [111, 11, 5, 104, .4, -8.4], loopJ: [J('tool', 0), J('tool', .45), 4], ph: .6, tags: ['bench'], lamps: L6 },
@@ -615,9 +615,9 @@ function screenFromJ(Jv) {
     case 'serve-up': return { status: 'prefill…' };
     case 'decode': return { status: 'thinking…' };
     case 'stream': return { call: call.slice(0, Math.max(1, Math.round(call.length * sstep(.3, .95, u)))), stop: u > .9 ? 'stop_reason: "tool_use"' : '' };
-    case 'tool': return { call, result: u > .35 ? 'tool_result  {"temp_c": 18, "sky": "clear"}' : 'running get_weather…', stop: 'stop_reason: "tool_use"' };
-    case 'cached': return { call, result: 'tool_result  {"temp_c": 18, "sky": "clear"}', status: beamCacheBust ? 'cache bust · full prompt prefill' : 'cache hit · prefill new tokens' };
-    case 'answer': { const k = Math.round(ans.length * sstep(.55, .98, u)); return { call, result: 'tool_result  {"temp_c": 18, "sky": "clear"}', answer: ans.slice(0, k), stop: u > .97 ? 'stop_reason: "end_turn"' : '' }; }
+    case 'tool': return { call, result: u > .35 ? 'tool_result  {"temp_c": 18, "conditions": "clear"}' : 'running get_weather…', stop: 'stop_reason: "tool_use"' };
+    case 'cached': return { call, result: 'tool_result  {"temp_c": 18, "conditions": "clear"}', status: beamCacheBust ? 'cache bust · full prompt prefill' : 'cache hit · prefill new tokens' };
+    case 'answer': { const k = Math.round(ans.length * sstep(.55, .98, u)); return { call, result: 'tool_result  {"temp_c": 18, "conditions": "clear"}', answer: ans.slice(0, k), stop: u > .97 ? 'stop_reason: "end_turn"' : '' }; }
   }
   return {};
 }
@@ -626,10 +626,29 @@ function screenFromJ(Jv) {
 const openingCam = [-18, 23, 38, 11, 4.8, 0];
 const openingTight = [-18, 10.5, 18, -4.2, 2.0, 0];
 
+const SUB_BEATS = {
+  '3.3': ['2b', '2c'],
+  '4.2': ['3b', '3d'],
+  '7.2': ['5d', '5c'],
+  '7.4': ['5b', '5f'],
+  '12.2': ['7c', '7b']
+};
+
 function locate(state) {
-  const b = state.opening ? B.hero : state.recap ? B.f1 : B[state.spatialBeat] || B.hero;
-  const u = clamp(state.recap ? (state.overallT ?? state.localT ?? 0) : (state.localT ?? 0));
-  const j = state.opening ? J('feed', .42)
+  let beatKey = state.spatialBeat;
+  const rawU = clamp(state.recap ? (state.overallT ?? state.localT ?? 0) : (state.localT ?? 0));
+  let u = rawU;
+  if (!state.opening && !state.recap && !state.overview && state.stepId && SUB_BEATS[state.stepId] && beatKey === SUB_BEATS[state.stepId][0]) {
+    const pair = SUB_BEATS[state.stepId];
+    if (rawU >= 0.55) {
+      beatKey = pair[1];
+      u = (rawU - 0.55) / 0.45;
+    } else {
+      u = rawU / 0.55;
+    }
+  }
+  const b = (state.opening || state.overview) ? B.hero : state.recap ? B.f1 : B[beatKey] || B.hero;
+  const j = (state.opening || state.overview) ? J('feed', .42)
     : b.scrubJ ? lerp(b.scrubJ[0], b.scrubJ[1], b === B.f1 ? sstep(.04, .9, u) : u)
     : b.loopJ ? lerp(b.loopJ[0], b.loopJ[1], u)
     : b.parkJ ?? 0;
@@ -638,7 +657,7 @@ function locate(state) {
 
 function update(state, aspect, viewportWidth) {
   const { b, u, j } = locate(state);
-  const compact = viewportWidth < 610 || aspect < .85;
+  const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < .85;
   const corpusOpening = !!state.opening && compact;
   const settings = state.settings || {};
   const S = State;
@@ -685,7 +704,7 @@ function update(state, aspect, viewportWidth) {
     ? (S.bead.pos.z < -5.5 ? S.bead.pos.x : (t < .5 ? 999 : X_INTAKE - 1.3))
     : (['cached', 'answer'].includes(sk) ? X_INTAKE - 1.3 : 999);
   S.cache = b.cache || (['cached', 'answer'].includes(sk) && b === B.f1 ? [X_INTAKE - 1.2, X_TOWER - 1.6] : null);
-  const effort = { low: 3, medium: 5, high: 7, max: 9 }[settings.effort] ?? 7;
+  const effort = { low: 3, medium: 5, high: 7, xhigh: 9, max: 11 }[settings.effort] ?? 7;
   S.effort = effort;
   S.kv = b.kv !== undefined ? b.kv + (b.kvTick ? Math.round(effort * u) : 0)
     : b.kvFill ? Math.round(14 * clamp(uIn(SEG['serve-up'], j) / SEG['serve-up'].floorEnd)) : kvFromJ(j);
@@ -710,9 +729,9 @@ function update(state, aspect, viewportWidth) {
   if (S.bead.visible) {
     switch (sk) {
       case 'tokens': trainCorpus.place(segment, t, scale); break;
-      case 'train-up': trainCorpus.place(segment, t, scale, { climb: false, floorEnd: segment.floorEnd }); break;
+      case 'train-up': trainCorpus.place(segment, t, scale); break;
       case 'request': trainPrompt.place(segment, t, scale); break;
-      case 'serve-up': trainPrompt.place(segment, t, scale, { climb: false, floorEnd: segment.floorEnd }); break;
+      case 'serve-up': trainPrompt.place(segment, t, scale); break;
       case 'tool':
       case 'cached':
         trainResend.list.at(-1).p.hideAfterX = sk === 'tool' ? X_BENCH : undefined;
@@ -748,7 +767,8 @@ function update(state, aspect, viewportWidth) {
     offset.setLength(distance * .48);
     offset.y = distance * .88;
   } else if (!state.opening && state.present && aspect < 0.9) {
-    offset.multiplyScalar(Math.min(1.42, Math.sqrt(1.12 / Math.max(0.55, aspect))));
+    offset.multiplyScalar(Math.min(1.62, Math.sqrt(1.28 / Math.max(0.5, aspect))));
+    target.x = lerp(target.x, S.tower.x, 0.22);
   } else if (!state.opening && (state.camera === 'close' || compact)) {
     offset.multiplyScalar(compact ? .79 : .69);
   }
@@ -775,7 +795,8 @@ function update(state, aspect, viewportWidth) {
   scene.fog.near = offset.length() * 1.4;
   scene.fog.far = offset.length() * 4;
 
-  const tag = b.tags?.[0];
+  const tags = b.tags || [];
+  const tag = tags[Math.min(tags.length - 1, Math.floor(u * tags.length))];
   if (tag && TAGS[tag]) {
     const [label, getAnchor] = TAGS[tag];
     return { anchor: getAnchor(), label: b === B['5d'] && settings.kv === 'dense' ? 'dense attention' : label };
@@ -784,7 +805,7 @@ function update(state, aspect, viewportWidth) {
     : { anchor: V3(S.tower.x, TOWER_TOP, 0), label: 'model weights' };
 }
 
-return { scene, camera, update };
+return { scene, camera, update, setRouting: Callouts.setRouting };
 }
 
 window.ReaderSpatial = Object.freeze({ create });
