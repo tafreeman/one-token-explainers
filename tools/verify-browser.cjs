@@ -14,6 +14,7 @@ const warp = process.argv.includes('--warp');
 // WARP rasterizes on the CPU, so latency scales with cores. 100 ms is the budget on a
 // 24-thread workstation; CI's 4-vCPU runner passes its own calibrated WARP_P95_BUDGET_MS.
 const WARP_P95_BUDGET_MS = Number(process.env.WARP_P95_BUDGET_MS) || 100;
+const WARP_TRIALS = 5;
 // --only=layout,keyboard,context,mirrors runs a subset; default runs every section.
 const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
 const only = onlyArg ? new Set(onlyArg.slice(7).split(',')) : null;
@@ -184,29 +185,37 @@ async function drawerPerformance(browser, base) {
   try {
     await ready(page, base + 'journey-story/?rm=1&state=ch4-drawer-router', 'window.__ready && window.__journey.state.opened');
     const frame = page.frames().find(f => f.url().includes('obs-core.html'));
-    const report = await frame.evaluate(async () => {
+    // One 53-frame p95 is its third-worst frame, so a single runner hiccup decides it (CI
+    // measured 82 ms and 138 ms on the same commit). Judge the median of five trials.
+    const report = await frame.evaluate(async trials => {
       const api = window.obs;
       const gl = document.querySelector('canvas').getContext('webgl2') || document.querySelector('canvas').getContext('webgl');
-      const basePose = api.getPose(), samples = [];
-      for (let i = 0; i < 65; i++) {
-        const start = performance.now();
-        api.setPose({pos: [basePose.pos[0] + Math.sin(i * .12) * .45, ...basePose.pos.slice(1)], target:basePose.target}, {fly:false});
-        api.renderNow();
-        gl.finish();
-        await new Promise(requestAnimationFrame);
-        if (i >= 12) samples.push(performance.now() - start);
+      const basePose = api.getPose(), p95s = [];
+      for (let trial = 0; trial < trials; trial++) {
+        const samples = [];
+        for (let i = 0; i < 65; i++) {
+          const start = performance.now();
+          api.setPose({pos: [basePose.pos[0] + Math.sin(i * .12) * .45, ...basePose.pos.slice(1)], target:basePose.target}, {fly:false});
+          api.renderNow();
+          gl.finish();
+          await new Promise(requestAnimationFrame);
+          if (i >= 12) samples.push(performance.now() - start);
+        }
+        samples.sort((a,b) => a-b);
+        p95s.push(+samples[Math.ceil(.95 * samples.length) - 1].toFixed(1));
+        await new Promise(r => setTimeout(r, 300));
       }
       await new Promise(r => setTimeout(r, 600));
       const stats = api.stats();
       await new Promise(r => setTimeout(r, 900));
-      samples.sort((a,b) => a-b);
+      const median = [...p95s].sort((a,b) => a-b)[Math.floor(p95s.length / 2)];
       return {adapter:stats.quality.renderer, pixels:stats.quality.buffer, calls:stats.renderer.calls,
-        p95:samples[Math.ceil(.95 * samples.length) - 1], idleFrames:api.stats().frames - stats.frames};
-    });
+        p95:median, trialP95s:p95s, idleFrames:api.stats().frames - stats.frames};
+    }, WARP_TRIALS);
     console.log('Open router drawer', JSON.stringify({...report, cpus: os.cpus().length, budget: WARP_P95_BUDGET_MS}));
     assert.match(report.adapter, /Microsoft Basic Render Driver|WARP/i);
     assert(report.calls < 90, 'drawer draw-call budget');
-    assert(report.p95 < WARP_P95_BUDGET_MS, 'WARP p95 ' + report.p95.toFixed(1) + ' ms must be below ' + WARP_P95_BUDGET_MS + ' ms');
+    assert(report.p95 < WARP_P95_BUDGET_MS, 'WARP median p95 ' + report.p95.toFixed(1) + ' ms must be below ' + WARP_P95_BUDGET_MS + ' ms');
     assert.equal(report.idleFrames, 0);
   } finally { await page.close(); }
 }
