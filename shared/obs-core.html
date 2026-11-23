@@ -1,10 +1,14 @@
-<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>LLM Systems Observatory</title>
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141c27'/%3E%3Cpath fill='none' stroke='%23c9a15a' stroke-width='2' d='m6 11 10-5 10 5-10 5z'/%3E%3Cpath fill='none' stroke='%234ea5b8' stroke-width='2' d='m6 16 10 5 10-5M6 21l10 5 10-5'/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#eceae3;color:#1e2530}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>LLM Systems Observatory</title>
 <style>
     /* Theme tokens: light values on bare :root; dark under prefers-color-scheme and [data-theme="dark"] */
     :root {
       --ff-sans: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --ff-mono: 'Google Sans Code', ui-monospace, SFMono-Regular, Menlo, monospace;
-      --ease-studio: cubic-bezier(0.22, 1, 0.36, 1);
+      --sans: var(--ff-sans);
+      --mono: var(--ff-mono);
+      --c-acc: var(--accent-brass);
+      --r-control: 6px;
+      --ease-studio: cubic-bezier(0.16, 1, 0.3, 1);
       color-scheme: light;
       --bg-studio: #eceae3;
       --surface-glass: rgba(244, 242, 236, 0.92);
@@ -15,30 +19,30 @@
       --text-primary: #1e2530;
       --text-secondary: #445063;
       --text-muted: #5d6a7d;
-      --accent-brass: #9e732b;
-      --accent-teal: #2c7a8c;
-      --accent-copper: #b04c2b;
-      --accent-emerald: #258255;
+      --accent-brass: #8a631f;
+      --accent-teal: #3f4f63;
+      --accent-copper: #a84828;
+      --accent-emerald: #5f5336;
       --accent-steel: #4d5a70;
       --shadow-panel: 0 10px 28px rgba(25, 32, 44, 0.12);
       --shadow-label: 0 3px 10px rgba(25, 32, 44, 0.16);
-      --focus-ring: #9e732b;
-      --on-brass: #7a5516;
-      --on-teal: #1d5f6e;
-      --on-copper: #8f3a1e;
-      --on-emerald: #14643c;
+      --focus-ring: #8a631f;
+      --on-brass: #704e14;
+      --on-teal: #2e3c4e;
+      --on-copper: #8a371b;
+      --on-emerald: #4b4129;
       --hdr-h: 58px;
       --ftr-h: 58px;
       --tint-brass: rgba(158, 115, 43, 0.18);
       --ring-brass: rgba(158, 115, 43, 0.48);
-      --tint-teal: rgba(44, 122, 140, 0.18);
-      --ring-teal: rgba(44, 122, 140, 0.48);
-      --tint-copper: rgba(176, 76, 43, 0.18);
-      --ring-copper: rgba(176, 76, 43, 0.48);
-      --tint-emerald: rgba(37, 130, 85, 0.18);
-      --ring-emerald: rgba(37, 130, 85, 0.48);
+      --tint-teal: rgba(63, 79, 99, 0.14);
+      --ring-teal: rgba(63, 79, 99, 0.42);
+      --tint-copper: rgba(168, 72, 40, 0.16);
+      --ring-copper: rgba(168, 72, 40, 0.46);
+      --tint-emerald: rgba(95, 83, 54, 0.16);
+      --ring-emerald: rgba(95, 83, 54, 0.44);
       --tint-brass-strong: rgba(158, 115, 43, 0.24);
-      --glow-emerald: rgba(37, 130, 85, 0.25);
+      --glow-emerald: rgba(158, 115, 43, 0.26);
       --glow-brass: rgba(158, 115, 43, 0.28);
     }
 
@@ -53,28 +57,28 @@
         --text-primary: #eef2f7;
         --text-secondary: #b3bfd1;
         --text-muted: #8a98ad;
-        --accent-brass: #c9a15a;
-        --accent-teal: #4ea5b8;
-        --accent-copper: #c86442;
-        --accent-emerald: #3ba874;
+        --accent-brass: #cfa65e;
+        --accent-teal: #9aa7b8;
+        --accent-copper: #cf7452;
+        --accent-emerald: #b5a582;
         --accent-steel: #b0bac9;
         --shadow-panel: 0 14px 36px rgba(4, 7, 13, 0.48);
         --shadow-label: 0 3px 10px rgba(0, 0, 0, 0.28);
-        --focus-ring: #c9a15a;
-        --on-brass: #c9a15a;
-        --on-teal: #6dc3d5;
-        --on-copper: #ec8f6e;
-        --on-emerald: #5fcf98;
+        --focus-ring: #cfa65e;
+        --on-brass: #cfa65e;
+        --on-teal: #b6c2d1;
+        --on-copper: #e59373;
+        --on-emerald: #cfc09f;
         --tint-brass: rgba(201, 161, 90, 0.18);
         --ring-brass: rgba(201, 161, 90, 0.48);
-        --tint-teal: rgba(78, 165, 184, 0.18);
-        --ring-teal: rgba(78, 165, 184, 0.48);
-        --tint-copper: rgba(200, 100, 66, 0.18);
-        --ring-copper: rgba(200, 100, 66, 0.48);
-        --tint-emerald: rgba(59, 168, 116, 0.18);
-        --ring-emerald: rgba(59, 168, 116, 0.48);
+        --tint-teal: rgba(154, 167, 184, 0.16);
+        --ring-teal: rgba(154, 167, 184, 0.44);
+        --tint-copper: rgba(207, 116, 82, 0.18);
+        --ring-copper: rgba(207, 116, 82, 0.48);
+        --tint-emerald: rgba(181, 165, 130, 0.18);
+        --ring-emerald: rgba(181, 165, 130, 0.46);
         --tint-brass-strong: rgba(201, 161, 90, 0.24);
-        --glow-emerald: rgba(59, 168, 116, 0.25);
+        --glow-emerald: rgba(201, 161, 90, 0.26);
         --glow-brass: rgba(201, 161, 90, 0.28);
         color-scheme: dark;
       }
@@ -90,28 +94,28 @@
       --text-primary: #eef2f7;
       --text-secondary: #b3bfd1;
       --text-muted: #8a98ad;
-      --accent-brass: #c9a15a;
-      --accent-teal: #4ea5b8;
-      --accent-copper: #c86442;
-      --accent-emerald: #3ba874;
+      --accent-brass: #cfa65e;
+      --accent-teal: #9aa7b8;
+      --accent-copper: #cf7452;
+      --accent-emerald: #b5a582;
       --accent-steel: #b0bac9;
       --shadow-panel: 0 14px 36px rgba(4, 7, 13, 0.48);
       --shadow-label: 0 3px 10px rgba(0, 0, 0, 0.28);
-      --focus-ring: #c9a15a;
-      --on-brass: #c9a15a;
-      --on-teal: #6dc3d5;
-      --on-copper: #ec8f6e;
-      --on-emerald: #5fcf98;
+      --focus-ring: #cfa65e;
+      --on-brass: #cfa65e;
+      --on-teal: #b6c2d1;
+      --on-copper: #e59373;
+      --on-emerald: #cfc09f;
       --tint-brass: rgba(201, 161, 90, 0.18);
       --ring-brass: rgba(201, 161, 90, 0.48);
-      --tint-teal: rgba(78, 165, 184, 0.18);
-      --ring-teal: rgba(78, 165, 184, 0.48);
-      --tint-copper: rgba(200, 100, 66, 0.18);
-      --ring-copper: rgba(200, 100, 66, 0.48);
-      --tint-emerald: rgba(59, 168, 116, 0.18);
-      --ring-emerald: rgba(59, 168, 116, 0.48);
+      --tint-teal: rgba(154, 167, 184, 0.16);
+      --ring-teal: rgba(154, 167, 184, 0.44);
+      --tint-copper: rgba(207, 116, 82, 0.18);
+      --ring-copper: rgba(207, 116, 82, 0.48);
+      --tint-emerald: rgba(181, 165, 130, 0.18);
+      --ring-emerald: rgba(181, 165, 130, 0.46);
       --tint-brass-strong: rgba(201, 161, 90, 0.24);
-      --glow-emerald: rgba(59, 168, 116, 0.25);
+      --glow-emerald: rgba(201, 161, 90, 0.26);
       --glow-brass: rgba(201, 161, 90, 0.28);
       color-scheme: dark;
     }
@@ -1029,8 +1033,10 @@
   <script>
 window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolve=resolve;window.__obsReject=reject});window.obs.ready.catch(()=>{});window.__threeReady=ensureJourneyThree('128');window.__threeReady.catch(e=>window.__obsReject(e));
   </script>
+<link rel="stylesheet" href="suite-theme.css">
 <link rel="stylesheet" href="micro-labs.css">
 <script src="micro-labs.js"></script>
+<script src="concept-links.js"></script>
 <script src="obs-file-bridge.js"></script>
 </head><body>
   <div id="stage">
@@ -1042,8 +1048,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
     <div id="contextFallback" role="status" hidden>Training → Model → Inference</div>
 
     <!-- TOP FLOATING BAR -->
-    <header class="top-bar glass-bar">
+    <header class="top-bar glass-bar suite-bar-slot">
       <div class="brand-group">
+        <a class="suite-home" href="../index.html" style="font-size:11.5px;margin-right:4px">← All views</a>
         <span class="led-indicator" id="simLed" title="Simulation Status"></span>
         <span class="brand-title">LLM Systems Observatory</span>
         <span class="brand-tag tabular" id="statusReadout">31 Assemblies · 0.65x</span>
@@ -1735,6 +1742,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
     const MOE_BASE_LIT = [12, 74, 141, 206, 279, 348];
     const moeLit = new Map();
     let routedK = 6, loadBias = 1;
+    let prefixCacheRatio = 1, pdDisagg = true, in12Refs = null;
     const moeViews = [];
     let moeOffset = -1, moeAuto = true;
     let in7Kv = null, kvAuto = true;
@@ -1852,9 +1860,9 @@ let gantryShell=null;
         if (!THREE.PMREMGenerator) return null;
         const pmrem = new THREE.PMREMGenerator(rendererInstance);
         const envScene = new THREE.Scene();
-        envScene.background = new THREE.Color(0x101824);
+        envScene.background = new THREE.Color(0x22252b);
 
-        // Multi-strip photographic studio softbox ceiling + warm/cool specular edge strips
+        // Multi-strip photographic studio softbox ceiling + neutral-warm specular edge strips
         const addStrip = (w, h, col, pos, rot) => {
           const m = new THREE.Mesh(
             new THREE.PlaneGeometry(w, h),
@@ -1865,17 +1873,17 @@ let gantryShell=null;
           envScene.add(m);
         };
         // Twin overhead studio softboxes
-        addStrip(34, 7, 0xfff8ee, [0, 22, 8], [Math.PI / 2, 0, 0]);
-        addStrip(28, 5, 0xd8ecff, [0, 22, -10], [Math.PI / 2, 0, 0]);
-        // Cool cyan studio rim bounce (left)
-        addStrip(26, 12, 0x8cc8e8, [-26, 10, -4], [0, Math.PI / 2, 0]);
-        // Warm brass/tungsten industrial key kicker (right)
-        addStrip(26, 12, 0xf7dbb6, [26, 11, 4], [0, -Math.PI / 2, 0]);
+        addStrip(34, 7, 0xfffaf2, [0, 22, 8], [Math.PI / 2, 0, 0]);
+        addStrip(28, 5, 0xf2f0eb, [0, 22, -10], [Math.PI / 2, 0, 0]);
+        // Neutral architectural rim bounce (left)
+        addStrip(26, 12, 0xe4e2dc, [-26, 10, -4], [0, Math.PI / 2, 0]);
+        // Warm champagne studio key kicker (right)
+        addStrip(26, 12, 0xf7e6ce, [26, 11, 4], [0, -Math.PI / 2, 0]);
         // Horizon accent ring for sharp metallic bevel highlights
-        addStrip(44, 2.5, 0x9ab8d4, [0, 5, -28], [0, 0, 0]);
-        addStrip(44, 2.5, 0xffe6c4, [0, 7, 28], [0, Math.PI, 0]);
-        // Dark PCB emerald-slate floor bounce
-        addStrip(60, 60, 0x0b1c22, [0, -14, 0], [-Math.PI / 2, 0, 0]);
+        addStrip(44, 2.5, 0xd8d5ce, [0, 5, -28], [0, 0, 0]);
+        addStrip(44, 2.5, 0xf8ebd6, [0, 7, 28], [0, Math.PI, 0]);
+        // Neutral warm-stone floor bounce
+        addStrip(60, 60, 0x26282e, [0, -14, 0], [-Math.PI / 2, 0, 0]);
 
         const rt = pmrem.fromScene(envScene, 0.035);
         pmrem.dispose();
@@ -1943,21 +1951,21 @@ let gantryShell=null;
         ctx.strokeRect(11, 11, S - 22, S - 22);
       }, 1, 1, false);
 
-      // 3. Perforated server-rack / cooling vent mesh (albedo + bump)
+      // 3. Perforated architectural louver / cooling vent mesh (neutral anodized pewter)
       const ventMap = makeTex(256, (ctx, S) => {
-        ctx.fillStyle = '#202836';
+        ctx.fillStyle = '#c8c4bc';
         ctx.fillRect(0, 0, S, S);
-        ctx.fillStyle = '#090d14';
+        ctx.fillStyle = '#6f6c66';
         const step = 16;
         for (let y = 8; y < S; y += step) {
           const off = (Math.floor(y / step) % 2) * (step / 2);
           for (let x = 6; x < S; x += step) {
             ctx.beginPath();
-            ctx.arc((x + off) % S, y, 4.4, 0, Math.PI * 2);
+            ctx.arc((x + off) % S, y, 4.2, 0, Math.PI * 2);
             ctx.fill();
           }
         }
-        ctx.strokeStyle = '#39465c';
+        ctx.strokeStyle = '#9c988f';
         ctx.lineWidth = 6;
         ctx.strokeRect(3, 3, S - 6, S - 6);
       }, 1, 1, true);
@@ -1977,35 +1985,35 @@ let gantryShell=null;
         }
       }, 1, 1, false);
 
-      // 4. Silicon wafer / HBM compute interposer pattern
+      // 4. Etched silicon wafer / HBM compute interposer pattern (harmonized warm-pewter + gold pads)
       const siliconMap = makeTex(256, (ctx, S) => {
-        ctx.fillStyle = '#132233';
+        ctx.fillStyle = '#b4b0a7';
         ctx.fillRect(0, 0, S, S);
         for (let r = 0; r < 8; r++) {
           for (let col = 0; col < 8; col++) {
             const x = col * 32 + 2, y = r * 32 + 2;
-            ctx.fillStyle = ((r + col) % 3 === 0) ? '#1c3a4f' : '#182c40';
+            ctx.fillStyle = ((r + col) % 3 === 0) ? '#c2beb5' : '#aba79e';
             ctx.fillRect(x, y, 28, 28);
-            ctx.strokeStyle = '#38708c';
+            ctx.strokeStyle = '#8b877e';
             ctx.lineWidth = 1;
             ctx.strokeRect(x + 3, y + 3, 22, 22);
-            // Tiny gold bond pads
+            // Tiny brushed-brass bond pads
             ctx.fillStyle = '#c9a15a';
             ctx.fillRect(x + 6, y + 13, 16, 2);
           }
         }
       }, 1, 1, true);
 
-      // 5. Woven dark carbon-composite texture for industrial bases & exoskeleton
+      // 5. Fine neutral-mineral composite weave (high-key so material.color drives skin/theme cleanly)
       const carbonMap = makeTex(128, (ctx, S) => {
-        ctx.fillStyle = '#1c2028';
+        ctx.fillStyle = '#e3e0d8';
         ctx.fillRect(0, 0, S, S);
         for (let y = 0; y < S; y += 8) {
           for (let x = 0; x < S; x += 8) {
             const alt = ((x + y) / 8) % 2 === 0;
-            ctx.fillStyle = alt ? '#272d38' : '#171b22';
+            ctx.fillStyle = alt ? '#eae7e0' : '#d8d4cb';
             ctx.fillRect(x, y, 7, 7);
-            ctx.fillStyle = alt ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.18)';
+            ctx.fillStyle = alt ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
             ctx.fillRect(x, y, 7, 2);
           }
         }
@@ -2129,53 +2137,53 @@ let gantryShell=null;
       const L = pbrLib || {};
       const palette = {
         aluminum: () => register(new THREE.MeshStandardMaterial({
-          color: 0xc8d2de, metalness: 0.86, roughness: 0.26,
+          color: 0xd4cfc5, metalness: 0.56, roughness: 0.34,
           bumpMap: L.brushedBump || null, bumpScale: 0.014
         })),
         steelDark: () => register(new THREE.MeshStandardMaterial({
-          color: 0x384252, metalness: 0.82, roughness: 0.32,
+          color: 0x878279, metalness: 0.48, roughness: 0.38,
           bumpMap: L.brushedBump || null, bumpScale: 0.016
         })),
         ceramicSlate: () => register(new THREE.MeshStandardMaterial({
-          color: 0x212938, metalness: 0.24, roughness: 0.54,
-          bumpMap: L.chassisBump || null, bumpScale: 0.022
+          color: 0xa29d93, metalness: 0.22, roughness: 0.52,
+          bumpMap: L.chassisBump || null, bumpScale: 0.020
         })),
         ceramicLight: () => register(new THREE.MeshStandardMaterial({
-          color: 0xdcd8ce, metalness: 0.08, roughness: 0.52,
+          color: 0xede9e0, metalness: 0.08, roughness: 0.50,
           bumpMap: L.chassisBump || null, bumpScale: 0.010
         })),
         walnutGraphite: () => register(new THREE.MeshStandardMaterial({
-          color: 0x22262e, metalness: 0.30, roughness: 0.48,
-          map: L.carbonMap || null, bumpMap: L.chassisBump || null, bumpScale: 0.016
+          color: 0xc8c3b8, metalness: 0.16, roughness: 0.54,
+          map: L.carbonMap || null, bumpMap: L.chassisBump || null, bumpScale: 0.014
         })),
         brass: () => register(new THREE.MeshStandardMaterial({
-          color: 0xcfa458, metalness: 0.90, roughness: 0.23,
+          color: 0xc49c54, metalness: 0.72, roughness: 0.28,
           bumpMap: L.brushedBump || null, bumpScale: 0.012
         })),
         copper: () => register(new THREE.MeshStandardMaterial({
-          color: 0xbf704c, metalness: 0.88, roughness: 0.26,
+          color: 0xb86646, metalness: 0.68, roughness: 0.30,
           bumpMap: L.brushedBump || null, bumpScale: 0.014
         })),
         tealAnodized: () => register(new THREE.MeshStandardMaterial({
-          color: 0x2c6e80, metalness: 0.74, roughness: 0.28,
+          color: 0xb5b0a5, metalness: 0.46, roughness: 0.36,
           bumpMap: L.brushedBump || null, bumpScale: 0.012
         })),
         serverVent: () => register(new THREE.MeshStandardMaterial({
-          color: 0xd5deea, map: L.ventMap || null, bumpMap: L.ventBump || null,
-          bumpScale: 0.032, metalness: 0.62, roughness: 0.44
+          color: 0xd6d2ca, map: L.ventMap || null, bumpMap: L.ventBump || null,
+          bumpScale: 0.028, metalness: 0.40, roughness: 0.46
         })),
         siliconDie: () => register(new THREE.MeshStandardMaterial({
-          color: 0xe6f4ff, map: L.siliconMap || null,
-          metalness: 0.72, roughness: 0.22
+          color: 0xd6d2ca, map: L.siliconMap || null,
+          metalness: 0.44, roughness: 0.30
         })),
         glass: () => register(new THREE.MeshPhysicalMaterial({
-          color: 0xd8eaf8, metalness: 0.08, roughness: 0.10, reflectivity: 0.9,
-          transparent: true, opacity: 0.30, depthWrite: false
+          color: 0xeae6dc, metalness: 0.06, roughness: 0.12, reflectivity: 0.85,
+          transparent: true, opacity: 0.26, depthWrite: false
         })),
-        ledGreen: () => register(new THREE.MeshStandardMaterial({ color: 0x38b87a, emissive: 0x2da66b, emissiveIntensity: 0.75, roughness: 0.22 })),
-        ledAmber: () => register(new THREE.MeshStandardMaterial({ color: 0xe0a23b, emissive: 0xc98924, emissiveIntensity: 0.65, roughness: 0.22 })),
-        ledRed: () => register(new THREE.MeshStandardMaterial({ color: 0xd14b4b, emissive: 0xb53636, emissiveIntensity: 0.65, roughness: 0.22 })),
-        ledTeal: () => register(new THREE.MeshStandardMaterial({ color: 0x4db5cc, emissive: 0x3797ad, emissiveIntensity: 0.65, roughness: 0.22 })),
+        ledGreen: () => register(new THREE.MeshStandardMaterial({ color: 0xb69554, emissive: 0x9c7c3e, emissiveIntensity: 0.45, roughness: 0.26 })),
+        ledAmber: () => register(new THREE.MeshStandardMaterial({ color: 0xd4a44e, emissive: 0xb58632, emissiveIntensity: 0.50, roughness: 0.26 })),
+        ledRed: () => register(new THREE.MeshStandardMaterial({ color: 0xb8583e, emissive: 0x99422a, emissiveIntensity: 0.50, roughness: 0.26 })),
+        ledTeal: () => register(new THREE.MeshStandardMaterial({ color: 0xa8a398, emissive: 0x878277, emissiveIntensity: 0.35, roughness: 0.28 })),
         custom: (hex, metalness = 0.28, roughness = 0.48) => register(new THREE.MeshStandardMaterial({
           color: hex, metalness, roughness,
           bumpMap: L.brushedBump || null, bumpScale: 0.010
@@ -2194,7 +2202,7 @@ let gantryShell=null;
 
     // Helper: creates a 3D slab with printed top & side label faces + metallic edges
     function createPrintedSlab(w, h, d, mainText, subText, bgHex, fgHex, accentHex, P) {
-      return addShadow(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),P.custom(0x556a78,.42,.48)));
+      return addShadow(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),P.custom(0xb0aba1,.34,.48)));
     }
 
     // Small printed in-scene caption slab (lies flat, readable from above / front)
@@ -2231,7 +2239,7 @@ let gantryShell=null;
       const g = new THREE.Group();
       const frame = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.08, 0.48), P.aluminum()));
       g.add(frame);
-      const tileCols = [0x4c7c9b, 0xc9a15a, 0x3ba874, 0xc86442];
+      const tileCols = [0xa29d93, 0xc49c54, 0xbdb8ad, 0xb86646];
       for (let r = 0; r < 2; r++) {
         for (let c = 0; c < 2; c++) {
           const tile = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.18), P.custom(tileCols[r * 2 + c], 0.22, 0.44)));
@@ -2387,12 +2395,12 @@ let gantryShell=null;
           grp.add(funnel);
 
           // 5 Intake Ducts (Books, Streaming Text, Code, Synthetic, Images)
-          const ductCols = [0x8f563b, 0x4c7c9b, 0x3b8a6b, 0x766494, 0xc9a15a];
+          const ductCols = [0x9e988e, 0xb2ada2, 0xc49c54, 0x8d887f, 0xc9c4b9];
           const intakeCoords = [];
           for(let i=0;i<3;i++){const ang=(i-1)*.59;
             const ix = -0.35 + Math.sin(ang) * 1.12;
             const iz = -0.45 + Math.cos(ang) * 0.52 - 0.38;
-            const duct = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.02, 16), P.custom(ductCols[i], 0.55, 0.34)));
+            const duct = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.02, 16), P.custom(ductCols[i], 0.42, 0.38)));
             duct.position.set(ix, y0 + 2.52, iz);
             duct.rotation.z = -ang * 0.32;
             grp.add(duct);
@@ -2402,7 +2410,7 @@ let gantryShell=null;
           // Real Tangible Raw Source Media dropping into the 5 intake ducts:
           // 2 Hardcover Books, 2 Streaming Text ribbons, 1 Framed Image Mosaic
           const rawIngestItems = [
-            { mesh: createBookMesh(0x8f4232, P, 0.78),      duct: intakeCoords[0], offset: 0.00 },
+            { mesh: createBookMesh(0xa3895d, P, 0.78),      duct: intakeCoords[0], offset: 0.00 },
             { mesh: createPrintedSlab(0.68, 0.12, 0.34, 'TEXT...', 'STREAM', '#22384a', '#eef6ff', '#6ec6d9', P), duct: intakeCoords[1], offset: 0.22 },
             { mesh: createPrintedSlab(0.64, 0.12, 0.32, 'fn(x)', 'CODE', '#234a3c', '#e8fff3', '#4ec992', P),     duct: intakeCoords[2], offset: 0.68 },
           ];
@@ -2697,7 +2705,7 @@ let gantryShell=null;
             segs.push(seg);
           }
 
-          const midModelBox = createModelBoxMesh('1M CTX θ', 'YaRN', '#1e4252', '#6ec6d9', 0x4ea5b8, P, 0.86);
+          const midModelBox = createModelBoxMesh('1M CTX θ', 'YaRN', '#1e4252', '#6ec6d9', 0xc49c54, P, 0.86);
           grp.add(midModelBox);
 
           const dialHousing = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.54, 0.22, 24), P.copper()));
@@ -2738,7 +2746,7 @@ let gantryShell=null;
           modelTrack.position.set(-0.62, y0 + 0.08, 0);
           grp.add(modelTrack);
 
-          const postModelBox = createModelBoxMesh('ALIGN θ', 'RLVR/GRPO', '#1e4a3b', '#3ba874', 0x3ba874, P, 0.90);
+          const postModelBox = createModelBoxMesh('ALIGN θ', 'RLVR/GRPO', '#1e4a3b', '#3ba874', 0xc49c54, P, 0.90);
           grp.add(postModelBox);
 
           // Elevated Overhead Mast & 8-Arm Rollout Carousel above the Model Box Dock
@@ -2866,8 +2874,8 @@ let gantryShell=null;
           qTrim.position.set(-1.62, y0 + 0.47, 1.05);
           grp.add(quarantineBay, qTrim);
 
-          const passCkpt = createModelBoxMesh('PASS θ*', 'RELEASE', '#1c4f3a', '#3ba874', 0x3ba874, P, 0.92);
-          const failCkpt = createModelBoxMesh('FAIL θ', 'RED-TEAM', '#542124', '#e0584e', 0xc85046, P, 0.92);
+          const passCkpt = createModelBoxMesh('PASS θ*', 'RELEASE', '#1c4f3a', '#3ba874', 0xc49c54, P, 0.92);
+          const failCkpt = createModelBoxMesh('FAIL θ', 'RED-TEAM', '#542124', '#e0584e', 0xb8583e, P, 0.92);
           grp.add(passCkpt, failCkpt);
 
           const caliper = new THREE.Group();
@@ -2889,8 +2897,8 @@ let gantryShell=null;
           led.position.set(1.56, y0 + 2.92, 0.15);
           grp.add(led);
 
-          const cGreen = new THREE.Color(0x3ba874);
-          const cRed = new THREE.Color(0xc85046);
+          const cGreen = new THREE.Color(0xc49c54);
+          const cRed = new THREE.Color(0xb8583e);
           animHooks.push((t) => {
             const cyc = (t * 0.24) % 1.0;
             caliper.position.y = y0 + 0.65 + ((Math.sin(t * 2.4) + 1) * 0.5) * 1.35;
@@ -3473,7 +3481,7 @@ let gantryShell=null;
           moeViews.push({
             layout: layoutBank,
             paint: (lit, idleHex, litHex) => {
-              const activeColor = new THREE.Color(litHex);
+              const activeColor = new THREE.Color(loadBias < 0.05 ? 0xb85233 : litHex);
               for (let i = 0; i < MOE_N; i++) {
                 const w = lit.get(i) || 0;
                 tmpSkinColor.setHex(idleHex).lerp(activeColor, w ? .55 + .45 * Math.sqrt(w) : 0);
@@ -3670,8 +3678,8 @@ let gantryShell=null;
           const blockedPacket = createPrintedSlab(0.76, 0.34, 0.56, 'ABUSE', '403 BLOCK', '#5c2024', '#ffe3e3', '#e0584e', P);
           grp.add(okPacket, blockedPacket);
 
-          const cPass = new THREE.Color(0x3ba874);
-          const cBlock = new THREE.Color(0xc85046);
+          const cPass = new THREE.Color(0xc49c54);
+          const cBlock = new THREE.Color(0xb8583e);
 
           animHooks.push((t) => {
             piston.position.y = y0 + 0.65 + ((Math.sin(t * 1.9) + 1) * 0.5) * 0.78;
@@ -3836,7 +3844,7 @@ let gantryShell=null;
         case 'IN-5': {
           // Scheduler Marshalling Yard (Turned 90° so 3 lanes run straight along -Z -> +Z from IN-4 into IN-6!)
           const y0 = addPlinth(3.8, 4.8);
-          const laneCols = [0x4ea5b8, 0xc9a15a, 0x3ba874];
+          const laneCols = [0xa8a399, 0xc49c54, 0xbcb7ac];
           const laneXs = [-0.96, 0.0, 0.96];
           laneXs.forEach((lx, i) => {
             const track = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.12, 4.2), P.steelDark()));
@@ -3981,7 +3989,8 @@ let gantryShell=null;
 
           animHooks.push((t) => {
             const agentWaiting = (activeShowcase === 'AGENT' && focusedCompIndex !== COMP_BY_ID['IN-7'] && in7DecodeTickBoost < 0.5);
-            const effT = agentWaiting ? Math.floor(t * 1.25) / 1.25 : t;
+            const pdStalled = !pdDisagg && ((t % 2.4) < 1.44);
+            const effT = (agentWaiting || pdStalled) ? Math.floor(t * 1.25) / 1.25 : t;
             const step = Math.floor(effT * 1.25);
             const frac = (effT * 1.25) % 1.0;
             const eased = frac < 0.28 ? (frac / 0.28) : 1.0;
@@ -4246,15 +4255,19 @@ let gantryShell=null;
           const prefixIndices = new Set([0, 1, 4, 5]);
           const allocIndices = new Set([2, 7, 9, 10, 14]);
           const freeSlots = [];
+          const prefixTiles = [];
+          const prefixWarmMat = P.brass();
+          const prefixColdMat = P.copper();
           for (let r = 0; r < 4; r++) {
             for (let c = 0; c < 4; c++) {
               const idx = r * 4 + c;
               const px = -1.72 + c * 0.48;
               const pz = -1.12 + r * 0.48;
-              const mat = prefixIndices.has(idx) ? P.brass() : (allocIndices.has(idx) ? P.tealAnodized() : P.ceramicSlate());
+              const mat = prefixIndices.has(idx) ? prefixWarmMat : (allocIndices.has(idx) ? P.tealAnodized() : P.ceramicSlate());
               const tile = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.42), mat));
               tile.position.set(px, y0 + 0.18, pz);
               grp.add(tile);
+              if (prefixIndices.has(idx)) prefixTiles.push(tile);
               if (!prefixIndices.has(idx) && !allocIndices.has(idx)) {
                 freeSlots.push({ x: px, z: pz });
               }
@@ -4288,7 +4301,8 @@ let gantryShell=null;
           grp.add(roller1, roller2, quantBlock);
 
           // 4. Split Disaggregated Prefill -> Decode Bridge with RDMA KV Packet
-          const pierL = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.52, 0.55), P.tealAnodized()));
+          const pierLMat = P.tealAnodized();
+          const pierL = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.52, 0.55), pierLMat));
           pierL.position.set(0.55, y0 + 0.26, 1.56);
           const pierR = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.52, 0.55), P.brass()));
           pierR.position.set(1.82, y0 + 0.26, 1.56);
@@ -4296,6 +4310,7 @@ let gantryShell=null;
           span.position.set(1.18, y0 + 0.56, 1.56);
           const rdmaPkt = addShadow(new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.28), P.ledAmber()));
           grp.add(pierL, pierR, span, rdmaPkt);
+          in12Refs = { prefixTiles, prefixWarmMat, prefixColdMat, pierL, pierLMat, pierR, span, rdmaPkt };
 
           animHooks.push((t) => {
             // Non-contiguous PagedAttention block lands in rotating free slots
@@ -4317,9 +4332,13 @@ let gantryShell=null;
             quantBlock.position.set(1.18, y0 + 0.36, -0.15 + qu * 1.25);
             quantBlock.scale.y = qu < 0.45 ? 1.0 : Math.max(0.28, 1.0 - (qu - 0.45) * 1.6);
 
-            // Disaggregated Prefill -> Decode RDMA KV transfer
-            const du = (t * 0.50) % 1.0;
-            rdmaPkt.position.set(0.55 + du * 1.27, y0 + 0.72, 1.56);
+            // Disaggregated Prefill -> Decode RDMA KV transfer (collapses when PD-disagg is off)
+            rdmaPkt.visible = pdDisagg;
+            span.visible = pdDisagg;
+            if (pdDisagg) {
+              const du = (t * 0.50) % 1.0;
+              rdmaPkt.position.set(0.55 + du * 1.27, y0 + 0.72, 1.56);
+            }
           });
           break;
         }
@@ -4349,35 +4368,35 @@ let gantryShell=null;
       const scX = CW / WORLD_W;
       const scY = CH / WORLD_D;
 
-      // Theme palette: Studio Dark = Multilayer ENIG/Copper PCB; Drafting Light = Architectural Cyanotype/Blueprint
+      // Theme palette: Studio Dark = Cohesive Graphite/Brass PCB; Studio Light = Architectural Vellum & Slate
       const pal = lightTheme ? {
-        bg: '#e6e3da',
-        subGrid: 'rgba(38, 72, 108, 0.08)',
-        majGrid: 'rgba(38, 72, 108, 0.18)',
-        frame: 'rgba(34, 68, 104, 0.55)',
-        silk: '#1e354d',
-        silkMuted: 'rgba(30, 53, 77, 0.62)',
-        teal: '#1b6d7f',
-        copper: '#a64827',
-        brass: '#8f651d',
-        emerald: '#1a6e45',
-        viaRing: '#8f651d',
-        viaHole: '#e6e3da',
-        padFill: 'rgba(38, 72, 108, 0.07)'
+        bg: '#e8e5dc',
+        subGrid: 'rgba(62, 68, 78, 0.065)',
+        majGrid: 'rgba(62, 68, 78, 0.15)',
+        frame: 'rgba(62, 68, 78, 0.45)',
+        silk: '#252c36',
+        silkMuted: 'rgba(58, 66, 78, 0.65)',
+        teal: '#56606e',
+        copper: '#a65032',
+        brass: '#966d26',
+        emerald: '#6c6556',
+        viaRing: '#966d26',
+        viaHole: '#e8e5dc',
+        padFill: 'rgba(62, 68, 78, 0.045)'
       } : {
-        bg: '#09151c',
-        subGrid: 'rgba(72, 160, 178, 0.075)',
-        majGrid: 'rgba(72, 160, 178, 0.17)',
-        frame: 'rgba(201, 161, 90, 0.42)',
-        silk: '#d8e6f0',
-        silkMuted: 'rgba(182, 206, 224, 0.62)',
-        teal: '#45a7bd',
-        copper: '#d46c48',
-        brass: '#d4ab62',
-        emerald: '#3eb87e',
-        viaRing: '#d4ab62',
-        viaHole: '#071016',
-        padFill: 'rgba(18, 44, 56, 0.46)'
+        bg: '#0e131b',
+        subGrid: 'rgba(155, 165, 180, 0.065)',
+        majGrid: 'rgba(155, 165, 180, 0.15)',
+        frame: 'rgba(201, 161, 90, 0.38)',
+        silk: '#dce2ea',
+        silkMuted: 'rgba(176, 186, 200, 0.62)',
+        teal: '#8f9aa8',
+        copper: '#c46c4a',
+        brass: '#cfa65e',
+        emerald: '#b3a384',
+        viaRing: '#cfa65e',
+        viaHole: '#0b0f16',
+        padFill: 'rgba(32, 39, 50, 0.42)'
       };
 
       // 1. Base solder-mask / vellum background
@@ -4653,10 +4672,10 @@ let gantryShell=null;
     }
 
     function buildStudioEnvironment() {
-      hemiLight = new THREE.HemisphereLight(0xd6e6fa, 0x1a2634, 0.92);
+      hemiLight = new THREE.HemisphereLight(0xf6f3ec, 0x6b665d, 0.96);
       scene.add(hemiLight);
 
-      keyLight = new THREE.DirectionalLight(0xfff4e4, 1.78);
+      keyLight = new THREE.DirectionalLight(0xfff5e6, 1.56);
       keyLight.position.set(24, 52, 34);
       keyLight.castShadow = true;
       // v4 perf: 2048² on the high tier (as v3); the quality governor may drop to 1024² under load
@@ -4672,7 +4691,7 @@ let gantryShell=null;
       keyLight.shadow.normalBias = 0.025;
       scene.add(keyLight);
 
-      rimLight = new THREE.DirectionalLight(0x98ccff, 0.88);
+      rimLight = new THREE.DirectionalLight(0xebe8e1, 0.68);
       rimLight.position.set(-34, 30, -34);
       scene.add(rimLight);
 
@@ -4718,13 +4737,13 @@ let gantryShell=null;
       schematicBoardMesh.receiveShadow = true;
       scene.add(schematicBoardMesh);
 
-      // 5 Machined Stepped Industrial Deck Pads (with recessed cable rails & beveled trims)
+      // 5 Machined Stepped Industrial Deck Pads (unified architectural stone/pewter deck finish)
       const rectDecks = [
-        { x: -27.0, z:  0.0, w: 8.6, d: 42.5, accent: 0x4ea5b8 }, // Phase 1 Linear Training Track (TR-1..TR-6)
-        { x: -37.2, z:  3.5, w: 8.0, d: 13.5, accent: 0xc86442 }, // Phase 1 Support: Cluster Infrastructure (TR-7)
-        { x:  27.0, z:  0.0, w: 8.6, d: 57.5, accent: 0x3ba874 }, // Phase 2 Linear Inference Track (IN-1..IN-10)
-        { x:  37.5, z:  0.0, w: 8.2, d: 10.5, accent: 0x4ea5b8 }, // Phase 2 Support: Serving Optimizations (IN-12)
-        { x:  37.5, z: 11.2, w: 8.2, d:  8.4, accent: 0xc9a15a }  // Phase 2 Branch: Agent Tool Execution (IN-11)
+        { x: -27.0, z:  0.0, w: 8.6, d: 42.5, accent: 0xd6d1c6 }, // Phase 1 Linear Training Track (TR-1..TR-6)
+        { x: -37.2, z:  3.5, w: 8.0, d: 13.5, accent: 0xd6d1c6 }, // Phase 1 Support: Cluster Infrastructure (TR-7)
+        { x:  27.0, z:  0.0, w: 8.6, d: 57.5, accent: 0xd6d1c6 }, // Phase 2 Linear Inference Track (IN-1..IN-10)
+        { x:  37.5, z:  0.0, w: 8.2, d: 10.5, accent: 0xd6d1c6 }, // Phase 2 Support: Serving Optimizations (IN-12)
+        { x:  37.5, z: 11.2, w: 8.2, d:  8.4, accent: 0xd6d1c6 }  // Phase 2 Branch: Agent Tool Execution (IN-11)
       ];
 
       rectDecks.forEach(d => {
@@ -4738,7 +4757,9 @@ let gantryShell=null;
         subSlab.position.y = 0.08;
         const slab = addShadow(new THREE.Mesh(new THREE.BoxGeometry(d.w, 0.36, d.d), P.walnutGraphite()), true, true);
         slab.position.y = 0.24;
-        const trim = addShadow(new THREE.Mesh(new THREE.BoxGeometry(d.w + 0.14, 0.05, d.d + 0.14), P.custom(d.accent, 0.78, 0.26)), false, true);
+        const trimMat = P.custom(d.accent, 0.22, 0.48);
+        trimMat.userData.role = 'deck';
+        const trim = addShadow(new THREE.Mesh(new THREE.BoxGeometry(d.w + 0.14, 0.05, d.d + 0.14), trimMat), false, true);
         trim.position.y = 0.42;
         dGrp.add(subSlab, slab, trim);
 
@@ -5037,7 +5058,7 @@ let gantryShell=null;
           metalness: 0.16,
           roughness: 0.45
         }), 1.0);
-      const sideM = mkMat(0x3b4454, 0.72, 0.34);
+      const sideM = mkMat(0x9a958b, 0.48, 0.38);
 
       const mkSlab = (w, h, d, main, sub, bg, fg, acc) => {
         const topFace = mkPrint(main, sub, bg, fg, acc, w / d);
@@ -5074,18 +5095,18 @@ let gantryShell=null;
         case 'model-released': {
           // Exact same Model Weight Box architecture flowing TR-3 -> TR-4 -> TR-5 -> TR-6 -> MD-1!
           const cfg = {
-            'model-base':     { t: 'BASE θ',   s: 'FP8',     bg: '#213a4a', acc: '#4ea5b8', w: 0xc9a15a },
-            'model-mid':      { t: '1M CTX θ', s: 'YaRN',  bg: '#1e4252', acc: '#6ec6d9', w: 0x4ea5b8 },
-            'model-aligned':  { t: 'ALIGN θ',  s: 'GRPO',    bg: '#1e4a3b', acc: '#3ba874', w: 0x3ba874 },
-            'model-released': { t: 'PASS θ*',  s: 'FROZEN',  bg: '#1c4f3a', acc: '#3ba874', w: 0xc9a15a }
+            'model-base':     { t: 'BASE θ',   s: 'FP8',     bg: '#213a4a', acc: '#4ea5b8', w: 0xc49c54 },
+            'model-mid':      { t: '1M CTX θ', s: 'YaRN',  bg: '#1e4252', acc: '#6ec6d9', w: 0xb5b0a5 },
+            'model-aligned':  { t: 'ALIGN θ',  s: 'GRPO',    bg: '#1e4a3b', acc: '#3ba874', w: 0xc49c54 },
+            'model-released': { t: 'PASS θ*',  s: 'FROZEN',  bg: '#1c4f3a', acc: '#3ba874', w: 0xc49c54 }
           }[artifactType];
           g.add(mkSlab(0.62, 0.50, 0.62, cfg.t, cfg.s, cfg.bg, '#f2f6fb', cfg.acc));
-          const trimMat = mkMat(0xc8d0da, 0.82, 0.28);
+          const trimMat = mkMat(0xd4cfc5, 0.58, 0.34);
           const tTop = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.045, 0.66), trimMat);
           tTop.position.y = 0.26;
           const tBot = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.045, 0.66), trimMat);
           tBot.position.y = -0.26;
-          const wBarMat = mkMat(cfg.w, 0.8, 0.26);
+          const wBarMat = mkMat(cfg.w, 0.72, 0.28);
           const barL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.26, 0.42), wBarMat);
           barL.position.x = -0.33;
           const barR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.26, 0.42), wBarMat);
@@ -5094,8 +5115,8 @@ let gantryShell=null;
           break;
         }
         case 'gradient-matrix': {
-          // Stacked copper-red gradient weight-delta plates
-          const copMat = mkMat(0xc86442, 0.82, 0.28);
+          // Stacked terracotta-copper gradient weight-delta plates
+          const copMat = mkMat(0xb86646, 0.68, 0.32);
           for (let k = -1; k <= 1; k++) {
             const plate = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.08, 0.46), copMat);
             plate.position.y = k * 0.14;
@@ -5105,7 +5126,7 @@ let gantryShell=null;
         }
         case 'rollout-chain': {
           // 3 linked candidate reasoning tokens flying from MD-4 to TR-5 RLVR carousel
-          const m = mkMat(0x3ba874, 0.55, 0.32);
+          const m = mkMat(0xc49c54, 0.55, 0.32);
           for (let k = -1; k <= 1; k++) {
             const b = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.18, 0.20), m);
             b.position.z = k * 0.26;
@@ -5114,7 +5135,7 @@ let gantryShell=null;
           break;
         }
         case 'policy-delta': {
-          // Brass/emerald GRPO policy-update weight block returning to MoE Router
+          // Brass GRPO policy-update weight block returning to MoE Router
           g.add(mkSlab(0.56, 0.28, 0.48, 'Δπ GRPO', 'KL OK', '#1e4a3b', '#f2fff8', '#c9a15a'));
           break;
         }
@@ -5128,7 +5149,7 @@ let gantryShell=null;
         }
         case 'assembled-prompt': {
           // Stacked 5-plate assembled prompt carriage leaving IN-3 into IN-4!
-          const cols = [0x3b6e8c, 0x6b7c93, 0xc9a15a, 0x3ba874, 0xc86442];
+          const cols = [0x9c988f, 0xb2ada2, 0xc49c54, 0xc7c2b7, 0xb86646];
           cols.forEach((c, ci) => {
             const p = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.065, 0.44), mkMat(c, 0.22, 0.48));
             p.position.y = -0.15 + ci * 0.075;
@@ -5138,9 +5159,9 @@ let gantryShell=null;
         }
         case 'token-batch': {
           // Parallel batched token row leaving IN-5/IN-6 into MD-1
-          const tray = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.06, 0.42), mkMat(0x2a2523, 0.2, 0.5));
+          const tray = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.06, 0.42), mkMat(0xa8a399, 0.2, 0.5));
           g.add(tray);
-          const tm = mkMat(0x3b8698, 0.62, 0.30);
+          const tm = mkMat(0xc49c54, 0.58, 0.32);
           for (let k = 0; k < 4; k++) {
             const tk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.30), tm);
             tk.position.set(-0.30 + k * 0.20, 0.10, 0);
@@ -5150,34 +5171,34 @@ let gantryShell=null;
         }
         case 'vector-rod': {
           // Continuous embedding vector rod ejected from MD-1 into MD-2a
-          const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.72, 14), mkMat(0x4ea5b8, 0.75, 0.26));
+          const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.72, 14), mkMat(0xb5b0a5, 0.58, 0.32));
           rod.rotation.x = Math.PI / 2;
-          const band = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.16, 14), mkMat(0xc9a15a, 0.85, 0.24));
+          const band = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.16, 14), mkMat(0xc49c54, 0.72, 0.28));
           band.rotation.x = Math.PI / 2;
           g.add(rod, band);
           break;
         }
         case 'vector-ring': {
           // Calibrated Residual Stream vector ring
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.075, 10, 24), mkMat(colorHex, 0.72, 0.26));
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.075, 10, 24), mkMat(colorHex, 0.65, 0.30));
           ring.rotation.x = Math.PI / 2;
           g.add(ring);
           break;
         }
         case 'qk-pair': {
           // Query + decoupled RoPE Key bars routed through MD-2c RoPE (without the compressed KV latent!)
-          const q = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.42), mkMat(0x4ea5b8, 0.72, 0.28));
+          const q = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.42), mkMat(0xb5b0a5, 0.56, 0.32));
           q.position.x = -0.14;
-          const kRot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.42), mkMat(0x6dc3d5, 0.75, 0.26));
+          const kRot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.42), mkMat(0xc49c54, 0.68, 0.28));
           kRot.position.x = 0.16;
           g.add(q, kRot);
           break;
         }
         case 'kv-latent': {
           // Position-free compressed brass KV latent cylinder (bypasses RoPE directly to MD-2d, or KV page handoff)
-          const kv = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.48, 16), mkMat(0xc9a15a, 0.85, 0.24));
+          const kv = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.48, 16), mkMat(0xc49c54, 0.72, 0.28));
           kv.rotation.x = Math.PI / 2;
-          const collar = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.035, 8, 18), mkMat(0x3b4454, 0.75, 0.30));
+          const collar = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.035, 8, 18), mkMat(0x8d887f, 0.58, 0.34));
           g.add(kv, collar);
           break;
         }
@@ -5271,6 +5292,8 @@ let gantryShell=null;
     }
 
     function buildAllConduitsAndShowcases() {
+      // Unified 3-tone architectural conduit system: Satin Pewter (0x928e85) for standard pipelines,
+      // Satin Brass (0xb8924a) for core/latent/weight/logit signals, Terracotta-Copper (0xb56343) for backprop.
       // --- A. PHASE 1 LINEAR TRAINING PIPELINE (Straight -Z -> +Z: TR-1 -> TR-6) ---
       const trainLinks = [
         ['TR-1', 'TR-2', 'word-slab',      2],
@@ -5279,19 +5302,19 @@ let gantryShell=null;
         ['TR-4', 'TR-5', 'model-mid',      1],
         ['TR-5', 'TR-6', 'model-aligned',  1]
       ];
-      trainLinks.forEach(([a, b, art, cnt], idx) => addConduit(a, b, 'TRAINING', 0x4ea5b8, 1.05, cnt, idx, art));
+      trainLinks.forEach(([a, b, art, cnt], idx) => addConduit(a, b, 'TRAINING', 0x928e85, 1.05, cnt, idx, art));
 
       // Phase 1 Support Substrate (TR-7) delivers optimizer weight updates (AdamW steps) to TR-3, TR-4, TR-5
-      addConduit('TR-7', 'TR-3', 'TRAINING', 0xc9a15a, 1.5, 1, 0, 'weight-update');
-      addConduit('TR-7', 'TR-4', 'TRAINING', 0xc9a15a, 1.3, 1, 1, 'weight-update');
-      addConduit('TR-7', 'TR-5', 'TRAINING', 0xc9a15a, 1.5, 1, 2, 'weight-update');
+      addConduit('TR-7', 'TR-3', 'TRAINING', 0xb8924a, 1.5, 1, 0, 'weight-update');
+      addConduit('TR-7', 'TR-4', 'TRAINING', 0xb8924a, 1.3, 1, 1, 'weight-update');
+      addConduit('TR-7', 'TR-5', 'TRAINING', 0xb8924a, 1.5, 1, 2, 'weight-update');
 
       // Phase 1 Training (TR-3 Pretraining & TR-4 Mid-Training 128K) invoke Shared Model Core + multi-layer Backprop Gradients return to TR-3 & TR-7 Optimizer
-      addConduit('TR-3', 'MD-1', 'TRAINING', 0x4ea5b8, 3.8, 2, 2, 'token-package');
-      addConduit('TR-4', 'MD-1', 'TRAINING', 0x4ea5b8, 3.2, 1, 3, 'token-package', 1.4);
-      addConduit('MD-4', 'TR-7', 'TRAINING', 0xc86442, 3.6, 1, 3, 'gradient-matrix', -2.0);
-      addConduit('MD-2e', 'TR-7', 'TRAINING', 0xc86442, 3.0, 1, 4, 'gradient-matrix', -1.2);
-      addConduit('MD-1', 'TR-3', 'TRAINING', 0xc86442, 2.2, 1, 5, 'gradient-matrix', 1.6);
+      addConduit('TR-3', 'MD-1', 'TRAINING', 0x928e85, 3.8, 2, 2, 'token-package');
+      addConduit('TR-4', 'MD-1', 'TRAINING', 0x928e85, 3.2, 1, 3, 'token-package', 1.4);
+      addConduit('MD-4', 'TR-7', 'TRAINING', 0xb56343, 3.6, 1, 3, 'gradient-matrix', -2.0);
+      addConduit('MD-2e', 'TR-7', 'TRAINING', 0xb56343, 3.0, 1, 4, 'gradient-matrix', -1.2);
+      addConduit('MD-1', 'TR-3', 'TRAINING', 0xb56343, 2.2, 1, 5, 'gradient-matrix', 1.6);
 
       // Release Handoff: TR-6 (Eval & Release Gate) deploys Frozen Model Artifact (PASS θ*) to Phase 2 Serving Substrate (IN-12) — NEVER into raw embeddings!
       {
@@ -5304,11 +5327,11 @@ let gantryShell=null;
           new THREE.Vector3(pOpt[0], pOpt[1] + 1.4, pOpt[2] + 1.2)
         );
         const dMat = new THREE.MeshStandardMaterial({
-          color: 0x3ba874, metalness: 0.72, roughness: 0.28, transparent: true, opacity: 0.72
+          color: 0xb8924a, metalness: 0.65, roughness: 0.30, transparent: true, opacity: 0.72
         });
         const dMesh = new THREE.Mesh(new THREE.TubeGeometry(deployCurve, 44, 0.065, 8, false), dMat);
         scene.add(dMesh);
-        const relCap = createTransitObject('model-released', 0x3ba874, 0);
+        const relCap = createTransitObject('model-released', 0xb8924a, 0);
         scene.add(relCap);
         conduitRecords.push({
           idA: 'TR-6', idB: 'IN-12',
@@ -5319,60 +5342,60 @@ let gantryShell=null;
           capsules: [{ mesh: relCap, phaseOffset: 0.0 }]
         });
         // Frozen quantized weights mount from Serving Opts (IN-12) into the read-only Core runtime
-        addConduit('IN-12', 'MD-1', 'DEPLOY', 0x3ba874, 3.4, 1, 1, 'model-released', -2.8);
+        addConduit('IN-12', 'MD-1', 'DEPLOY', 0xb8924a, 3.4, 1, 1, 'model-released', -2.8);
       }
 
       // --- B. SHARED MODEL CORE INTERNAL FORWARD PASS (MD-1 -> MD-4 — Active in Training, Inference, RLVR & Agent!) ---
       const coreChain = [
-        ['MD-1',  'MD-2a', 0.8, 'vector-rod',   0xc9a15a, 0.0],
-        ['MD-2a', 'MD-2b', 0.6, 'vector-ring',  0xc9a15a, 0.0],
-        ['MD-2b', 'MD-2c', 0.8, 'qk-pair',      0x4ea5b8, 0.0], // Only Q & decoupled RoPE K enter RoPE
-        ['MD-2c', 'MD-2d', 0.8, 'qk-pair',      0x4ea5b8, 0.0], // Rotated Q & K enter Attention
-        ['MD-2b', 'MD-2d', 0.4, 'kv-latent',    0xc9a15a, 1.3], // Position-free compressed KV latent bypasses RoPE directly to Attention/KV Cache!
-        ['MD-2d', 'MD-2e', 0.6, 'vector-ring',  0xc9a15a, 0.0],
-        ['MD-2e', 'MD-2f', 0.4, 'vector-ring',  0xc9a15a, 0.0],
-        ['MD-2f', 'MD-2g', 0.6, 'vector-ring',  0xc9a15a, 0.0],
-        ['MD-2f', 'MD-2h', 0.6, 'vector-ring',  0x4ea5b8, 1.8], // Always-on Shared Expert bypasses MoE Router directly from Pre-FFN RMSNorm!
-        ['MD-2g', 'MD-2h', 0.8, 'routed-shard', 0xc9a15a, 0.0],
-        ['MD-2h', 'MD-2i', 0.6, 'routed-shard', 0xc9a15a, 0.0],
-        ['MD-2i', 'MD-3',  0.4, 'vector-ring',  0xc9a15a, 0.0],
-        ['MD-3',  'MD-4',  0.4, 'vector-ring',  0xc9a15a, 0.0]
+        ['MD-1',  'MD-2a', 0.8, 'vector-rod',   0xb8924a, 0.0],
+        ['MD-2a', 'MD-2b', 0.6, 'vector-ring',  0xb8924a, 0.0],
+        ['MD-2b', 'MD-2c', 0.8, 'qk-pair',      0x928e85, 0.0], // Only Q & decoupled RoPE K enter RoPE
+        ['MD-2c', 'MD-2d', 0.8, 'qk-pair',      0x928e85, 0.0], // Rotated Q & K enter Attention
+        ['MD-2b', 'MD-2d', 0.4, 'kv-latent',    0xb8924a, 1.3], // Position-free compressed KV latent bypasses RoPE directly to Attention/KV Cache!
+        ['MD-2d', 'MD-2e', 0.6, 'vector-ring',  0xb8924a, 0.0],
+        ['MD-2e', 'MD-2f', 0.4, 'vector-ring',  0xb8924a, 0.0],
+        ['MD-2f', 'MD-2g', 0.6, 'vector-ring',  0xb8924a, 0.0],
+        ['MD-2f', 'MD-2h', 0.6, 'vector-ring',  0x928e85, 1.8], // Always-on Shared Expert bypasses MoE Router directly from Pre-FFN RMSNorm!
+        ['MD-2g', 'MD-2h', 0.8, 'routed-shard', 0xb8924a, 0.0],
+        ['MD-2h', 'MD-2i', 0.6, 'routed-shard', 0xb8924a, 0.0],
+        ['MD-2i', 'MD-3',  0.4, 'vector-ring',  0xb8924a, 0.0],
+        ['MD-3',  'MD-4',  0.4, 'vector-ring',  0xb8924a, 0.0]
       ];
       coreChain.forEach(([a, b, lift, art, col, sOff], idx) => addConduit(a, b, 'CORE', col, lift, 1, idx, art, sOff));
 
       // --- C. PHASE 2 LINEAR INFERENCE RUNTIME + AUTOREGRESSIVE DECODE FEEDBACK LOOP ---
       const inferChain = [
-        ['IN-1',  'IN-2',  0.9, 'prompt-request',   0x4ea5b8, 0.0],
-        ['IN-2',  'IN-3',  0.9, 'auth-prompt',      0x4ea5b8, 0.0],
-        ['IN-3',  'IN-4',  0.9, 'assembled-prompt', 0x4ea5b8, 0.0],
-        ['IN-4',  'IN-5',  1.0, 'token-package',    0x4ea5b8, 0.0],
-        ['IN-5',  'IN-6',  1.0, 'token-batch',      0x4ea5b8, 0.0], // Prefill chunks
-        ['IN-5',  'IN-7',  1.8, 'winning-token',    0x3ba874, -2.1], // Continuous batching: active decode slots!
-        ['IN-6',  'IN-7',  1.0, 'kv-latent',        0xc9a15a, 0.0], // Warmed KV state handoff from Prefill -> Decode
-        ['IN-7',  'IN-8',  1.0, 'logit-bars',       0xc9a15a, 0.0],
-        ['IN-8',  'IN-9',  1.0, 'winning-token',    0x3ba874, 0.0],
-        ['IN-9',  'IN-10', 1.0, 'utf8-text',        0x3ba874, 0.0]
+        ['IN-1',  'IN-2',  0.9, 'prompt-request',   0x928e85, 0.0],
+        ['IN-2',  'IN-3',  0.9, 'auth-prompt',      0x928e85, 0.0],
+        ['IN-3',  'IN-4',  0.9, 'assembled-prompt', 0x928e85, 0.0],
+        ['IN-4',  'IN-5',  1.0, 'token-package',    0x928e85, 0.0],
+        ['IN-5',  'IN-6',  1.0, 'token-batch',      0x928e85, 0.0], // Prefill chunks
+        ['IN-5',  'IN-7',  1.8, 'winning-token',    0xb8924a, -2.1], // Continuous batching: active decode slots!
+        ['IN-6',  'IN-7',  1.0, 'kv-latent',        0xb8924a, 0.0], // Warmed KV state handoff from Prefill -> Decode
+        ['IN-7',  'IN-8',  1.0, 'logit-bars',       0xb8924a, 0.0],
+        ['IN-8',  'IN-9',  1.0, 'winning-token',    0xb8924a, 0.0],
+        ['IN-9',  'IN-10', 1.0, 'utf8-text',        0x928e85, 0.0]
       ];
       inferChain.forEach(([a, b, lift, art, col, sOff], idx) => addConduit(a, b, 'FORWARD', col, lift, 1, idx, art, sOff));
 
       // Autoregressive Feedback Loop: Sampler (IN-8) feeds winning token back -> Decode (IN-7) -> Model Core (MD-1)
-      addConduit('IN-8', 'IN-7', 'FORWARD', 0x3ba874, 2.3, 1, 7, 'winning-token', -2.3);
-      addConduit('IN-7', 'MD-1', 'FORWARD', 0x3ba874, 2.6, 1, 8, 'winning-token', 2.4);
+      addConduit('IN-8', 'IN-7', 'FORWARD', 0xb8924a, 2.3, 1, 7, 'winning-token', -2.3);
+      addConduit('IN-7', 'MD-1', 'FORWARD', 0xb8924a, 2.6, 1, 8, 'winning-token', 2.4);
 
       // Phase 2 Inference (IN-6 Prefill) invokes Shared Model Core (Forward-Only, Frozen θ*) & receives Logits (MD-4 -> IN-7)
-      addConduit('IN-6', 'MD-1', 'FORWARD', 0x4ea5b8, 4.6, 2, 5, 'token-batch', -1.2);
-      addConduit('MD-4', 'IN-7', 'FORWARD', 0xc9a15a, 4.4, 2, 6, 'logit-bars', 0.0);
+      addConduit('IN-6', 'MD-1', 'FORWARD', 0x928e85, 4.6, 2, 5, 'token-batch', -1.2);
+      addConduit('MD-4', 'IN-7', 'FORWARD', 0xb8924a, 4.4, 2, 6, 'logit-bars', 0.0);
 
       // Phase 2 Support Substrate (IN-12) supplies paged KV blocks & serving optimizations into Scheduler (IN-5), Prefill (IN-6), Decode (IN-7)
-      addConduit('IN-12', 'IN-5', 'FORWARD', 0x4ea5b8, 1.2, 1, 0, 'kv-latent');
-      addConduit('IN-12', 'IN-6', 'FORWARD', 0x4ea5b8, 1.2, 1, 1, 'kv-latent');
-      addConduit('IN-12', 'IN-7', 'FORWARD', 0x4ea5b8, 1.2, 1, 2, 'kv-latent');
+      addConduit('IN-12', 'IN-5', 'FORWARD', 0x928e85, 1.2, 1, 0, 'kv-latent');
+      addConduit('IN-12', 'IN-6', 'FORWARD', 0x928e85, 1.2, 1, 1, 'kv-latent');
+      addConduit('IN-12', 'IN-7', 'FORWARD', 0x928e85, 1.2, 1, 2, 'kv-latent');
 
       // --- D. Backprop Wave Dedicated Sweeping Rings inside Shared Model Core (Active during Phase 1 Training) ---
       for (let i = 0; i < 3; i++) {
         const rMat = new THREE.MeshStandardMaterial({
-          color: 0xc86442, emissive: 0xb04827, emissiveIntensity: 0.48,
-          metalness: 0.65, roughness: 0.25, transparent: true, opacity: 0.0, depthWrite: false
+          color: 0xb56343, emissive: 0x9c4c2f, emissiveIntensity: 0.44,
+          metalness: 0.62, roughness: 0.28, transparent: true, opacity: 0.0, depthWrite: false
         });
         const ring = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.14, 14, 48), rMat);
         ring.rotation.x = Math.PI / 2;
@@ -5382,8 +5405,8 @@ let gantryShell=null;
       }
 
       // --- E. RLVR / GRPO Loop Dedicated Conduits (Post-Training TR-5 ↔ Shared Core) ---
-      addConduit('MD-4', 'TR-5', 'RLVR', 0x3ba874, 5.5, 3, 0, 'rollout-chain');
-      addConduit('TR-5', 'MD-1', 'RLVR', 0xc9a15a, 4.4, 2, 1, 'policy-delta');
+      addConduit('MD-4', 'TR-5', 'RLVR', 0x928e85, 5.5, 3, 0, 'rollout-chain');
+      addConduit('TR-5', 'MD-1', 'RLVR', 0xb8924a, 4.4, 2, 1, 'policy-delta');
 
       // --- F. Agent Tool Loop Rails (IN-8 -> client app IN-11 -> NEW request back to Prefill IN-6) ---
       const pSam = COMPONENTS[COMP_BY_ID['IN-8']].pos;
@@ -5403,8 +5426,8 @@ let gantryShell=null;
         new THREE.Vector3(pPre[0] + 1.1, pPre[1] + 1.4, pPre[2])
       );
 
-      agentRailOutMat = new THREE.MeshStandardMaterial({ color: 0xc9a15a, metalness: 0.78, roughness: 0.25, transparent: true, opacity: 0.35 });
-      agentRailRetMat = new THREE.MeshStandardMaterial({ color: 0x3ba874, metalness: 0.72, roughness: 0.28, transparent: true, opacity: 0.35 });
+      agentRailOutMat = new THREE.MeshStandardMaterial({ color: 0xb8924a, metalness: 0.68, roughness: 0.28, transparent: true, opacity: 0.35 });
+      agentRailRetMat = new THREE.MeshStandardMaterial({ color: 0x928e85, metalness: 0.56, roughness: 0.32, transparent: true, opacity: 0.35 });
       scene.add(new THREE.Mesh(new THREE.TubeGeometry(agentPathOut, 32, 0.08, 10, false), agentRailOutMat));
       scene.add(new THREE.Mesh(new THREE.TubeGeometry(agentPathReturn, 32, 0.08, 10, false), agentRailRetMat));
 
@@ -5654,21 +5677,24 @@ let gantryShell=null;
 
     // Applies isLightMode to the 3D scene and the toggle button (page CSS follows data-theme / media query)
     function applySceneTheme() {
-      const bgHex = isLightMode ? 0xe8e5dc : 0x081118;
+      const bgHex = isLightMode ? 0xe8e5dc : 0x0e131b;
       scene.background.setHex(bgHex);
       scene.fog.color.setHex(bgHex);
-      studioFloorMesh.material.color.setHex(isLightMode ? 0xe3e0d6 : 0x071017);
+      studioFloorMesh.material.color.setHex(isLightMode ? 0xe3e0d6 : 0x0b0f16);
       perfRequestRender(3);
       if (schematicBoardMesh) {
         schematicBoardMesh.visible = !EMBED;
         perfEnsureBoardTexture(isLightMode);
         schematicBoardMesh.material.map = isLightMode ? blueprintLightTex : pcbDarkTex;
-        schematicBoardMesh.material.roughness = isLightMode ? 0.82 : 0.42;
-        schematicBoardMesh.material.metalness = isLightMode ? 0.04 : 0.24;
+        schematicBoardMesh.material.roughness = isLightMode ? 0.82 : 0.48;
+        schematicBoardMesh.material.metalness = isLightMode ? 0.04 : 0.18;
         schematicBoardMesh.material.needsUpdate = true;
       }
-      hemiLight.intensity = isLightMode ? 1.18 : 0.92;
-      keyLight.intensity = isLightMode ? 1.50 : 1.78;
+      hemiLight.color.setHex(isLightMode ? 0xf6f3ec : 0x9aa4b4);
+      hemiLight.groundColor.setHex(isLightMode ? 0x6b665d : 0x161b24);
+      hemiLight.intensity = isLightMode ? 1.05 : 0.56;
+      keyLight.intensity = isLightMode ? 1.48 : 1.24;
+      rimLight.intensity = isLightMode ? 0.68 : 0.48;
       const btn = document.getElementById('btnThemeToggle');
       btn.textContent = isLightMode ? 'Blueprint Light' : 'PCB Dark';
       btn.setAttribute('aria-pressed', String(!isLightMode));
@@ -6955,7 +6981,7 @@ let gantryShell=null;
             sweepList(['MD-1','MD-2a','MD-2b','MD-2c','MD-2d','MD-2e','MD-2f','MD-2g','MD-2h','MD-2i','MD-3','MD-4'], subU, 2.8, 0.35);
             tr3HydraulicSurge = 0.85;
             backpropActiveNow = true;
-            backpropColorHex = 0xc86442;
+            backpropColorHex = 0xb56343;
           } else if (stepIdx === 2) {
             // Step 3: Scaling & Alignment (TR-7 cluster + TR-4 mid-training + TR-5 post-training)
             waveTargets[COMP_BY_ID['TR-7']] = 0.90;
@@ -7000,10 +7026,10 @@ let gantryShell=null;
             waveTargets[COMP_BY_ID['TR-5']] = 1.0;
             waveTargets[COMP_BY_ID['TR-7']] = 0.75;
           } else {
-            // Step 4: Policy weight update sweeps downward (MD-4 -> MD-1) with emerald rings
+            // Step 4: Policy weight update sweeps downward (MD-4 -> MD-1) with brass rings
             sweepList(coreUp.slice().reverse(), subU, 3.0, 0.30);
             backpropActiveNow = true;
-            backpropColorHex = 0x3ba874;
+            backpropColorHex = 0xc49c54;
           }
         } else if (activeShowcase === 'AGENT') {
           // 4-Phase Deliberate Agent Tool Loop (banner stepIdx locked to exact 0.32 / 0.58 / 0.85 boundaries):
@@ -7039,7 +7065,7 @@ let gantryShell=null;
               agentCapsuleMat.map = targetTex;
               agentCapsuleMat.needsUpdate = true;
             }
-            agentCapsuleMat.color.setHex(targetTex ? 0xffffff : (u >= 0.5 ? 0x3ba874 : 0xc9a15a));
+            agentCapsuleMat.color.setHex(targetTex ? 0xffffff : (u >= 0.5 ? 0xb69554 : 0xc49c54));
             agentCapsuleMat.opacity = 1.0;
             in7DecodeTickBoost = 0.0;
             waveTargets[COMP_BY_ID['IN-11']] = 1.0;
@@ -7053,7 +7079,7 @@ let gantryShell=null;
               agentCapsuleMat.map = agentResTex;
               agentCapsuleMat.needsUpdate = true;
             }
-            agentCapsuleMat.color.setHex(agentResTex ? 0xffffff : 0x3ba874);
+            agentCapsuleMat.color.setHex(agentResTex ? 0xffffff : 0xb69554);
             agentCapsuleMat.opacity = 1.0;
             in7DecodeTickBoost = 0.0;
             waveTargets[COMP_BY_ID['IN-6']] = 0.4 + u * 0.6;
@@ -7525,27 +7551,27 @@ let gantryShell=null;
 
     const SKINS = {
       light: {
-        bg: 0xf8f7f2, fogDensity: 0.0024, exposure: 0.92, tone: 'aces', shadows: true, shadowOpacity: 0.17,
-        hemiSky: 0xf4f7ff, hemiGround: 0x8f8778, hemi: 0.62, keyCol: 0xffedd6, key: 1.45, rimCol: 0xb6e4ff, rim: 0.72,
-        floor: 'catcher', floorCol: 0xf8f7f2, gridA: 0xdedbd0, gridB: 0xe9e6dd, envBg: 0xe6e4dc,
-        deck: 0xe6e4db, plinth: 0xc9c8bb, slate: 0x3b4757, metal: 0x98a1a8, dark: 0x5a6470, pale: 0xefede6,
-        brass: 0xb08d51, copper: 0xE5672F, copper2: 0xF2A65A, accent: 0x2F6BFF, accent2: 0x8B5CF6, green: 0x3c9a72,
-        glass: 0xdce6ef, glassOp: 0.3,
-        realm: { TRAINING: 0xE5672F, MODEL: 0x4c63c9, INFERENCE: 0x2d8fa0 },
-        metalMax: 0.7, roughMin: 0.3, envI: 0.85, flat: false, edges: false, edgeCol: 0x141824, edgeBrass: 0xb08d51,
-        expertIdle: 0xd2d1c6, expertLit: 0x2F6BFF, ring: 0x2F6BFF,
-        tag: { bg: '#ffffff', fg: '#141824' }
+        bg: 0xf8f7f2, fogDensity: 0.0022, exposure: 0.96, tone: 'aces', shadows: true, shadowOpacity: 0.14,
+        hemiSky: 0xfbf9f4, hemiGround: 0x9b9589, hemi: 0.72, keyCol: 0xfff5e6, key: 1.38, rimCol: 0xebe9e2, rim: 0.62,
+        floor: 'catcher', floorCol: 0xf8f7f2, gridA: 0xdedbd0, gridB: 0xeae7de, envBg: 0xeae7df,
+        deck: 0xe7e3d9, plinth: 0xd8d3c7, slate: 0x938e83, metal: 0xc1bcb0, dark: 0x7c776d, pale: 0xf1eee6,
+        brass: 0xb68e46, copper: 0xb86646, copper2: 0xcfa15c, accent: 0x9e752c, accent2: 0xc29e5a, green: 0xa09172,
+        glass: 0xe6e3da, glassOp: 0.26,
+        realm: { TRAINING: 0xaca79b, MODEL: 0xaca79b, INFERENCE: 0xaca79b },
+        metalMax: 0.62, roughMin: 0.34, envI: 0.78, flat: false, edges: false, edgeCol: 0x1e2530, edgeBrass: 0xa67e36,
+        expertIdle: 0xd0cbc0, expertLit: 0xa67828, ring: 0x9e732b,
+        tag: { bg: '#ffffff', fg: '#1e2530' }
       },
       keynote: {
-        bg: 0x131722, fogDensity: 0.0034, exposure: 1.0, tone: 'aces', shadows: true, shadowOpacity: 0.5,
-        hemiSky: 0xc9d3ff, hemiGround: 0x141824, hemi: 0.58, keyCol: 0xfff1e0, key: 1.35, rimCol: 0x8d9bff, rim: 1.0,
-        floor: 'solid', floorCol: 0x11141d, gridA: 0x262c3d, gridB: 0x1a1e2a, envBg: 0x1b2230,
-        deck: 0x1c2230, plinth: 0x262d3c, slate: 0x2c3445, metal: 0x808a9c, dark: 0x3c4456, pale: 0xc9cfda,
-        brass: 0xbc9a62, copper: 0xE5672F, copper2: 0xF2A65A, accent: 0x6C7DFF, accent2: 0x9b7bff, green: 0x45b08a,
-        glass: 0x9fb0d0, glassOp: 0.22,
-        realm: { TRAINING: 0xE5672F, MODEL: 0x6C7DFF, INFERENCE: 0x3fb0c2 },
-        metalMax: 0.75, roughMin: 0.28, envI: 0.9, flat: false, edges: false, edgeCol: 0xffffff, edgeBrass: 0xbc9a62,
-        expertIdle: 0x343c50, expertLit: 0x7d8cff, ring: 0x6C7DFF,
+        bg: 0x151921, fogDensity: 0.0030, exposure: 1.02, tone: 'aces', shadows: true, shadowOpacity: 0.45,
+        hemiSky: 0xdbe0ea, hemiGround: 0x202530, hemi: 0.66, keyCol: 0xfff3e2, key: 1.32, rimCol: 0xcbd3e0, rim: 0.85,
+        floor: 'solid', floorCol: 0x13171f, gridA: 0x2a303c, gridB: 0x1e232d, envBg: 0x1f242e,
+        deck: 0x262c37, plinth: 0x313845, slate: 0x4b5362, metal: 0x848c9a, dark: 0x3d4452, pale: 0xcbc7be,
+        brass: 0xc9a15a, copper: 0xc06d4b, copper2: 0xd8aa60, accent: 0xd4ad64, accent2: 0xb5955a, green: 0x9c9278,
+        glass: 0xc4ccd8, glassOp: 0.20,
+        realm: { TRAINING: 0x576070, MODEL: 0x576070, INFERENCE: 0x576070 },
+        metalMax: 0.68, roughMin: 0.30, envI: 0.85, flat: false, edges: false, edgeCol: 0xffffff, edgeBrass: 0xc9a15a,
+        expertIdle: 0x3f4656, expertLit: 0xdcb466, ring: 0xc9a15a,
         tag: { bg: '#1b222d', fg: '#F3F5FA' }
       },
       blueprint: {
@@ -7553,7 +7579,7 @@ let gantryShell=null;
         hemiSky: 0xffffff, hemiGround: 0x6d87a3, hemi: 0.78, keyCol: 0xffffff, key: 0.42, rimCol: 0xc9d8ea, rim: 0.18,
         floor: 'basic', floorCol: 0x0F3358, gridA: 0x3a6592, gridB: 0x1d4670, envBg: 0x0F3358,
         deck: 0x123b62, plinth: 0x15406a, slate: 0x194670, metal: 0x1f4f7c, dark: 0x173d64, pale: 0x2a5b88,
-        brass: 0x7d6a48, copper: 0x6f5248, copper2: 0x8a6a4a, accent: 0xc4a065, accent2: 0xd9b878, green: 0x235f6c,
+        brass: 0x8c754d, copper: 0x82594a, copper2: 0x9c7b52, accent: 0xc4a065, accent2: 0xd9b878, green: 0x245582,
         glass: 0x9DB4FF, glassOp: 0.1,
         realm: { TRAINING: 0x1f4b74, MODEL: 0x1f4b74, INFERENCE: 0x1f4b74 },
         metalMax: 0, roughMin: 1, envI: 0, flat: true, edges: true, edgeCol: 0xd3e0ee, edgeBrass: 0xd6b77a,
@@ -7562,8 +7588,8 @@ let gantryShell=null;
       }
     };
     const CSS_SKIN = {
-      light: { chipBg: '#ffffff', chipInk: '#141824', chipInk2: '#454C5E', chipLine: '#E1E5EE', chipShadow: '0 10px 24px -14px rgba(20,30,60,.38), 0 1px 2px rgba(20,30,60,.06)', focBg: 'linear-gradient(90deg,#2F6BFF,#8B5CF6)', focInk: '#ffffff' },
-      keynote: { chipBg: '#1b222d', chipInk: '#F3F5FA', chipInk2: '#B5BDCE', chipLine: '#2e3648', chipShadow: '0 10px 24px -14px rgba(0,0,0,.7)', focBg: 'linear-gradient(90deg,#5b6cff,#8B5CF6)', focInk: '#ffffff' },
+      light: { chipBg: '#ffffff', chipInk: '#1e2530', chipInk2: '#445063', chipLine: '#ddd9ce', chipShadow: '0 10px 24px -14px rgba(25,32,44,.28), 0 1px 2px rgba(25,32,44,.06)', focBg: '#1e334f', focInk: '#ffffff' },
+      keynote: { chipBg: '#1c222d', chipInk: '#F3F5FA', chipInk2: '#B5BDCE', chipLine: '#2e3648', chipShadow: '0 10px 24px -14px rgba(0,0,0,.65)', focBg: '#c9a15a', focInk: '#141820' },
       blueprint: { chipBg: '#0F3358', chipInk: '#ffffff', chipInk2: '#C9D8EA', chipLine: 'rgba(255,255,255,.7)', chipShadow: '0 12px 26px -16px rgba(3,15,30,.8)', focBg: '#c4a065', focInk: '#0F2238' }
     };
 
@@ -7588,6 +7614,8 @@ let gantryShell=null;
         case 'brass': return tok.brass;
         case 'copper': return tok.copper;
         case 'tealAnodized': return tok.realm[realm] || tok.realm.MODEL;
+        case 'siliconDie': return tok.slate;
+        case 'serverVent': return tok.dark;
         case 'glass': return tok.glass;
         case 'deck': return tok.deck;
         case 'accent': return tok.accent;
@@ -7629,6 +7657,7 @@ let gantryShell=null;
       if (roleOverride && (m.userData.role === 'ceramicSlate' || !m.userData.role)) m.userData.role = roleOverride;
       if (!m.userData.role) m.userData.role = 'custom';
       m.userData.origHex = m.color ? m.color.getHex() : null;
+      m.userData.origMap = m.map || null;
       m.userData.origMetal = m.metalness !== undefined ? m.metalness : 0;
       m.userData.origRough = m.roughness !== undefined ? m.roughness : 1;
       m.userData.origEm = m.emissive ? m.emissive.getHex() : 0;
@@ -7705,8 +7734,8 @@ let gantryShell=null;
       shadowDirty = true;
     }
     function paintMoe() {
-      const idle = currentSkinTok ? currentSkinTok.expertIdle : 0x3b4454;
-      const lit = currentSkinTok ? currentSkinTok.expertLit : 0xc9a15a;
+      const idle = currentSkinTok ? currentSkinTok.expertIdle : 0xc5c0b5;
+      const lit = currentSkinTok ? currentSkinTok.expertLit : 0xb5893a;
       for (let v = 0; v < moeViews.length; v++) moeViews[v].paint(moeLit, idle, lit);
     }
 
@@ -7895,8 +7924,12 @@ let gantryShell=null;
         const realm = u.realm || 'MODEL';
         if (u.role === 'printed') {
           if (m.color) m.color.setHex(0xffffff);
-        } else if (m.color) {
-          lerpHex(skinHexFor(u.role, u.origHex, realm, A), skinHexFor(u.role, u.origHex, realm, B), t, m.color);
+        } else {
+          if (m.color) lerpHex(skinHexFor(u.role, u.origHex, realm, A), skinHexFor(u.role, u.origHex, realm, B), t, m.color);
+          if (u.origMap) {
+            const wantMap = D.flat ? null : u.origMap;
+            if (m.map !== wantMap) { m.map = wantMap; m.needsUpdate = true; }
+          }
         }
         if (m.metalness !== undefined) {
           m.metalness = lerpN(A.flat ? 0 : Math.min(u.origMetal, A.metalMax), B.flat ? 0 : Math.min(u.origMetal, B.metalMax));
@@ -8110,6 +8143,29 @@ let gantryShell=null;
           setMoeOffset(0, true);
           requestRender(2);
         },
+        setPrefixCache(ratio) {
+          if (!Number.isFinite(ratio)) return;
+          prefixCacheRatio = Math.max(0, Math.min(1, ratio));
+          if (in12Refs) {
+            const warm = Math.round(prefixCacheRatio * in12Refs.prefixTiles.length);
+            in12Refs.prefixTiles.forEach((tile, idx) => {
+              tile.material = idx < warm ? in12Refs.prefixWarmMat : in12Refs.prefixColdMat;
+              tile.position.y = tile.position.y;
+            });
+          }
+          requestRender(2);
+        },
+        setPDDisagg(on) {
+          pdDisagg = !!on;
+          if (in12Refs) {
+            in12Refs.pierL.position.x = pdDisagg ? 0.55 : 0.90;
+            in12Refs.pierR.position.x = pdDisagg ? 1.82 : 1.47;
+            in12Refs.pierL.material = pdDisagg ? in12Refs.pierLMat : in12Refs.prefixColdMat;
+            in12Refs.span.visible = pdDisagg;
+            in12Refs.rdmaPkt.visible = pdDisagg;
+          }
+          requestRender(2);
+        },
         getComponent(id){return COMPONENTS[COMP_BY_ID[id]]},components(){return COMPONENTS.slice()},
         textView(el){buildTextView(el)},project:projectPoint,conduitPoint,
         requestRender,suspend(){suspended=true;cancelAnimationFrame(rafId);rafId=0;perf.lastRendered=false},
@@ -8123,6 +8179,7 @@ let gantryShell=null;
       in7Kv?.setCount(4);if(SKIN)applySkin(SKIN);setRealmVisible(QS.get('realm')||'ALL');
       if(QS.get('focus'))api.focus(QS.get('focus').split(','),{fly:false});if(QS.has('kv'))api.setKV(+QS.get('kv'));
       if (EMBED) forwardJourneyKeys();
+      else if (window.SuiteLinks) SuiteLinks.mountReturnChip(document.querySelector('.top-actions'), 'obs');
     }
     function initObservatory() {
       try {
@@ -8144,8 +8201,8 @@ let gantryShell=null;
         tmpLookTarget = new THREE.Vector3();
         tmpTargetPt = new THREE.Vector3();
         tmpSpotPos = new THREE.Vector3();
-        colBrass = new THREE.Color(0xc9a15a);
-        colEmerald = new THREE.Color(0x3ba874);
+        colBrass = new THREE.Color(0xc49c54);
+        colEmerald = new THREE.Color(0xa69470);
         perfScratch.pt = new THREE.Vector3();
         perfScratch.tan = new THREE.Vector3();
         perfScratch.a = new THREE.Vector3();
@@ -8164,9 +8221,10 @@ let gantryShell=null;
         const w = Math.max(1, (stage && stage.clientWidth) || window.innerWidth || 1024);
         const h = Math.max(1, (stage && stage.clientHeight) || window.innerHeight || 720);
 
+        const initBg = EMBED ? 0xf8f7f2 : (isLightMode ? 0xe8e5dc : 0x081118);
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0e131c);
-        scene.fog = new THREE.FogExp2(0x0e131c, 0.0045);
+        scene.background = new THREE.Color(initBg);
+        scene.fog = new THREE.FogExp2(initBg, 0.0045);
 
         camera = new THREE.PerspectiveCamera(40, w / h, 0.4, 340);
         camera.position.set(0, 34, 62);

@@ -91,6 +91,50 @@ const JourneyMath = (() => {
     return panel;
   }
 
+  // Illustrative 24-channel sampled activation slice of h in R^7168 across layers 1..61.
+  function activationSlice(layer) {
+    const t = Math.max(0, Math.min(1, (layer - 1) / 60));
+    return Array.from({length: 24}, (_, i) => {
+      const early = Math.sin(i * 1.17 + 0.4) * 0.48 + Math.cos(i * 0.53) * 0.22;
+      const late = Math.cos(i * 0.85 - 1.1) * 0.65 + (i % 5 === 0 ? 0.32 : -0.18);
+      return Number(Math.max(-1, Math.min(1, early * (1 - t) + late * t)).toFixed(3));
+    });
+  }
+
+  // Illustrative toy attribution graph inspired by Circuit Tracer (not measured DeepSeek-V4-Pro weights).
+  const STEER_STATES = {
+    natural: {
+      caption: 'Natural pass: “Eiffel Tower” activates “Paris”, which drives “France” as the top next token.',
+      edges: { ep: 0.92, pf: 0.88, pi: 0.10 },
+      nodes: { eiffel: 'on', paris: 'on', france: 'on', italy: 'dim' },
+      probs: [['France', 78], ['Paris', 12], ['Europe', 6], ['Other', 4]]
+    },
+    ablate: {
+      caption: 'Ablate “Paris” (0×): severing the intermediate city feature collapses “France” from 78% → 24%.',
+      edges: { ep: 0.16, pf: 0.12, pi: 0.10 },
+      nodes: { eiffel: 'on', paris: 'off', france: 'dim', italy: 'dim' },
+      probs: [['tower', 28], ['France', 24], ['Europe', 16], ['Other', 32]]
+    },
+    swap: {
+      caption: 'Clamp “Paris” → “Rome”: redirecting the mid-layer city concept flips the output from “France” to “Italy” (74%).',
+      edges: { ep: 0.72, pf: 0.14, pi: 0.94 },
+      nodes: { eiffel: 'on', paris: 'swap', france: 'dim', italy: 'on' },
+      probs: [['Italy', 74], ['France', 11], ['Europe', 8], ['Other', 7]]
+    },
+    amplify: {
+      caption: 'Amplify “France” (2×): boosting the late country feature concentrates probability on “France” (93%).',
+      edges: { ep: 0.92, pf: 1.0, pi: 0.06 },
+      nodes: { eiffel: 'on', paris: 'on', france: 'boost', italy: 'dim' },
+      probs: [['France', 93], ['Paris', 3], ['Europe', 2], ['Other', 2]]
+    }
+  };
+
+  function steerCircuit(mode = 'natural') {
+    const key = Object.hasOwn(STEER_STATES, mode) ? mode : 'natural';
+    const s = STEER_STATES[key];
+    return { mode: key, caption: s.caption, edges: { ...s.edges }, nodes: { ...s.nodes }, probs: s.probs.map(([tok, pct]) => ({ token: tok, pct })) };
+  }
+
   function vectorDrawer() {
     const drawer = document.createElement('details');
     drawer.className = 'component-math vector-drawer';
@@ -132,18 +176,67 @@ const JourneyMath = (() => {
           <p>An earlier head writes a trace of A at B’s position. When A appears again, a later head matches that trace and copies information about B, raising B’s next-token score.</p>
         </section>
         <section>
-          <h4>Illustrative logit lens</h4>
-          <p>After “The cat”, combine the four mHC streams at the current layer, read the result through the final normalization and vocabulary head, then apply softmax. These probabilities are a constructed example.</p>
+          <h4>Illustrative logit lens &amp; activation slice</h4>
+          <p>After “The cat”, combine the four mHC streams at the current layer, read the result through the final normalization and vocabulary head, then apply softmax. Both the 24-channel slice and probabilities are constructed examples.</p>
           <label class="lens-slider">Layer <span data-layer>1</span> of 61
             <input type="range" min="1" max="61" step="1" value="1" aria-label="Illustrative logit lens layer">
           </label>
           <div class="math-controls" role="group" aria-label="Jump to layer">
             ${[1, 16, 38, 61].map(n => `<button type="button" data-layer-jump="${n}">L${n}</button>`).join('')}
           </div>
-          <div class="lens-probabilities">
+          <svg class="act-strip" viewBox="0 0 282 44" role="img" aria-label="Illustrative 24-channel sampled activation fingerprint of the residual vector">
+            <line class="math-axis" x1="10" y1="22" x2="272" y2="22"/>
+            <g data-act-bars>${Array.from({length: 24}, (_, i) => `<rect x="${12 + i * 10.8}" y="22" width="7.4" height="0" rx="1"/>`).join('')}</g>
+            <text x="12" y="42" class="act-lbl">d₀</text>
+            <text x="141" y="42" text-anchor="middle" class="act-lbl">sampled h ∈ ℝ⁷¹⁶⁸</text>
+            <text x="270" y="42" text-anchor="end" class="act-lbl">d₇₁₆₇</text>
+          </svg>
+          <div class="lens-probabilities" data-lens-probs>
             ${['sat', 'is', 'was', 'ran', 'Other tokens'].map(token => `
               <div class="lens-probability"><span>${token}</span><span class="lens-track" aria-hidden="true"><i></i></span><span data-percent></span></div>`).join('')}
           </div>
+        </section>
+        <section class="steer-section">
+          <h4>Causal feature steering (illustrative)</h4>
+          <p>Prompt: “The Eiffel Tower is in …”. Clamp a feature node in this illustrative attribution graph to watch downstream next-token probabilities shift live (inspired by Circuit Tracer; not measured DeepSeek-V4-Pro weights).</p>
+          <svg class="steer-svg" viewBox="0 0 296 108" role="img" aria-label="Illustrative causal feature steering graph connecting Eiffel Tower through Paris to France or Italy">
+            <g class="steer-cols">
+              <line class="math-guide" x1="48" y1="14" x2="48" y2="96"/>
+              <line class="math-guide" x1="154" y1="14" x2="154" y2="96"/>
+              <line class="math-guide" x1="250" y1="14" x2="250" y2="96"/>
+              <text x="48" y="10" text-anchor="middle">L8</text>
+              <text x="154" y="10" text-anchor="middle">L26</text>
+              <text x="250" y="10" text-anchor="middle">L48 → Out</text>
+            </g>
+            <g fill="none" stroke-linecap="round">
+              <path data-edge="ep" d="M92 52 C108 52 108 38 122 38"/>
+              <path data-edge="pf" d="M186 38 C200 38 204 38 216 38"/>
+              <path data-edge="pi" d="M186 42 C202 46 202 76 216 76"/>
+            </g>
+            <g class="steer-node" data-node="eiffel" transform="translate(2,38)">
+              <rect width="90" height="28" rx="4"/><text x="45" y="17" text-anchor="middle">Eiffel Tower</text>
+            </g>
+            <g class="steer-node" data-node="paris" transform="translate(122,24)">
+              <rect width="64" height="28" rx="4"/><text x="32" y="17" text-anchor="middle" data-paris-lbl>Paris</text>
+            </g>
+            <g class="steer-node" data-node="france" transform="translate(216,24)">
+              <rect width="68" height="28" rx="4"/><text x="34" y="17" text-anchor="middle">France</text>
+            </g>
+            <g class="steer-node" data-node="italy" transform="translate(216,62)">
+              <rect width="68" height="28" rx="4"/><text x="34" y="17" text-anchor="middle">Italy</text>
+            </g>
+          </svg>
+          <div class="math-controls" role="group" aria-label="Causal feature clamping interventions">
+            <button type="button" data-steer="natural">Natural</button>
+            <button type="button" data-steer="ablate">Ablate “Paris”</button>
+            <button type="button" data-steer="swap">Clamp → “Rome”</button>
+            <button type="button" data-steer="amplify">Boost “France” 2×</button>
+          </div>
+          <div class="lens-probabilities" data-steer-probs>
+            ${[0, 1, 2, 3].map(() => `
+              <div class="lens-probability"><span data-tok></span><span class="lens-track" aria-hidden="true"><i></i></span><span data-percent></span></div>`).join('')}
+          </div>
+          <p class="math-caption" data-steer-caption aria-live="polite"></p>
         </section>
       </div>`;
 
@@ -156,7 +249,8 @@ const JourneyMath = (() => {
       {layer: 61, values: [64, 12, 9, 4]},
     ];
     const range = drawer.querySelector('input');
-    const rows = drawer.querySelectorAll('.lens-probability');
+    const rows = drawer.querySelectorAll('[data-lens-probs] .lens-probability');
+    const actBars = drawer.querySelectorAll('[data-act-bars] rect');
     const jumps = drawer.querySelectorAll('[data-layer-jump]');
     function render(layer) {
       const end = anchors.findIndex((a, i) => i > 0 && layer <= a.layer);
@@ -168,6 +262,13 @@ const JourneyMath = (() => {
         row.querySelector('i').style.width = percentages[i] + '%';
         row.querySelector('[data-percent]').textContent = percentages[i] + '%';
       });
+      activationSlice(layer).forEach((v, i) => {
+        const bar = actBars[i];
+        const h = Math.max(1.5, Math.abs(v) * 16);
+        bar.setAttribute('y', (v >= 0 ? 22 - h : 22).toFixed(1));
+        bar.setAttribute('height', h.toFixed(1));
+        bar.setAttribute('class', v >= 0 ? 'act-pos' : 'act-neg');
+      });
       range.value = layer;
       range.setAttribute('aria-valuetext', `Layer ${layer} of 61, illustrative probability of sat ${percentages[0]} percent`);
       drawer.querySelector('[data-layer]').textContent = layer;
@@ -176,8 +277,46 @@ const JourneyMath = (() => {
     range.addEventListener('input', () => render(range.valueAsNumber));
     jumps.forEach(b => b.addEventListener('click', () => render(Number(b.dataset.layerJump))));
     render(1);
+
+    const steerBtns = drawer.querySelectorAll('[data-steer]');
+    const steerRows = drawer.querySelectorAll('[data-steer-probs] .lens-probability');
+    const steerCap = drawer.querySelector('[data-steer-caption]');
+    const parisLbl = drawer.querySelector('[data-paris-lbl]');
+    function renderSteer(mode) {
+      const s = steerCircuit(mode);
+      steerBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.steer === s.mode)));
+      for (const [key, w] of Object.entries(s.edges)) {
+        const edge = drawer.querySelector(`[data-edge="${key}"]`);
+        if (!edge) continue;
+        edge.setAttribute('stroke-width', (1.1 + w * 2.4).toFixed(2));
+        edge.setAttribute('opacity', (0.2 + w * 0.8).toFixed(2));
+        edge.dataset.active = String(w > 0.5);
+      }
+      for (const [key, st] of Object.entries(s.nodes)) {
+        const node = drawer.querySelector(`[data-node="${key}"]`);
+        if (node) node.dataset.state = st;
+      }
+      if (parisLbl) parisLbl.textContent = s.mode === 'swap' ? 'Rome*' : (s.mode === 'ablate' ? 'Paris ×' : 'Paris');
+      s.probs.forEach(({token, pct}, i) => {
+        const row = steerRows[i];
+        row.querySelector('[data-tok]').textContent = token;
+        row.querySelector('i').style.width = pct + '%';
+        row.querySelector('[data-percent]').textContent = pct + '%';
+      });
+      steerCap.textContent = s.caption;
+    }
+    steerBtns.forEach(b => b.addEventListener('click', () => renderSteer(b.dataset.steer)));
+    drawer.querySelector('[data-node="paris"]')?.addEventListener('click', () => renderSteer(
+      drawer.querySelector('[data-steer="ablate"]').getAttribute('aria-pressed') === 'true' ? 'swap' : 'ablate'
+    ));
+    drawer.querySelector('[data-node="france"]')?.addEventListener('click', () => renderSteer('amplify'));
+    drawer.querySelector('[data-node="eiffel"]')?.addEventListener('click', () => renderSteer('natural'));
+    drawer.querySelector('[data-node="italy"]')?.addEventListener('click', () => renderSteer('swap'));
+    renderSteer('natural');
     return drawer;
   }
 
-  return {optimizer, vectorDrawer};
+  const api = {optimizer, vectorDrawer, activationSlice, steerCircuit};
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  return api;
 })();

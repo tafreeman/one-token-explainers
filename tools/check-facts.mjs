@@ -79,6 +79,24 @@ check('Swiss separates FP8 pretraining from FP4 QAT release',
 check('Story benchmark labels the reported Think Max mode', /V4-PRO[^'\n]*THINK MAX/.test(src.story));
 check('Story does not invent a red-team pass', !/\['Red-team safety',\s*'PASS'/.test(src.story));
 
+// Phase 6 epistemic hygiene & suite link integrity.
+const landing = read('index.html');
+const microLabsSrc = read('shared/micro-labs.js');
+const compMathSrc = read('journey-story/component-math.js');
+const conceptSrc = read('shared/concept-links.js');
+check('Landing Observatory footer link opens interactive standalone view (no embed=1)',
+  landing.includes('shared/obs-core.html?realm=MODEL') && !/obs-core\.html\?embed=1/.test(landing));
+check('Swiss has 7 quiet concept bridge links and stays free of micro-labs',
+  (src.swiss.match(/class="concept-bridge"/g) || []).length === 7 && !src.swiss.includes('micro-labs'));
+check('Beamline aligns token ID to 12842', src.beamline.includes('>12842<'));
+check('3-bound roofline states per-GPU NVLink scope and marks EP model illustrative',
+  /NVLink 5 900 GB\/s unidirectional \(1\.8 TB\/s bidirectional\) per GPU/.test(microLabsSrc) &&
+  /illustrative top-6 BF16 dispatch\/combine/.test(microLabsSrc));
+check('Causal steering graph is explicitly labeled illustrative',
+  /not measured DeepSeek-V4-Pro weights/.test(compMathSrc));
+check('Concept links use explicit file://-safe index.html targets',
+  conceptSrc.includes('../end-to-end-swiss/index.html') && conceptSrc.includes('../journey-tour/index.html'));
+
 // Narration: inline manifests must match the shared manifest (file:// playback, audio timing).
 const inline = (html, id) => JSON.parse((html.match(new RegExp(`<script type="application/json" id="${id}">([\\s\\S]*?)</script>`)) || [])[1] || 'null');
 const shared = JSON.parse(read('shared/journey-narration/manifest.json'));

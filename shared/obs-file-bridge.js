@@ -2,9 +2,9 @@
    for the same scene calls that the hosted pages make directly. */
 (function () {
   'use strict';
-  const commands = new Set(['setRealm', 'setSkin', 'focus', 'setPose', 'setHighlight',
+  const commands = new Set(['setRealm', 'setSkin', 'setSkinMix', 'focus', 'setPose', 'setHighlight',
     'setLabels', 'setPlaying', 'setControls', 'setKV', 'setBackprop', 'setMoeOffset',
-    'setRouting', 'suspend', 'resume', 'renderNow', 'resize']);
+    'setRouting', 'setPrefixCache', 'setPDDisagg', 'suspend', 'resume', 'renderNow', 'resize']);
 
   const keys = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape', '1', '2', '3', '4', '5', '6']);
   const keyMessage = 'journey-navigation-key';

@@ -85,13 +85,92 @@ test('ridge uses the bandwidth and dense peak of a single GPU', () => {
   assert.equal(lab.roofline(4096, 1024).decode.bound, 'compute');
 });
 
-test('Guided Tour and Story offer the same component labs at all ten lab stops', () => {
+test('Guided Tour and Story offer the same component labs at all twelve lab stops', () => {
   const expected = {
     3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
-    16: ['mix'], 17: ['moe'], 24: ['roof'], 25: ['roof'], 26: ['stream']
+    16: ['mix'], 17: ['moe'], 23: ['pd'], 24: ['roof'], 25: ['roof'], 26: ['stream'], 30: ['cache']
   };
   assert.deepEqual(lab.tourStops, expected);
   assert.deepEqual(lab.storyStops, expected);
+});
+
+test('UTF-8 buffer-off mode corrupts split multi-byte emoji into U+FFFD while buffered mode stays clean', () => {
+  const text = ' The café 🚀';
+  const raw = new TextEncoder().encode('data: ' + JSON.stringify({text}));
+  const emojiStart = raw.findIndex(b => b >= 240);
+  assert.ok(emojiStart > 0);
+  const safe = lab.streamPrefix(text, emojiStart + 2, true);
+  const broken = lab.streamPrefix(text, emojiStart + 2, false);
+  assert.equal(safe.corrupted, false);
+  assert.equal(safe.prefix.includes('\uFFFD'), false);
+  assert.equal(broken.corrupted, true);
+  assert.equal(broken.prefix.includes('\uFFFD'), true);
+});
+
+test('MoE capacity factor preserves routed+dropped conservation and drops tokens on λ=0 collapse', () => {
+  const balanced = lab.moeCapacity(6, 1);
+  const collapsed = lab.moeCapacity(6, 0);
+  assert.equal(balanced.routed + balanced.dropped, balanced.total);
+  assert.equal(balanced.dropped, 0);
+  assert.equal(collapsed.routed + collapsed.dropped, collapsed.total);
+  assert.ok(collapsed.dropped > 0);
+});
+
+test('Prefix cache hit rate collapses on token 1 edit and is monotonic across edit position', () => {
+  const warm = lab.prefixCache(null);
+  const bust = lab.prefixCache(0);
+  const mid = lab.prefixCache(10);
+  close(warm.hitRate, 0.95);
+  assert.equal(bust.hitRate, 0);
+  assert.ok(bust.ttftMs > mid.ttftMs && mid.ttftMs > warm.ttftMs);
+  assert.ok(bust.hitRate < mid.hitRate && mid.hitRate < warm.hitRate);
+});
+
+test('PD-disaggregation off models 64K prefill stall spiking decode ITL', () => {
+  const sep = lab.pdSchedule(true, 64);
+  const coloc = lab.pdSchedule(false, 64);
+  assert.equal(sep.stallMs, 0);
+  assert.equal(sep.peakItlMs, sep.baseItlMs);
+  assert.ok(coloc.stallMs > 200 && coloc.peakItlMs > coloc.baseItlMs * 10);
+});
+
+test('3-bound roofline adds NVLink EP All-to-All ceiling without altering dense single-GPU ridge', () => {
+  const dense = lab.roofline(4096, 1, 1);
+  const ep64 = lab.roofline(4096, 1, 64);
+  assert.equal(dense.ridge, 1250);
+  assert.equal(dense.nvlinkCeiling, null);
+  assert.ok(ep64.nvlinkCeiling > 0 && ep64.nvlinkCeiling < 10);
+  assert.equal(ep64.prefill.bound, 'NVLink EP All-to-All');
+  assert.ok(ep64.prefill.pflops <= ep64.nvlinkCeiling + 1e-9);
+});
+
+test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline stage sync', () => {
+  const links = require('../shared/concept-links.js');
+  const expectedSlugs = ['tokenization', 'mhc-residual', 'csa-hca-kv', 'moe-router', 'prefill-decode', 'utf8-sse', 'mcp-loop'];
+  assert.deepEqual(Object.keys(links.CONCEPTS), expectedSlugs);
+  assert.equal(links.resolve('kv-cache').slug, 'csa-hca-kv');
+  for (const slug of expectedSlugs) {
+    const url = links.urlFor('tour', slug, {from: 'swiss', pos: 7.3});
+    assert.match(url, /^\.\.\/journey-tour\/index\.html\?.*#concept=/);
+  }
+  assert.equal(links.swissToBeamlineBeat(7.3), '5e');
+  assert.equal(links.beamlineBeatToSwissG('5e'), 7.3);
+});
+
+test('Ch. 4 causal feature steering preserves 100% probability sum and shifts predictions on clamp', () => {
+  const math = require('../journey-story/component-math.js');
+  for (const mode of ['natural', 'ablate', 'swap', 'amplify']) {
+    const res = math.steerCircuit(mode);
+    const sum = res.probs.reduce((acc, p) => acc + p.pct, 0);
+    assert.equal(sum, 100, mode + ' probabilities must sum to 100');
+  }
+  assert.equal(math.steerCircuit('natural').probs[0].token, 'France');
+  assert.equal(math.steerCircuit('swap').probs[0].token, 'Italy');
+  assert.ok(math.steerCircuit('ablate').probs.find(p => p.token === 'France').pct < 40);
+  assert.ok(math.steerCircuit('amplify').probs[0].pct > 90);
+  const slice = math.activationSlice(38);
+  assert.equal(slice.length, 24);
+  assert.ok(slice.every(v => v >= -1 && v <= 1));
 });
 
 test('scene focus messages trust only the parent window and its paired origin', () => {

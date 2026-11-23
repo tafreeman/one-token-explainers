@@ -11,10 +11,12 @@
 <meta name="theme-color" content="#F7F7F4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0F1014" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0E0E'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF4A1C'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="shared/suite-theme.css">
+<link rel="expect" href="#explainer-grid" blocking="render">
 <style>
 :root{
   --paper:#F7F7F4; --card:#FFFFFF; --rule:#DADAD3; --ink:#0E0E0E; --ink-2:#3B3B37; --ink-3:#64645D;
-  --token:#FF4A1C; --token-ink:#B92B08; --blue:#2A5BEF; --blue-ink:#2049C4; --teal:#0F8F7E; --teal-ink:#0A6D5F; --amber:#B7791F; --amber-ink:#8A5A0C;
+  --token:#FF4A1C; --token-ink:#B92B08; --cobalt:#2F6BFF; --cobalt-ink:#1F4FD6; --brass:#9E732B; --brass-ink:#79551D; --teal:#0F8F7E; --teal-ink:#0A6D5F;
   --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
   --gut:max(20px,env(safe-area-inset-left)); --gutR:max(20px,env(safe-area-inset-right));
@@ -23,7 +25,7 @@
 @media (prefers-color-scheme:dark){
   :root{
     --paper:#0F1014; --card:#171821; --rule:#2A2C38; --ink:#F4F4F0; --ink-2:#C9CAD3; --ink-3:#9496A3;
-    --token:#FF6A40; --token-ink:#FF8C6B; --blue:#7C9BFF; --blue-ink:#9DB4FF; --teal:#3FD0BC; --teal-ink:#6EE0D0; --amber:#F2B33D; --amber-ink:#F7C969;
+    --token:#FF6A40; --token-ink:#FF8C6B; --cobalt:#6E9BFF; --cobalt-ink:#9DBBFF; --brass:#C9A15A; --brass-ink:#E6BF80; --teal:#3FD0BC; --teal-ink:#6EE0D0;
     color-scheme:dark;
   }
 }
@@ -33,15 +35,14 @@ body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--
 a{color:inherit}
 .wrap{max-width:1040px;margin:0 auto;padding:0 var(--gutR) 0 var(--gut)}
 header{padding:clamp(48px,9vw,104px) 0 clamp(28px,5vw,48px)}
-.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--token-ink);margin:0 0 20px}
 h1{font-weight:700;font-size:clamp(2.2rem,6.4vw,4.2rem);line-height:1.02;letter-spacing:-.03em;margin:0 0 20px;max-width:16ch}
 h1 span{color:var(--token)}
 .lede{font-size:clamp(1.05rem,2.2vw,1.25rem);color:var(--ink-2);max-width:56ch;margin:0}
 .grid{display:grid;gap:18px;grid-template-columns:1fr 1fr;padding-bottom:clamp(40px,6vw,72px)}
 .card{position:relative;display:flex;flex-direction:column;gap:14px;background:var(--card);border:1px solid var(--rule);border-radius:18px;padding:26px 26px 24px;transition:transform .25s cubic-bezier(.16,1,.3,1),border-color .2s,box-shadow .25s;--a:var(--token);--a-ink:var(--token-ink)}
-.card.blue{--a:var(--blue);--a-ink:var(--blue-ink)}
+.card.cobalt{--a:var(--cobalt);--a-ink:var(--cobalt-ink)}
 .card.teal{--a:var(--teal);--a-ink:var(--teal-ink)}
-.card.amber{--a:var(--amber);--a-ink:var(--amber-ink)}
+.card.brass{--a:var(--brass);--a-ink:var(--brass-ink)}
 .card.wide{grid-column:1/-1}
 .card:hover{transform:translateY(-3px);border-color:var(--a);box-shadow:0 14px 40px -22px var(--a)}
 .card:focus-within{border-color:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 28%,transparent)}
@@ -85,34 +86,33 @@ footer a:focus-visible{outline:2px solid var(--token);outline-offset:2px;border-
 <body>
 <div class="wrap">
   <header>
-    <p class="eyebrow">Interactive explainers</p>
     <h1>Follow <span>one token</span> through an LLM</h1>
     <p class="lede">Scroll-driven 3D explainers that follow a single token through a large language model: how the model is built, and what happens between your prompt and the reply.</p>
   </header>
 
   <main>
-    <div class="grid">
+    <div class="grid" id="explainer-grid">
       <article class="card">
         <p class="tag">Claude Fable 5.2 &middot; Swiss design</p>
-        <h2><a href="end-to-end-swiss/">One Token, End to End</a></h2>
+        <h2><a href="end-to-end-swiss/index.html">One Token, End to End</a></h2>
         <p class="desc">&ldquo;Paris&rdquo; crosses twelve stages on one line, from training data to the streamed reply: how Claude Fable&nbsp;5.2 is made and how it answers you.</p>
         <div class="path" aria-hidden="true"><i class="on end"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="end"></i></div>
         <ul class="meta"><li>12 stages</li><li>4:38 narration</li><li>3D figures</li><li>Scroll to advance</li></ul>
         <p class="go"><span>Open the explainer &rarr;</span></p>
       </article>
 
-      <article class="card amber">
+      <article class="card cobalt">
         <p class="tag">Claude Fable 5.2 &middot; Beamline design</p>
-        <h2><a href="end-to-end-beamline/">One Token, End to End: Beamline</a></h2>
+        <h2><a href="end-to-end-beamline/index.html">One Token, End to End: Beamline</a></h2>
         <p class="desc">The same story, drawn as eleven physical stations in a pale hall. Follow &ldquo;&nbsp;Paris&rdquo; as a blue token from a web page in the corpus to a tool call and a streamed reply.</p>
         <div class="path" aria-hidden="true"><i class="on end"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="end"></i></div>
-        <ul class="meta"><li>11 stations</li><li>9:41 narration</li><li>Sound or Watch</li></ul>
+        <ul class="meta"><li>11 stations</li><li>9:41 narration</li><li>Watch or Study</li></ul>
         <p class="go"><span>Open the explainer &rarr;</span></p>
       </article>
 
-      <article class="card blue">
+      <article class="card brass">
         <p class="tag">DeepSeek-V4-Pro &middot; Narrated story</p>
-        <h2><a href="journey-story/">One Token&rsquo;s Journey</a></h2>
+        <h2><a href="journey-story/index.html">One Token&rsquo;s Journey</a></h2>
         <p class="desc">Six chapters take one token from raw text to the next token through <span class="nb">DeepSeek-V4-Pro</span>, with 3D rooms you can orbit and inspect.</p>
         <div class="path" aria-hidden="true"><i class="on end"></i><i></i><i></i><i></i><i></i><i class="end"></i></div>
         <ul class="meta"><li>6 chapters</li><li>6:25 narration</li><li>Interactive 3D</li></ul>
@@ -121,7 +121,7 @@ footer a:focus-visible{outline:2px solid var(--token);outline-offset:2px;border-
 
       <article class="card teal">
         <p class="tag">DeepSeek-V4-Pro &middot; Narrated tour</p>
-        <h2><a href="journey-tour/">Guided Tour</a></h2>
+        <h2><a href="journey-tour/index.html">Guided Tour</a></h2>
         <p class="desc">Thirty stops through the same model. Step with the arrow keys, jump by chapter, and open any of the 31 components.</p>
         <div class="path ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <ul class="meta"><li>30 stops</li><li>6:25 narration</li><li>31 components</li></ul>
@@ -145,7 +145,7 @@ footer a:focus-visible{outline:2px solid var(--token);outline-offset:2px;border-
         <h3>Project</h3>
         <p><a href="https://github.com/tafreeman/one-token-explainers">Source on GitHub</a></p>
         <p>Code MIT, content CC BY 4.0. <a href="https://github.com/tafreeman/one-token-explainers#licence">Licence</a></p>
-        <p><a href="shared/obs-core.html?embed=1&amp;skin=blueprint&amp;realm=MODEL&amp;focus=MD-2g,MD-2h">Standalone 3D engine</a></p>
+        <p><a href="shared/obs-core.html?realm=MODEL&amp;focus=MD-2g,MD-2h">Standalone 3D engine</a></p>
       </section>
     </div>
   </footer>
