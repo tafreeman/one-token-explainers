@@ -4677,7 +4677,8 @@ let gantryShell=null;
       // Warm subtle industrial accent bounce on the central supercomputer core
       const coreWarmLight = new THREE.PointLight(0xffdca8, 0.55, 34, 1.8);
       coreWarmLight.position.set(6, 12, 8);
-      scene.add(coreWarmLight);
+      // Software tier skips this accent: one more full light pass per fragment (see pbrLib note).
+      if (perf.tier !== 'low') scene.add(coreWarmLight);
 
       // Dedicated Spotlight for Pop-Out Focus Mode
       focusSpotTarget = new THREE.Object3D();
@@ -8197,6 +8198,11 @@ let gantryShell=null;
 
 
         pbrLib = createPBRTextureLibrary();
+        // Software tier: each bump map costs three extra texture taps plus screen-space
+        // derivatives per fragment. With the warm accent light also off (buildStudioEnvironment),
+        // drawer p95 on a 4-core WARP host fell from 110-143 ms to 78-99 ms; surfaces read
+        // smoother and the brass less glossy. Color maps stay. ?quality=high keeps both.
+        if (perf.tier === 'low') pbrLib = { ...pbrLib, brushedBump: null, chassisBump: null, ventBump: null };
         buildStudioEnvironment();
         buildAll31Components();
         buildAllConduitsAndShowcases();
