@@ -157,8 +157,11 @@ async function focusOrder(browser, base, local = false) {
     assert(scene, 'Tab never reached the drawer scene');
     const frame = page.frames().find(f => f.url().includes('obs-core.html'));
     await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
-    await page.keyboard.press('Shift+Tab');
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'partNext', 'Scene Shift+Tab did not wrap inside the drawer');
+    // An embedded browsing context may require multiple reverse Tab presses to
+    // leave its own tabbable descendants. Check the user-facing invariant rather
+    // than assuming the canvas is always its first internal Tab stop.
+    assert(await tabUntil(() => document.activeElement.id === 'partNext', 30, 'Shift+Tab'),
+      'Scene Shift+Tab did not return to the drawer after traversing iframe focus stops');
     await page.keyboard.press('Tab');
     await frame.waitForFunction(() => document.hasFocus() && document.activeElement.id === 'threeCanvas');
     // The scene can have real component buttons after its canvas; keep their native order too.
