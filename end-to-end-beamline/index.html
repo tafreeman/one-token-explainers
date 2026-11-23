@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>One Token, End to End</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E0E0E'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23FF4A1C'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121417'/%3E%3Crect x='7' y='11' width='18' height='10' rx='2' fill='%232F6BFF'/%3E%3C/svg%3E">
 <meta name="description" content="How a frontier LLM is made and served, drawn as one line of physical stations. Follow one token, “ Paris”, from a training document to a streamed reply from Claude Fable 5.2.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/suite-theme.css">
+<link rel="expect" href="#top" blocking="render">
 <script src="../shared/vendor/three-r160.min.js"></script>
 <script src="../shared/three-loader.js"></script>
 <style>
@@ -16,6 +18,7 @@
   --hall:#E9EBEB; --slab:#F4F5F5; --rule:#C3C8CB; --rule-soft:#D5D9DB;
   --ink:#121417; --ink-2:#434950; --ink-3:#5C636A;
   --steel:#9AA3AB; --token:#2F6BFF; --token-ink:#1F4FD6;
+  --suite-inv:var(--hall); --r-control:2px; --c-acc:var(--token-ink);
   --train:#E0482D; --train-ink:#B3351E; --serve:#F2B33D; --serve-ink:#865800;
   --tool:#1FA67A; --tool-ink:#11745A; --model:#2B3036;
   --col:clamp(420px,38vw,600px); --pad-l:clamp(24px,3.6vw,64px);
@@ -51,10 +54,10 @@ body:has([data-eq-target="mask"]:is(:hover,:focus-visible)) .tag[data-mark="mask
 .tag.tok em{display:block;font-style:normal;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.86;margin-top:3px}
 
 /* chrome */
-.topbar{position:fixed;top:0;left:0;right:0;height:var(--top);z-index:6;display:flex;align-items:center;gap:28px;padding:0 var(--pad-l);background:var(--hall);border-bottom:1px solid var(--rule)}
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--top);z-index:6;display:flex;align-items:center;gap:14px;padding:0 var(--pad-l);background:var(--hall);border-bottom:1px solid var(--rule)}
 .brand{font-weight:640;font-stretch:118%;font-size:15px;letter-spacing:-.01em;text-decoration:none;white-space:nowrap}
-.legend{display:flex;gap:18px;align-items:center;margin-left:auto;font-size:13px;color:var(--ink-2)}
-.legend span{display:inline-flex;gap:8px;align-items:center}
+.legend{display:flex;gap:12px;align-items:center;margin-left:auto;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.legend span{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
 .topbar .src-link{font-size:13px;font-weight:560}
 .src{display:inline-block;font:500 11px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink);padding:4px 6px 3px;border:1px solid var(--ink);white-space:nowrap;vertical-align:1px}
 .src.rep{border:3px double var(--ink);padding:2px 4px 1px}
@@ -162,7 +165,7 @@ html.watch-mode .cam-bar{display:inline-flex}
 .gl-lost #stage,.gl-lost #tags{visibility:hidden}
 .nogl .hero .lede::after{content:"3D needs WebGL, which this browser didn’t provide. Every step below is complete as text.";display:block;margin-top:22px;font:500 13px/1.5 var(--mono);color:var(--train-ink)}
 
-@media (max-width:1100px){.legend{display:none}}
+@media (max-width:1360px){.legend{display:none}.topbar .src-link{margin-left:auto}}
 @media (max-width:860px){
   :root{--top:52px;--strip:54px;--pad-l:20px}
   #stage{top:var(--top);height:calc(46svh - var(--top));bottom:auto;z-index:3;border-bottom:1px solid var(--rule)}
@@ -196,15 +199,19 @@ html.watch-mode .cam-bar{display:inline-flex}
 .cap.on{opacity:1;transform:none}
 .cap span{max-width:min(68ch,100%);background:var(--ink);color:#fff;font:500 15.5px/1.45 var(--sans);padding:8px 13px 9px;text-wrap:balance;text-align:center}
 @media (max-width:860px){.narr .ctl span{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}.narr .ctl{position:relative;padding:0 8px}.mode-switch .ctl{height:26px;padding:0 8px;font-size:11.5px;gap:4px}.mode-switch .ctl svg{width:12px;height:12px}.cam-bar{top:calc(var(--top) + 8px);right:10px}.cam-bar .cam-k{display:none}.cam-bar button{padding:4px 6px;font-size:10px}html.watch-mode .step{width:auto;min-height:46svh;padding:28px var(--pad-l)}.cap{top:calc(46svh - 12px);bottom:auto;transform:translateY(-100%)}.cap.on{transform:translateY(-100%)}.cap span{font-size:14px}}
-@media (max-width:860px){.topbar{gap:8px}.brand{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}@media (max-width:420px){.topbar{padding:0 12px;gap:6px}.brand{font-size:12.5px}.topbar .src-link{display:none}}
-@media (prefers-reduced-motion:reduce){.tag{transition:none}.btn{transition:none}.cap{transition:none}}
+@media (max-width:860px){.topbar{gap:8px}.brand{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.topbar .mode-switch{margin-left:auto}}@media (max-width:540px){.topbar{padding:0 8px;gap:5px}.topbar .brand,.topbar .src-link{display:none}.topbar .suite-home{font-size:11px!important}.topbar .suite-switch a,.topbar .suite-switch span[aria-current="page"]{padding:3px 5px;font-size:9.5px}.mode-switch .ctl{padding:0 6px;font-size:11px}.narr .ctl{padding:0 6px}}
+@media (prefers-reduced-motion:reduce){.tag,.btn,.cap,.cam-bar button,.watch-study-cta{transition:none}}
 </style>
 <link rel="stylesheet" href="../shared/micro-labs.css">
 <script src="../shared/micro-labs.js"></script>
+<script src="../shared/concept-links.js"></script>
 </head>
 <body>
-<header class="topbar">
+<header class="topbar suite-bar-slot">
+  <a class="suite-home" href="../index.html" style="font-size:12px;font-family:var(--mono)">← All</a>
   <a class="brand" href="#top">One token, end to end</a>
+  <span class="suite-switch" aria-label="Switch lifecycle presentation"><a id="toSwiss" href="../end-to-end-swiss/index.html">Swiss</a><span aria-current="page"><b>Beamline</b></span></span>
+  <span id="beamReturnSlot"></span>
   <div class="legend" aria-label="How sources are marked">
     <span><i class="src">Anthropic</i> published</span>
     <span><i class="src rep">DeepSeek‑V4</i> representative</span>
@@ -273,7 +280,7 @@ html.watch-mode .cam-bar{display:inline-flex}
       <h3>Cut into tokens</h3>
       <p>A byte-level BPE tokenizer cuts text into pieces from a fixed vocabulary. Frequent words become one piece, and the leading space travels with the word, so our token is <span class="tokref">“ Paris”</span>, space included. Rare words split into several pieces, which is why the tiles have different lengths. Each piece becomes one integer ID.</p>
       <code class="eq">ids = tokenizer.encode(" Paris")    # one token, one ID</code>
-      <table class="spec"><tr><td>Vocabulary</td><td>129,280</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 tokenizer</td><td>introduced with Opus 4.7</td><td><i class="src">Anthropic</i></td></tr><tr><td>ID of “ Paris”</td><td>12,474</td><td><i class="src ill">Illustrative</i></td></tr></table>
+      <table class="spec"><tr><td>Vocabulary</td><td>129,280</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 tokenizer</td><td>introduced with Opus 4.7</td><td><i class="src">Anthropic</i></td></tr><tr><td>ID of “ Paris”</td><td>12842</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="1d">
@@ -531,7 +538,7 @@ output_config: { effort: "high" }</code>
     <article class="step beat" data-beat="7a">
       <h3>Your app runs the tool</h3>
       <p>The model can’t call your weather service. Your code does, and keeps the result. Server tools such as web search and code execution are the exception: they run on Anthropic’s infrastructure, inside the same request. Treat every tool result as untrusted input.</p>
-      <code class="eq">result = get_weather(city="Paris")    # → {"temp_c": 18, "sky": "clear"}</code>
+      <code class="eq">result = get_weather(city="Paris")    # → {"temp_c": 18, "conditions": "clear"}</code>
       <table class="spec"><tr><td>Client tools</td><td>run by your app</td><td><i class="src">Anthropic</i></td></tr><tr><td>Server tools</td><td>web search · fetch · code</td><td><i class="src">Anthropic</i></td></tr><tr><td>Weather result</td><td>18 °C, clear</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
@@ -625,7 +632,11 @@ catch { document.documentElement.classList.add('nogl'); return; }
 
 /* ---------------- basics ---------------- */
 const qs = new URLSearchParams(location.search);
-const RM = matchMedia('(prefers-reduced-motion: reduce)').matches || qs.has('rm');
+const rmMq = matchMedia('(prefers-reduced-motion: reduce)');
+let RM = rmMq.matches || qs.has('rm');
+document.documentElement.classList.toggle('rm', RM);
+if (rmMq.addEventListener) rmMq.addEventListener('change', e => { RM = e.matches || qs.has('rm'); document.documentElement.classList.toggle('rm', RM); });
+let beamCacheBust = false;
 const STILL = qs.has('still');
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -756,7 +767,7 @@ const Track = (() => {
   conn([[X_INTAKE - 1.2, Y0, Z_BACK], [X_INTAKE - 4.2, Y0, -3.6], [X_INTAKE - 2.6, Y0, -.3], [X_INTAKE - 1, Y0, 0]]);
   conn([[X_BENCH + 3, Y0, Z_BACK], [X_BENCH + 1.7, Y0, Z_BACK - 2.1], [X_BENCH, Y0, Z_BACK - 2.7], [X_BENCH - 1.7, Y0, Z_BACK - 2.1], [X_BENCH - 3, Y0, Z_BACK]], .06, HEX.tool);   // detour through the tool bench
   return { update(S) {
-    fill(main, (x) => { if (S.cache && x >= S.cache[0] && x <= S.cache[1]) return 'double'; return x <= S.mainX ? 'solid' : 'dash'; });
+    fill(main, (x) => { if (!beamCacheBust && S.cache && x >= S.cache[0] && x <= S.cache[1]) return 'double'; return x <= S.mainX ? 'solid' : 'dash'; });
     fill(back, (x) => x >= S.backX ? 'solid' : 'dash');
   } };
 })();
@@ -1104,8 +1115,24 @@ const Callouts = (() => {
   const MX = X_TOWER - 14, MY = 9.2, MZ = 4.4, CW = .27, COLS = 24, ROWS = 16;
   const cells = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), COLS * ROWS); moe.add(cells);
   const LIT = [41, 98, 171, 214, 287, 340];
-  const pc = new THREE.Color(0xC3C9CE), lc = new THREE.Color(HEX.ink2);
-  for (let i = 0; i < COLS * ROWS; i++) { const cx = i % COLS, cy = Math.floor(i / COLS); dummy.position.set(MX + 1.9 + cx * CW, MY - ROWS * CW / 2 + cy * CW, MZ); dummy.rotation.set(0, 0, 0); dummy.scale.set(CW * .8, CW * .8, .08); dummy.updateMatrix(); cells.setMatrixAt(i, dummy.matrix); cells.setColorAt(i, LIT.includes(i) ? lc : pc); }
+  const pc = new THREE.Color(0xC3C9CE), lc = new THREE.Color(HEX.token), hotC = new THREE.Color(HEX.train);
+  function paintMoeBank(entries, collapsed) {
+    const byId = new Map(entries.map(e => [e.id, e.weight]));
+    for (let i = 0; i < COLS * ROWS; i++) {
+      const cx = i % COLS, cy = Math.floor(i / COLS);
+      const w = byId.get(i) || 0;
+      const zScale = w ? 0.14 + 0.55 * Math.sqrt(w) : 0.08;
+      dummy.position.set(MX + 1.9 + cx * CW, MY - ROWS * CW / 2 + cy * CW, MZ + (w ? zScale * 0.45 : 0));
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(CW * (w ? .94 : .8), CW * (w ? .94 : .8), zScale);
+      dummy.updateMatrix();
+      cells.setMatrixAt(i, dummy.matrix);
+      cells.setColorAt(i, w ? (collapsed ? hotC : lc) : pc);
+    }
+    cells.instanceMatrix.needsUpdate = true;
+    cells.instanceColor.needsUpdate = true;
+  }
+  paintMoeBank(LIT.map(id => ({ id, weight: 1 / LIT.length })), false);
   const shared = box(.9, .9, .12, M.ink, MX + .5, MY + 1.1, MZ, moe);
   const router = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .16, 24), M.serve); router.rotation.x = Math.PI / 2; router.position.set(MX + .5, MY - .9, MZ); moe.add(router);
   const streams = [...LIT.map(i => { const cx = i % COLS, cy = Math.floor(i / COLS); return V3(MX + 1.9 + cx * CW, MY - ROWS * CW / 2 + cy * CW, MZ + .05); }), V3(MX + .5, MY + 1.1, MZ + .07)].map((p, k) => {
@@ -1114,6 +1141,10 @@ const Callouts = (() => {
   const setLead = (l, a, b) => { const p = l.geometry.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true; l.computeLineDistances(); l.geometry.computeBoundingSphere(); };
   return { anchors: { query: () => V3(AX + 12 * SP, AY + .6, AZ), mask: () => V3(AX + 12.55 * SP, AY + .95, AZ), blocks: () => V3(AX + 3.5 * SP, AY + .5, AZ), window: () => V3(AX + 10 * SP, AY + .5, AZ), indexer: () => V3(AX + 5.5 * SP, AY + 1.9, AZ),
       router: () => V3(MX + .5, MY - 1.2, MZ), shared: () => V3(MX + .5, MY + 1.7, MZ), experts: () => V3(MX + 1.9 + 12 * CW, MY + ROWS * CW / 2 + .25, MZ) },
+    setRouting(k, bias) {
+      if (!window.MicroLabs) return;
+      paintMoeBank(MicroLabs.routeExperts(k, bias), bias < 0.05);
+    },
     update(S) {
       const va = Math.max(S.v.attn, S.v.attnS), vm = S.v.moe;
       att.visible = va > .01; att.scale.set(1, Math.max(.001, va), 1); att.position.y = AY * (1 - Math.max(.001, va));
@@ -1234,9 +1265,9 @@ function screenFromJ(Jv, beat) {
     case 'serve-up': return { status: 'prefill…' };
     case 'decode': return { status: 'thinking…' };
     case 'stream': return { call: call.slice(0, Math.max(1, Math.round(call.length * sstep(.3, .95, u)))), stop: u > .9 ? 'stop_reason: "tool_use"' : '' };
-    case 'tool': return { call, result: u > .35 ? 'tool_result  {"temp_c": 18, "sky": "clear"}' : 'running get_weather…', stop: 'stop_reason: "tool_use"' };
-    case 'cached': return { call, result: 'tool_result  {"temp_c": 18, "sky": "clear"}', status: 'cache hit · prefill new tokens' };
-    case 'answer': { const k = Math.round(ans.length * sstep(.55, .98, u)); return { call, result: 'tool_result  {"temp_c": 18, "sky": "clear"}', answer: ans.slice(0, k), stop: u > .97 ? 'stop_reason: "end_turn"' : '' }; }
+    case 'tool': return { call, result: u > .35 ? 'tool_result  {"temp_c": 18, "conditions": "clear"}' : 'running get_weather…', stop: 'stop_reason: "tool_use"' };
+    case 'cached': return { call, result: 'tool_result  {"temp_c": 18, "conditions": "clear"}', status: beamCacheBust ? 'cache bust · full prompt prefill' : 'cache hit · prefill new tokens' };
+    case 'answer': { const k = Math.round(ans.length * sstep(.55, .98, u)); return { call, result: 'tool_result  {"temp_c": 18, "conditions": "clear"}', answer: ans.slice(0, k), stop: u > .97 ? 'stop_reason: "end_turn"' : '' }; }
   }
   return {};
 }
@@ -1257,14 +1288,43 @@ function measure() {
     return { el, id: el.dataset.beat, top: r.top + scrollY, h: r.height, layout: el.dataset.layout || 'split', tr }; });
 }
 const studyLabs = {
-  '1c': ['bpe'], '3c': ['kl'], '5b': ['mix'], '5c': ['attention', 'rope'], '5d': ['kv'],
-  '5e': ['moe'], '6a': ['roof'], '6c': ['roof'], '6e': ['stream']
+  '1c': ['bpe'], '3c': ['kl'], '4c': ['cache'], '5b': ['mix'], '5c': ['attention', 'rope'], '5d': ['kv'],
+  '5e': ['moe'], '6a': ['roof'], '6c': ['roof'], '6e': ['stream'], '7c': ['cache']
 };
+const beamConcepts = { '1c': 'tokenization', '5b': 'mhc-residual', '5d': 'csa-hca-kv', '5e': 'moe-router', '6a': 'prefill-decode', '6e': 'utf8-sse', '7c': 'mcp-loop' };
 for (const [beat, labs] of Object.entries(studyLabs)) {
   const host = document.createElement('div');
   host.className = 'study-note';
-  document.querySelector('[data-beat="' + beat + '"]').append(host);
-  MicroLabs.dock(host, labs);
+  const stepEl = document.querySelector('[data-beat="' + beat + '"]');
+  stepEl.append(host);
+  MicroLabs.dock(host, labs, {
+    onRoute: (k, bias) => Callouts.setRouting(k, bias),
+    onPrefixCache: ratio => { beamCacheBust = ratio < 0.5; }
+  });
+  if (beamConcepts[beat] && window.SuiteLinks) {
+    const p = document.createElement('p');
+    p.style.margin = '10px 0 0';
+    const a = document.createElement('a');
+    a.className = 'concept-bridge';
+    a.href = SuiteLinks.urlFor('tour', beamConcepts[beat], { from: 'beamline', pos: beat, rm: RM });
+    a.textContent = 'Inspect component in 3D →';
+    p.append(a);
+    host.append(p);
+  }
+}
+const toSwiss = $('#toSwiss');
+if (toSwiss && window.SuiteLinks) {
+  const syncSwissHref = () => {
+    const g = SuiteLinks.beamlineBeatToSwissG(State.beatId);
+    const p = new URLSearchParams();
+    if (g > 0) p.set('g', g.toFixed(1));
+    if (RM) p.set('rm', '1');
+    toSwiss.href = '../end-to-end-swiss/index.html' + (p.toString() ? '?' + p.toString() : '');
+  };
+  toSwiss.addEventListener('pointerdown', syncSwissHref);
+  toSwiss.addEventListener('focus', syncSwissHref);
+  toSwiss.addEventListener('click', syncSwissHref);
+  SuiteLinks.mountReturnChip($('#beamReturnSlot'), 'beamline');
 }
 const studyBtn = $('#studyBtn'), watchModeBtn = $('#watchModeBtn'), camBar = $('#camBar');
 let viewMode = 'watch', camPreset = 'director';
@@ -1624,7 +1684,19 @@ document.addEventListener('visibilitychange', () => { last = performance.now(); 
   Post && scene.traverse(o => { if (o.material && o.material.map && o.material.map.userData && o.material.map.userData.draw && o.material.map !== SHADOW && o.material.map !== HALO) { const t = o.material.map; t.userData.draw(t.userData.g, t.image.width, t.image.height); t.needsUpdate = true; } });
   Serve.resetScreen();
   resize(); measure();
-  if (qs.get('beat')) { jumpTo(qs.get('beat'), true); }
+  function resolveBeamConcept() {
+    if (!window.SuiteLinks) return false;
+    const hit = SuiteLinks.parseConceptHash(location.hash);
+    if (!hit || !hit.beamline) return false;
+    if (hit.beamline.study) setStudy(true);
+    jumpTo(hit.beamline.beat, true);
+    const el = document.querySelector('[data-beat="' + hit.beamline.beat + '"]');
+    if (el) SuiteLinks.pulseTarget(el);
+    if (hit.lab) MicroLabs.reveal(el || document, qs.get('lab') || hit.lab);
+    return true;
+  }
+  addEventListener('hashchange', resolveBeamConcept);
+  if (!resolveBeamConcept() && qs.get('beat')) { jumpTo(qs.get('beat'), true); }
   requestAnimationFrame(t => { measure(); last = t; snapNext = true; scheduleFrame(); });
 })();
 new ResizeObserver(() => measure()).observe(document.body);

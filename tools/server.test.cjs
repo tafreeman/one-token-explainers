@@ -60,6 +60,13 @@ test('static server serves all explainers, redirects bare dirs, and blocks priva
     const labs = await request(port, '/shared/micro-labs.js');
     assert.equal(labs.status, 200);
 
+    const readerCss = await request(port, '/one-token/reader.css');
+    assert.equal(readerCss.status, 200);
+
+    const readerFont = await request(port, '/one-token/fonts/roboto-flex.woff2');
+    assert.equal(readerFont.status, 200);
+    assert.ok(readerFont.body.length > 10000);
+
     const audio = await request(port, '/end-to-end-swiss/assets/narration/00-intro.mp3');
     assert.equal(audio.status, 200);
     assert.equal(audio.headers['accept-ranges'], 'bytes');

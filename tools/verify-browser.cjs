@@ -7,6 +7,7 @@ const path = require('node:path');
 const {pathToFileURL} = require('node:url');
 const {chromium} = require('playwright');
 const {createApp} = require('../server');
+const {verifyReader, verifyReaderWarp} = require('./reader-browser.cjs');
 
 const root = path.resolve(__dirname, '..');
 const axePath = require.resolve('axe-core/axe.min.js');
@@ -310,8 +311,8 @@ async function swissFullLessons(browser, base, artifacts, local=false) {
       if(local) await page.context().setOffline(true);
       const landing=local?pathToFileURL(path.join(root,'index.html')).href:base;
       await page.goto(landing+'?rm=1');
-      assert.equal(await page.locator('.grid .card').count(),4,'four-explainer landing page');
-      assert(!page.url().includes('end-to-end-swiss'),'homepage does not redirect');
+      assert.equal(await page.locator('.other-presentations li a').count(),5,'root reader exposes all five classic/deep-dive views');
+      assert(!page.url().includes('end-to-end-swiss'),'homepage serves unified reader without redirecting to Swiss');
       const swiss=local?pathToFileURL(path.join(root,'end-to-end-swiss/index.html')).href:base+'end-to-end-swiss/index.html';
       await ready(page,swiss+'?rm=1#s-7','window.THREE && document.querySelector("#heroCanvas").width > 300');
       assert.equal(await page.locator('.stage-detail').count(),12);
@@ -558,7 +559,11 @@ async function main() {
   try {
     const base = 'http://127.0.0.1:' + server.address().port + '/';
     browser = await chromium.launch({args: warp ? ['--use-angle=d3d11-warp'] : ['--enable-unsafe-swiftshader']});
-    if (warp) return await drawerPerformance(browser, base);
+    if (warp) {
+      await drawerPerformance(browser, base);
+      return await verifyReaderWarp(browser, base, WARP_P95_BUDGET_MS);
+    }
+    if (runs('reader')) await verifyReader(browser, base, artifacts);
     if (runs('layout')) await layoutAndAxe(browser, base, artifacts);
     if (runs('keyboard')) {
       await keyboard(browser, base, false);

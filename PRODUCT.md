@@ -25,19 +25,21 @@ training, post-training, inference, serving, streaming, and the tool loop.
 
 Success means a learner can explain the major stages and distinguish a public API
 contract, a documented model mechanism, and an illustrative teaching example.
-Let learners choose a presentation style; the Swiss route shows all written
-mechanisms and specifications while the other formats emphasize different modes
-of visual inspection.
+The root entry (`index.html`) opens directly into one unified Continuous Reader
+so learners do not have to choose a format before starting the lesson.
 
-These are learning goals, not measured learning gains. The root entry offers four explainer formats. Swiss exposes the complete lesson,
-including code and specifications, without stage-level disclosure controls.
-The separate formats remain complementary rather than consolidated.
+These are learning goals, not measured learning gains. The unified Continuous
+Reader exposes the complete twelve-stage written lesson without mandatory
+stage-level disclosure controls, synchronized beside a single persistent 3D
+figure that switches between **Diagram** (Swiss wireframe assemblies) and
+**Spatial** (Beamline hall choreography) at the exact step being read, plus a
+**Present** mode for guided walkthroughs and an inline **Component Inspector**
+for micro-labs and 3D Observatory cutaways.
 
-Swiss also offers **Explore the token**: the learner moves Paris through the
-existing 3D stages with an axis or arrows, then sees it in the illustrative reply.
-The written route remains directly available. Opening detail preserves the current
-scene and reading position until navigation resumes; reduced motion and static
-fallbacks retain the same controls and lesson content.
+Opening detail preserves the current scene and reading position until
+navigation resumes; reduced motion and static fallbacks retain the same
+controls and lesson content. The earlier standalone formats remain accessible
+from the quiet **Other views** menu for deep-dive study or comparison.
 
 ## Positioning
 
@@ -56,16 +58,23 @@ Learners can use the hosted site or open local pages with their sibling assets
 present. Viewing does not require a build step. An optional Express server is
 available through `npm run dev`.
 
-Swiss is one of four first-class learning interfaces. The current implementation also retains
-separate formats, which are source material for further consolidation:
+The root entry (`index.html`) is the unified Continuous Reader (`one-token/`
+holds its assets and a compatibility redirect at `one-token/index.html`). The
+repo also preserves the separate formats under the **Other views** menu:
 
-- **One Token, End to End (Swiss):** a twelve-stage lifecycle explanation.
-- **One Token, End to End (Beamline):** the lifecycle presented as physical
-  stations, with Watch and Study modes.
+- **One Token, End to End (`index.html`):** the unified twelve-stage Continuous
+  Reader with synchronized Diagram/Spatial 3D views, Present mode, guided
+  narration (9:41 full walkthrough + optional 4:38 quick summary), and an
+  inline Component Inspector.
+- **One Token, End to End (Swiss):** the classic twelve-stage editorial plate
+  explanation.
+- **One Token, End to End (Beamline):** the classic physical-stations hall with
+  Watch and Study modes.
 - **One Token's Journey:** a chapter-based explanation with inspectable 3D rooms.
 - **Guided Tour:** a stop-based route through the model with deeper component
   references.
-- **3D Observatory:** the shared scene, also available as a standalone page.
+- **3D Observatory:** the shared architectural cutaway scene, available both
+  inside the Component Inspector and as a standalone page.
 
 Narration, captions, written explanations, playback controls, component details,
 and small labs provide different ways to follow and revisit the material.
@@ -105,7 +114,7 @@ for different learner groups remain open validation work.
 ## Product Principles
 
 1. Make guided teaching understandable across a range of starting knowledge.
-2. Make the four formats discoverable and keep the full written explanation accessible without mandatory expansion.
+2. Start directly in the unified lesson without mandatory expansion, while keeping the classic and deep-dive formats discoverable under **Other views**.
 3. Preserve the boundary between documented facts and teaching models.
 4. Keep essential understanding available through text and accessible controls,
    alongside narration and 3D.

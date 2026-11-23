@@ -2,9 +2,9 @@
    for the same scene calls that the hosted pages make directly. */
 (function () {
   'use strict';
-  const commands = new Set(['setRealm', 'setSkin', 'focus', 'setPose', 'setHighlight',
+  const commands = new Set(['setRealm', 'setSkin', 'setSkinMix', 'focus', 'setPose', 'setHighlight',
     'setLabels', 'setPlaying', 'setControls', 'setKV', 'setBackprop', 'setMoeOffset',
-    'setRouting', 'suspend', 'resume', 'renderNow', 'resize']);
+    'setRouting', 'setPrefixCache', 'setPDDisagg', 'suspend', 'resume', 'renderNow', 'resize']);
 
   const keys = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape', '1', '2', '3', '4', '5', '6']);
   const keyMessage = 'journey-navigation-key';
@@ -25,14 +25,16 @@
   };
   window.forwardJourneyKeys = function () {
     if (window === parent) return;
+    const reader = /[?&]reader=1(?:&|$)/.test(location.search);
     window.addEventListener('message', event => {
       if (event.source !== parent || !trustedOrigin(event.origin) || event.data?.type !== focusMessage) return;
       document.getElementById('threeCanvas')?.focus({preventScroll: true});
     });
     document.addEventListener('keydown', event => {
+      const readerEscape = reader && event.key === 'Escape';
       if (!keys.has(event.key) || event.defaultPrevented || event.isComposing ||
           event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
-          event.target.closest?.('input, textarea, select, button, summary, [contenteditable]')) return;
+          (!readerEscape && event.target.closest?.('input, textarea, select, button, summary, [contenteditable]'))) return;
       event.preventDefault();
       parent.postMessage({type: keyMessage, key: event.key}, location.protocol === 'file:' ? '*' : location.origin);
     });

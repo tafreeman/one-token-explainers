@@ -17,6 +17,7 @@ const check = (name, ok, detail = '') => {
 };
 
 const PAGES = {
+  reader: 'index.html',
   core: 'shared/obs-core.html',
   story: 'journey-story/index.html',
   tour: 'journey-tour/index.html',
@@ -33,9 +34,9 @@ check('MOE_N === 384', moeN === 384, `found ${moeN}`);
 check('MOE_BASE_LIT has 6 slots', lit.length === 6, `found ${lit.length}`);
 check('MOE_BASE_LIT slots are distinct and < MOE_N', new Set(lit).size === lit.length && lit.every((n) => n >= 0 && n < moeN));
 
-// Tasks 1-2 / gate 03: no stale V3 or MLA-vs-GQA terminology in obs-core, Story, Tour or shared/README.md.
+// Tasks 1-2 / gate 03: no stale V3 or MLA-vs-GQA terminology in reader, obs-core, Story, Tour or shared/README.md.
 const STALE = /\btop-?8\b|top-eight|eight routed|\b8 routed|MLA\s*(?:vs\.?|\/)\s*GQA|GQA\s*(?:vs\.?|\/)\s*MLA|GqaMla|mlaModeActive|gqaBtn/i;
-for (const p of [PAGES.core, PAGES.story, PAGES.tour, 'shared/README.md']) {
+for (const p of [PAGES.reader, PAGES.core, PAGES.story, PAGES.tour, 'shared/README.md']) {
   const m = read(p).match(STALE);
   check(`no stale terms in ${p}`, !m, m && `"${m[0]}"`);
 }
@@ -52,12 +53,16 @@ for (const k of ['core', 'story', 'tour']) {
   }
 }
 
-// Task 4: Swiss keeps one drawn stream but says V4 uses four; Beamline draws four strands.
+// Task 4: Reader & Swiss keep one drawn stream but say V4 uses four and merges 4x7168 -> 7168; Beamline draws four strands.
+check('Reader notes the 4-stream mHC and 4-to-1 output merge',
+  /drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams/.test(src.reader) &&
+  /merge_4_to_1\(streams\)/.test(src.reader));
 check('Swiss notes the 4-stream mHC', /drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams/.test(src.swiss));
 check('Beamline builds 4 mHC strands', /NSTR = 4\b/.test(src.beamline) && !/CylinderGeometry\(\.1, \.1, TOWER_TOP/.test(src.beamline));
 
-// Task 5: provenance lines at stages 3, 4 and 7 (Swiss) and Stations 3, 4-5 and 7 (Beamline).
+// Task 5: provenance lines at stages 3, 4 and 7 (Reader + Swiss) and Stations 3, 4-5 and 7 (Beamline).
 for (const n of [3, 4, 7]) {
+  check(`Reader stage ${n} provenance line`, new RegExp(`id="h-${n}"[^\\n]*\\n\\s*<p class="prov">`).test(src.reader));
   check(`Swiss stage ${n} provenance line`, new RegExp(`id="h-${n}"[^\\n]*\\n\\s*<p class="prov">`).test(src.swiss));
 }
 check('Beamline has 3 provenance lines', (src.beamline.match(/<p class="prov">/g) || []).length === 3);
@@ -78,6 +83,39 @@ check('Swiss separates FP8 pretraining from FP4 QAT release',
   /pretraining uses FP8 mixed precision/i.test(precisionStep) && /QAT[^<]*FP4[^<]*release/.test(precisionStep));
 check('Story benchmark labels the reported Think Max mode', /V4-PRO[^'\n]*THINK MAX/.test(src.story));
 check('Story does not invent a red-team pass', !/\['Red-team safety',\s*'PASS'/.test(src.story));
+
+// Phase 6 epistemic hygiene & suite link integrity.
+const landing = read('index.html');
+const microLabsSrc = read('shared/micro-labs.js');
+const compMathSrc = read('journey-story/component-math.js');
+const conceptSrc = read('shared/concept-links.js');
+check('Landing Observatory footer link opens interactive standalone view (no embed=1)',
+  landing.includes('shared/obs-core.html?realm=MODEL') && !/obs-core\.html\?embed=1/.test(landing));
+check('Swiss has 7 quiet concept bridge links and stays free of micro-labs',
+  (src.swiss.match(/class="concept-bridge"/g) || []).length === 7 && !src.swiss.includes('micro-labs'));
+check('Beamline aligns token ID to 12842', src.beamline.includes('>12842<'));
+check('3-bound roofline states per-GPU NVLink scope and marks EP model illustrative',
+  /NVLink 5 900 GB\/s unidirectional \(1\.8 TB\/s bidirectional\) per GPU/.test(microLabsSrc) &&
+  /illustrative top-6 BF16 dispatch\/combine/.test(microLabsSrc));
+check('Causal steering graph is explicitly labeled illustrative',
+  /not measured DeepSeek-V4-Pro weights/.test(compMathSrc));
+check('Concept links use explicit file://-safe index.html targets',
+  conceptSrc.includes('../end-to-end-swiss/index.html') && conceptSrc.includes('../journey-tour/index.html'));
+
+// Unified Reader & Audit W1-W4 guards across one-token/* and obs-core.
+const readerDiagramSrc = read('one-token/scene-diagram.js');
+const readerSpatialSrc = read('one-token/scene-spatial.js');
+check('No invalid narrow tool_result JSON in Reader, Swiss, or Beamline',
+  !/\{"temp_c":\s*18,\s*"clear"\}/.test(readerDiagramSrc) &&
+  !/\{"temp_c":\s*18,\s*"clear"\}/.test(src.swiss) &&
+  !/\{"temp_c":\s*18,\s*"sky":/.test(readerSpatialSrc) &&
+  !/\{"temp_c":\s*18,\s*"sky":/.test(src.beamline));
+check('Observatory MD-3 expresses learned 4x7168 -> 7168 merge before RMSNorm',
+  /4 × 7,168 → learned merge → 7,168 → RMSNorm/.test(src.core) &&
+  /H_res · streams \+ H_post · sublayer\(H_pre · streams\)/.test(src.core) &&
+  /free_kv_blocks >= needed_new_blocks/.test(src.core));
+check('Reader labels server-side compaction as opt-in and configurable',
+  /opt-in server-side compaction/.test(src.reader) && /150K tokens \(opt-in default\)/.test(src.reader));
 
 // Narration: inline manifests must match the shared manifest (file:// playback, audio timing).
 const inline = (html, id) => JSON.parse((html.match(new RegExp(`<script type="application/json" id="${id}">([\\s\\S]*?)</script>`)) || [])[1] || 'null');
