@@ -10,7 +10,6 @@ const materialSystem = window.ReaderSpatialMaterials.create(THREE, theme, render
 const PM = materialSystem.materials;
 const lightRig = materialSystem.addLightRig(scene);
 let qualityTier = 'high';
-materialSystem.setQuality(scene, qualityTier);
 let exposure = 1;
 let beamCacheBust = false;
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -204,6 +203,7 @@ const Corpus = (() => {
   const parts = Array.from({ length: N }, (_, i) => ({ r: i % 5, ph: (i * .6180339) % 1, drop: (i * 7) % 10 < 3 }));
   const main = new THREE.CatmullRomCurve3([V3(-3, Y0, 0), V3(X_GATE, Y0, 0)]); const tail = new THREE.CatmullRomCurve3([V3(X_GATE, Y0, 0), V3(X_TOK - .6, Y0, 0)]);
   const tmp = new THREE.Vector3();
+  modelKit.mergeStatic(g);
   return { g, rails, update(S) {
     const t = S.anim * .07, vis = S.v.corpus;
     parts.forEach((p, i) => {
@@ -239,6 +239,8 @@ const Tokenizer = (() => {
   const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7), new THREE.MeshBasicMaterial({ map: vtex })); plate.rotation.x = -Math.PI / 2; plate.position.set(X_TOK - 2.6, .4, -3.3); vis.add(plate);
   box(1.86, .14, 1.86, M.steelL, X_TOK - 2.6, .3, -3.3, vis);
   const patches = new THREE.InstancedMesh(BOX, M.graphite, 16); patches.instanceMatrix.setUsage(THREE.DynamicDrawUsage); vis.add(patches);
+  modelKit.mergeStatic(gate.g, [blade]);
+  modelKit.mergeStatic(vocab.g, [vocab.selectedRow, vocab.vector]);
   return { g, update(S) {
     const a = S.anim;
     tex.offset.x = (a * .045) % 1;
@@ -291,6 +293,8 @@ const Tower = (() => {
   const shad = shadow(0, 0, 8, 8, .6, g);
   const pale = new THREE.Color(HEX.pale), graph = new THREE.Color(HEX.graphite), flashC = new THREE.Color(HEX.token), sweepC = new THREE.Color(HEX.ink2), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
   const tokC = new THREE.Color(HEX.token), inkC = new THREE.Color(HEX.ink2);
+  modelKit.mergeStatic(g, rings);
+  modelKit.mergeStatic(embedding.g, [embedding.selectedRow, embedding.vector]);
   return { g, update(S) {
     g.position.x = S.tower.x;
     const a = S.anim, tr = S.tower.trained;
@@ -391,9 +395,11 @@ const Post = (() => {
   const cline = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V3(X_POST + 4.5, 2.6, -5.5), V3(gx, 5.6, -4.1)]), new THREE.LineDashedMaterial({ color: HEX.ink, dashSize: .25, gapSize: .18 })); cline.computeLineDistances(); g.add(cline);
   // SFT demo tiles
   const demo = new THREE.InstancedMesh(BOX, M.steelL, 8); demo.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(demo);
-  return { update(S) {
+  return { g, update(S) {
     const a = S.anim, rl = S.v.rl;
-    arcs.forEach((m, i) => { m.visible = rl > .01; const grow = clamp((frac(a * .28) * 1.6 - i * .05)); const n = Math.floor(m.userData.total * Math.min(1, grow * 1.25) * rl / 3) * 3;
+    arcs.forEach((m, i) => { m.visible = rl > .01; const grow = clamp((frac(a * .28) * 1.6 - i * .05));
+      const total = m.geometry.index.count;
+      const n = Math.floor(total * Math.min(1, grow * 1.25) * rl / 3) * 3;
       m.geometry.setDrawRange(0, n); });
     marks.forEach((o, i) => { const on = rl * sstep(.55, .7, frac(a * .28)); o.visible = on > .02; o.scale.setScalar(Math.max(.001, on)); });
     ghost.visible = S.v.ghost > .01; tether.visible = ghost.visible; ghost.scale.y = Math.max(.001, S.v.ghost);
@@ -409,7 +415,8 @@ const Gate = (() => {
   shadow(X_REL, -2.8, 1.6, 1.6, .5, g); shadow(X_REL, 2.8, 1.6, 1.6, .5, g); box(1.6, .06, 7.2, M.plinth, X_REL, .03, 0, g);
   const scan = box(.32, .32, 5.4, M.ink, X_REL, 3, 0, g);
   const lamps = Array.from({ length: 6 }, (_, i) => { const o = new THREE.Group(); o.position.set(X_REL + .42, 15.8, -2.2 + i * .88); g.add(o); edgesBox(.08, .62, .62, HEX.ink, o); const f = box(.08, .62, .62, M.ink, 0, 0, 0, o); return f; });
-  return { update(S) {
+  modelKit.mergeStatic(g, [scan]);
+  return { g, update(S) {
     const s = S.v.scan, a = S.anim;
     scan.visible = s > .02; scan.position.y = lerp(1, 14.8, .5 + .5 * Math.sin(a * 1.4));
     lamps.forEach((f, i) => { const on = Math.max(S.lampsOn - i, 0) >= 1 ? 1 : clamp(S.lampsOn - i); f.scale.setScalar(Math.max(.001, on)); });
@@ -461,6 +468,13 @@ const Serve = (() => {
   shadow(0, 0, 3.6, 2.8, .45, bench);
   // compaction block
   const compact = box(2.8, .34, .34, M.ink, X_INTAKE + 3.2, Y0, 0, g); compact.visible = false;
+  modelKit.mergeStatic(sampler.g, [sampler.pointer, sampler.winner]);
+  modelKit.mergeStatic(cache.g);
+  modelKit.mergeStatic(detok.g, [detok.text]);
+  modelKit.mergeStatic(intakeGate.g, [intakeGate.blade]);
+  modelKit.mergeStatic(scr);
+  modelKit.mergeStatic(bench, [benchModel.inputPort, benchModel.outputPort]);
+  modelKit.mergeStatic(g, [intake, toolChoice, parisAttention, barrier, laneM, compact]);
   let screenKey = '';
   function drawScreen(state) {
     const key = JSON.stringify(state); if (key === screenKey) return; screenKey = key;
@@ -482,6 +496,12 @@ const Serve = (() => {
   const lanes = [1.55, -1.55];
   return { g, drawScreen, resetScreen() { screenKey = ''; }, update(S) {
     const a = S.anim;
+    bench.visible = S.v.bench > .01;
+    bench.scale.setScalar(Math.max(.001, S.v.bench));
+    scr.visible = S.v.screen > .01;
+    scr.scale.setScalar(Math.max(.001, S.v.screen));
+    cache.g.visible = S.v.sampler < .99;
+    cache.g.scale.setScalar(Math.max(.001, 1 - S.v.sampler));
     cache.setFill(S.kv);
     const sample = sstep(.12, .78, S.prog);
     sampler.pointer.rotation.z = lerp(-1.9, .82, sample);
@@ -688,16 +708,24 @@ Object.assign(B, {
   '3e-safeguards': {...B['3e'], tags: ['safeguards']},
   '4b-template': {...B['4b'], tags: ['template'], show: {template: 1}},
   '4b-tokenizer': {...B['4b'], tags: ['intake-tokenizer'], show: {intakeTokenizer: 1}},
-  '6a-kv': {...B['6a'], cam: [84, 6.5, 17, 90, 1.1, 2.7], tags: ['kv']},
+  '6a-kv': {...B['6a'], cam: [84, 6.5, 17, 90, 1.1, 2.7], tags: ['kv'], parkToken: [X_TOWER, Y0, 1.2], tower: [X_TOWER, 1],
+    fit: [[X_TOWER + 1.8, 0, 1.8], [X_TOWER + 6.4, 2.1, 3.8]]},
   '6b-summary': {...B['6b'], hideBead: false, parkToken: [X_TOWER + 3.5, Y0, -1.8], tags: ['notret']},
   '6b-tool': {...B['6b'], hideBead: false, parkToken: [X_TOWER + 3.5, Y0, -1.8], tags: ['tool-choice'], show: {thinking: 1, toolChoice: 1, logits: .5}},
   '6c-draft': {...B['6c'], tags: ['draft'], show: {draft: 1, logits: 1, lane: 1}},
-  '6d-tool': {...B['6d'], tags: ['sampler', 'paris-attention'], show: {sampler: 1, lane: 1, parisAttention: 1, toolChoice: 1}},
+  '6d-tool': {...B['6d'], tags: ['sampler', 'paris-attention'], fit: [[X_SAMPLE - 1.4, 0, -1], [X_SAMPLE + 1.4, 2.4, 1]],
+    show: {sampler: 1, lane: 1, parisAttention: 1, toolChoice: 1}},
   '6e-detok': {...B['6e'], cam: [102, 4.4, 11, 103, .9, 0], tags: ['detok'], fit: null, show: {detokenize: 1, lane: 1}},
   '6e-stream': {...B['6e'], tags: ['outcls', 'screen']},
   '6e-stop': {...B['6e'], tags: ['stop']},
 });
 B['6d'].show = {sampler: 1, lane: 1};
+B['6d'].cam = B['6d-tool'].cam = [101, 5.2, 12, 95, 1.3, 0];
+B['6d'].fit = [[X_SAMPLE - 1.4, 0, -1], [X_SAMPLE + 1.4, 2.4, 1]];
+B['7a'].fit = [[X_BENCH - 2.2, 0, Z_BACK - 4.2], [X_SCREEN + 5.2, 4.5, 1], [X_SCREEN + 2.7, -2, 0]];
+for (const key of ['p7', '7a', '7b']) B[key].show = {...B[key].show, bench: 1};
+for (const key of ['p4', '4a', '6e', '6e-detok', '6e-stream', '6e-stop', 'p7', '7a', '7b', '7d'])
+  B[key].show = {...B[key].show, screen: 1};
 B['6b'].hideBead = false; B['6b'].parkToken = [X_TOWER + 3.5, Y0, -1.8];
 B['7e'].hideBead = false; B['7e'].parkToken = [X_INTAKE + 3.2, Y0 + .4, 1];
 const STEP_BEATS = {
@@ -747,7 +775,7 @@ const TAGS = {
 };
 
 /* ---------------- state ---------------- */
-const SHOW_KEYS = ['corpus', 'chop', 'vision', 'vocab', 'flicker', 'grad', 'cluster', 'ctx', 'logits', 'sft', 'rl', 'ghost', 'cons', 'scan', 'batch', 'embed', 'attn', 'attnS', 'moe', 'layers', 'thinking', 'draft', 'lane', 'detokenize', 'sampler', 'template', 'intakeTokenizer', 'toolChoice', 'parisAttention', 'compact'];
+const SHOW_KEYS = ['corpus', 'chop', 'vision', 'vocab', 'flicker', 'grad', 'cluster', 'ctx', 'logits', 'sft', 'rl', 'ghost', 'cons', 'scan', 'batch', 'embed', 'attn', 'attnS', 'moe', 'layers', 'thinking', 'draft', 'lane', 'detokenize', 'sampler', 'template', 'intakeTokenizer', 'toolChoice', 'parisAttention', 'bench', 'screen', 'compact'];
 const State = { t: 0, dt: 0, anim: 0, J: 0, beatId: 'hero', prog: 0, tl: 0, v: Object.fromEntries(SHOW_KEYS.map(k => [k, 0])),
   tower: { x: X_TOWER, trained: 1 }, bead: { pos: V3(0, 0, 0), visible: true, seg: SEGS[0], u: 0 }, mainX: 0, backX: 999, cache: null, kv: 0, ctx: 0, lampsOn: 6,
   headHot: 0, winnerHot: 0, screen: {} };
@@ -942,7 +970,7 @@ function update(state, aspect, viewportWidth) {
   const shownBefore = { ...S.v };
   for (const key of SHOW_KEYS) S.v[key] = b.show?.[key] ?? 0;
   if (b === B.hero || b === B.f1) {
-    Object.assign(S.v, { corpus: 1, chop: 1, grad: +(sk === 'absorb'), lane: 1,
+    Object.assign(S.v, { corpus: 1, chop: 1, grad: +(sk === 'absorb'), lane: 1, bench: 1, screen: 1,
       flicker: +(sk === 'train-up' || sk === 'absorb'), thinking: +(sk === 'decode'), scan: +(sk === 'ship-rel') });
   }
   if (b === B['5d'] && settings.kv === 'dense') {
@@ -971,6 +999,7 @@ function update(state, aspect, viewportWidth) {
   Track.update(S); Corpus.update(S); Tokenizer.update(S); Tower.update(S); Cluster.update(S);
   Post.update(S); Gate.update(S); Serve.update(S); Callouts.update(S);
   Tokenizer.g.visible = Tower.g.visible = Serve.g.visible = !corpusOpening;
+  Post.g.visible = Gate.g.visible = S.tower.x < X_TOWER - 1;
 
   let shot = b.cam || B.hero.cam;
   if (state.opening) shot = compact ? openingTight : openingCam;
@@ -1096,9 +1125,12 @@ function simplifiedGeometry(geometry) {
   const p = geometry.parameters || {};
   let low = null;
   if (geometry.type === 'ExtrudeGeometry') {
-    geometry.computeBoundingBox(); const size = geometry.boundingBox.getSize(V3(0, 0, 0));
-    low = new THREE.BoxGeometry(size.x, size.y, size.z);
+    geometry.computeBoundingBox();
+    const size = geometry.boundingBox.getSize(V3(0, 0, 0)), center = geometry.boundingBox.getCenter(V3(0, 0, 0));
+    low = new THREE.BoxGeometry(size.x, size.y, size.z); low.translate(center.x, center.y, center.z);
   } else if (geometry.type === 'TubeGeometry') {
+    // Reject/dashed tubes keep their authored index mask; animating draw ranges use current geometry size.
+    if (geometry.index && geometry.index.count < p.tubularSegments * p.radialSegments * 6) return null;
     low = new THREE.TubeGeometry(p.path, Math.max(8, Math.floor(p.tubularSegments / 3)), p.radius, 4, p.closed);
   } else if (geometry.type === 'TorusGeometry') {
     low = new THREE.TorusGeometry(p.radius, p.tube, 4, 16);
@@ -1126,6 +1158,8 @@ function setQuality(tier) {
     } else if (object.userData.highGeometry) object.geometry = object.userData.highGeometry;
   });
   PM.token.emissiveIntensity = qualityTier === 'low' ? .12 : .24;
+  beadModel.core.material.emissiveIntensity = qualityTier === 'low' ? .12 : .24;
+  beadModel.core.material.envMapIntensity = qualityTier === 'high' ? 1.05 : qualityTier === 'medium' ? .7 : 0;
 }
 function contextRestored() { materialSystem.invalidate(); materialSystem.setQuality(scene, qualityTier); }
 return { scene, camera, update, setRouting: Callouts.setRouting, setQuality, contextRestored,

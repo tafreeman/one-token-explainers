@@ -517,9 +517,65 @@ async function fallbacks(browser, url, artifacts) {
   console.log('Reader static no-JS lesson, no-WebGL fallback, and WebGL context recovery passed');
 }
 
+async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) {
+  const ids = ['2.1', '7.2', '7.3', '8.2', '10.2', '11.2', '12.1'];
+  const reports = [];
+  for (const viewport of [desktop, phone]) {
+    const page = await browser.newPage({viewport, reducedMotion: 'no-preference', hasTouch: viewport === phone});
+    const errors = collectErrors(page);
+    try {
+      await page.goto(url); await ready(page); await switchView(page, 'spatial');
+      await clickVisible(page, '#present'); await mode(page, 'present');
+      await page.evaluate(() => window.OneToken.scene.resetPerformance?.());
+      for (const id of ids) {
+        await gotoStep(page, id); await settle(page, 1050);
+        if (!captureOnly) await checkLayout(page, `spatial ${id} ${viewport.width}`);
+        const stats = await stat(page);
+        if (!captureOnly) {
+          assert.ok(stats.calls < 90, `spatial ${id} draw calls ${stats.calls}`);
+          assert.ok(stats.triangles <= 120000, `spatial ${id} triangles ${stats.triangles}`);
+          assert.notEqual(await page.locator('#pin').getAttribute('data-intersects-token'), 'true',
+            `spatial ${id} label overlaps token`);
+        }
+        await capture(page, artifacts, `spatial-${id}-${viewport.width}x${viewport.height}`);
+        reports.push({id, viewport: viewport.width, calls: stats.calls, triangles: stats.triangles,
+          quality: stats.qualityTier, p95FrameMs: +Number(stats.p95FrameMs || 0).toFixed(1)});
+      }
+      if (!captureOnly) {
+        await gotoStep(page, '7.2'); await settle(page, 1050);
+        const before = (await stat(page)).cameraPose;
+        await gotoStep(page, '7.3'); await settle(page, 1050);
+        await gotoStep(page, '7.2'); await settle(page, 1050);
+        assert.deepEqual((await stat(page)).cameraPose, before, 'spatial A→B→A restores the exact camera pose');
+      }
+      assert.deepEqual(errors, [], `spatial visual stops ${viewport.width} console errors`);
+    } finally { await page.close(); }
+  }
+  if (captureOnly) return;
+  const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
+  const errors = collectErrors(page);
+  try {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 2});
+      Object.defineProperty(navigator, 'deviceMemory', {get: () => 2});
+    });
+    await page.goto(url); await ready(page); await switchView(page, 'spatial');
+    await gotoStep(page, '7.3'); await settle(page, 500);
+    const stats = await stat(page);
+    assert.equal(stats.qualityTier, 'low', 'low-power devices use the low spatial tier');
+    assert.ok(stats.triangles <= 45000, `low-tier triangles ${stats.triangles}`);
+    await capture(page, artifacts, 'spatial-7.3-low-1440x900');
+    assert.deepEqual(errors, [], 'low-tier console errors');
+    reports.push({id: '7.3', viewport: 'low', calls: stats.calls, triangles: stats.triangles,
+      quality: stats.qualityTier, p95FrameMs: +stats.p95FrameMs.toFixed(1)});
+  } finally { await page.close(); }
+  console.log('Reader spatial visual stops', JSON.stringify(reports));
+}
+
 async function verifyReader(browser, base, artifacts) {
   const url = new URL('./', base).href;
   await layouts(browser, url, artifacts);
+  await visualStops(browser, url, artifacts);
   await navigation(browser, url, artifacts);
   await narration(browser, url);
   await narrationScroll(browser, url);
@@ -597,4 +653,4 @@ async function verifyReaderWarp(browser, base, budget = 100) {
   }
 }
 
-module.exports = {verifyReader, verifyReaderWarp, phonePopups};
+module.exports = {verifyReader, verifyReaderWarp, phonePopups, visualStops};

@@ -41,6 +41,46 @@
       return mesh(chamferedBox(width, height, depth, radius), material, name, x, y, z);
     }
 
+    // Merge only static siblings with one material; animated and addressed parts stay independent.
+    function mergeStatic(group, exclude = []) {
+      const skipped = new Set(exclude), buckets = new Map();
+      for (const object of group.children) {
+        if (!object.isMesh || object.isInstancedMesh || skipped.has(object) || object.userData.curve ||
+          object.material.transparent || object.renderOrder) continue;
+        const list = buckets.get(object.material) || []; list.push(object); buckets.set(object.material, list);
+      }
+      for (const [material, objects] of buckets) {
+        if (objects.length < 2) continue;
+        const parts = objects.map(object => {
+          object.updateMatrix();
+          const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry.clone();
+          geometry.applyMatrix4(object.matrix);
+          if (!geometry.attributes.normal) geometry.computeVertexNormals();
+          return geometry;
+        });
+        const attributes = {};
+        for (const name of ['position', 'normal', 'uv']) {
+          const source = parts[0].attributes[name];
+          if (!source) continue;
+          const array = new Float32Array(parts.reduce((sum, g) => sum +
+            (g.attributes[name]?.array.length ?? g.attributes.position.count * source.itemSize), 0));
+          let offset = 0;
+          for (const geometry of parts) {
+            if (!geometry.attributes[name]) { offset += geometry.attributes.position.count * source.itemSize; continue; }
+            array.set(geometry.attributes[name].array, offset); offset += geometry.attributes[name].array.length;
+          }
+          attributes[name] = new THREE.BufferAttribute(array, source.itemSize);
+        }
+        const geometry = new THREE.BufferGeometry();
+        for (const [name, attribute] of Object.entries(attributes)) geometry.setAttribute(name, attribute);
+        geometry.computeBoundingSphere();
+        const merged = new THREE.Mesh(geometry, material); merged.name = 'merged-static-' + group.name;
+        for (const object of objects) group.remove(object);
+        group.add(merged);
+        for (const part of parts) part.dispose();
+      }
+    }
+
     function torus(radius, tube, material, name, x = 0, y = 0, z = 0) {
       return mesh(new THREE.TorusGeometry(radius, tube, 10, 48), material, name, x, y, z);
     }
@@ -93,9 +133,9 @@
       const g = new THREE.Group(); g.name = shared ? 'shared-expert' : 'routed-expert';
       const size = shared ? .72 : .3;
       g.add(box(size, size, shared ? .18 : .16, m.limestone, 'expert-housing', 0, 0, 0, .025));
-      g.add(box(size * .68, size * .68, .05, m.pewter, 'expert-inset', 0, 0, .1, .015));
       const core = torus(size * .23, size * .055, m.token, 'expert-core', 0, 0, .15); g.add(core);
       for (const x of [-1, 1]) g.add(box(size * .1, size * .8, .12, m.darkPewter, 'expert-fin', x * size * .43, 0, .03, .012));
+      mergeStatic(g, [core]);
       return {g, core};
     }
 
@@ -208,14 +248,14 @@
     function makeToken(m) {
       const g = new THREE.Group(); g.name = 'hero-token';
       const geometry = chamferedBox(.66, .34, .34, .055, 'high');
-      const core = mesh(geometry, m.token, 'token-core'); core.renderOrder = 20; g.add(core);
+      const core = mesh(geometry, m.token.clone(), 'token-core'); core.renderOrder = 20; g.add(core);
       const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 24),
         new THREE.LineBasicMaterial({color: m.tokenInk, transparent: true, opacity: .9}));
       edge.name = 'token-emissive-edge'; edge.renderOrder = 21; g.add(edge);
       return {g, core, edge};
     }
 
-    return {chamferedBox, makeTokenizer, makeEmbedding, makeExpert, makeRouter,
+    return {chamferedBox, mergeStatic, makeTokenizer, makeEmbedding, makeExpert, makeRouter,
       makeKVCache, makeSampler, makeScreen, makeToolBench, makeDetokenizer, makeToken};
   }
 

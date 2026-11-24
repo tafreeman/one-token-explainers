@@ -24,6 +24,7 @@
     suspend() { suspended = true; host?.suspend(); },
     resume() { suspended = false; host?.resume(); },
     setRouting(k, bias) { host?.setRouting?.(k, bias); },
+    resetPerformance() { host?.resetPerformance?.(); },
     stats() { return host?.stats() || {frames: 0, calls: 0, revision: null}; }
   };
 

@@ -22,8 +22,9 @@
     const SETTLE_MS = 900;
     let quality = 1, qualityTier = 'high', appliedSpatialQuality = null;
     let frames = 0, calls = 0, raf = 0, width = 0, height = 0, pixelRatio = 0;
+    const spatialFrameCosts = [];
     let revision = null, signature, renderedView, renderedStep;
-    let lastFrame = null;
+    let lastFrame = null, lastCameraPose = null;
     let lost = false, suspended = false, failed = false;
 
     const PIN_STAY = 22, PIN_GLIDE_MS = 260, PIN_FADE_MS = 160;
@@ -160,7 +161,7 @@
       // Sharp on HiDPI without paying for it everywhere: the cap and pixel budget are lower on weak
       // devices, and `quality` steps down further if the spatial view proves slow.
       const cap = lowPower ? 1.25 : 2, budget = lowPower ? 900000 : 2600000;
-      const scale = Math.max(1, Math.min(devicePixelRatio || 1, cap, Math.sqrt(budget / (w * h))) * quality);
+      const scale = Math.max(.6, Math.min(devicePixelRatio || 1, cap, Math.sqrt(budget / (w * h))) * quality);
       const resized = w !== width || h !== height || scale !== pixelRatio;
       if (resized) {
         width = w; height = h; pixelRatio = scale;
@@ -207,6 +208,9 @@
         calls = renderer.info.render.calls;
         viewport.dataset.render = 'ready';
         lastFrame = pinState.frame || null;
+        current.camera.updateMatrixWorld();
+        lastCameraPose = [...current.camera.matrixWorld.elements, ...current.camera.projectionMatrix.elements]
+          .map(value => Math.round(value * 1e6) / 1e6);
         if (placePin(pinState, current.camera, width, height)) schedule();
       } catch (error) {
         fallback(error);
@@ -239,6 +243,7 @@
     const SOFT_MS = lowPower ? 40 : 60, SOFT_RUN = 6, QUALITY_STEP = .2, QUALITY_MIN = .6;
     let slowDraws = 0, softDraws = 0;
     function noteSpatialCost(ms) {
+      spatialFrameCosts.push(ms); if (spatialFrameCosts.length > 240) spatialFrameCosts.shift();
       // First remove expensive visual effects; only subsequent slow runs reduce resolution.
       softDraws = ms > SOFT_MS ? softDraws + 1 : 0;
       if (softDraws >= SOFT_RUN) {
@@ -276,9 +281,14 @@
       },
       suspend() { suspended = true; cancel(); },
       resume() { suspended = false; schedule(); },
-      stats() { return { frames, calls, revision, lost, suspended, frame: lastFrame,
-        qualityTier, pixelRatio, triangles: renderer?.info.render.triangles ?? 0,
-        buffer: renderer ? [canvas.width, canvas.height] : [0, 0] }; }
+      resetPerformance() { spatialFrameCosts.length = 0; },
+      stats() {
+        const sorted = spatialFrameCosts.slice().sort((a, b) => a - b);
+        const p95FrameMs = sorted.length ? sorted[Math.ceil(.95 * sorted.length) - 1] : 0;
+        return { frames, calls, revision, lost, suspended, frame: lastFrame,
+          qualityTier, pixelRatio, p95FrameMs, cameraPose: lastCameraPose, triangles: renderer?.info.render.triangles ?? 0,
+          buffer: renderer ? [canvas.width, canvas.height] : [0, 0] };
+      }
     };
 
     try {

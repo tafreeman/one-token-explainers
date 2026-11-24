@@ -65,6 +65,9 @@ test('Semantic colors stay on token, attention, cache, tools and fault assemblie
   api.update(position('7.3'), 1440 / 900, 1440);
   const colorOf = name => api.scene.getObjectByName(name)?.material?.color?.getHex();
   assert.equal(colorOf('token-core'), colors.token);
+  assert.notEqual(api.scene.getObjectByName('token-core').material,
+    api.scene.getObjectByName('chosen-token').material, 'hero depth state must not leak into other token-colored parts');
+  assert.equal(api.scene.getObjectByName('chosen-token').material.depthTest, true);
   assert.equal(colorOf('brass-drawers'), colors.cache);
   assert.equal(colorOf('tool-housing'), colors.tool);
   assert.equal(colorOf('attention-dense-0'), colors.attention);
@@ -119,4 +122,21 @@ test('Quality tiers remain explicit and reversible without changing scene identi
   const after = api.update(position('10.2', .2), 1.6, 1440);
   assert.equal(before.label, after.label);
   assert.ok(before.anchor.distanceTo(after.anchor) < 1e-9);
+});
+
+test('Low tier preserves sampler pivots and animated/dashed draw ranges', () => {
+  const {api} = spatial();
+  const pointer = api.scene.getObjectByName('sampler-pointer');
+  api.setQuality('high'); pointer.geometry.computeBoundingBox();
+  const highCenter = pointer.geometry.boundingBox.getCenter(new THREE.Vector3()).y;
+  api.setQuality('low'); pointer.geometry.computeBoundingBox();
+  const lowCenter = pointer.geometry.boundingBox.getCenter(new THREE.Vector3()).y;
+  assert.ok(Math.abs(highCenter - lowCenter) < 1e-6,
+    `pointer pivot survives simplification: high=${highCenter}, low=${lowCenter}`);
+  api.update(position('4.2', .63), 1.6, 1440);
+  api.scene.traverseVisible(object => {
+    if (!object.isMesh || !object.geometry.index || !Number.isFinite(object.geometry.drawRange.count)) return;
+    assert.ok(object.geometry.drawRange.count <= object.geometry.index.count,
+      `${object.name || object.geometry.type}: draw range ${object.geometry.drawRange.count} exceeds index ${object.geometry.index.count}`);
+  });
 });
