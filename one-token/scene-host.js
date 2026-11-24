@@ -20,7 +20,7 @@
     const scenes = {};
     let renderer, THREE, state, animation, fadeCanvas, fadeCtx, settleUntil = 0;
     const SETTLE_MS = 900;
-    let quality = 1;
+    let quality = 1, qualityTier = 'high', appliedSpatialQuality = null;
     let frames = 0, calls = 0, raf = 0, width = 0, height = 0, pixelRatio = 0;
     let revision = null, signature, renderedView, renderedStep;
     let lastFrame = null;
@@ -38,7 +38,7 @@
       if (leader) leader.style.visibility = 'hidden';
     }
 
-    function placePin({ anchor, label }, camera, w, h) {
+    function placePin({ anchor, label, tokenAnchor, tokenRadius = 0 }, camera, w, h) {
       if (mobilePin) {
         mobilePin.textContent = label && label !== '“ Paris”' ? '· ' + label : '';
       }
@@ -51,6 +51,15 @@
       const point = anchor.clone().project(camera);
       const x = (point.x + 1) * w / 2;
       const y = (1 - point.y) * h / 2;
+      let tokenRect = null;
+      if (tokenAnchor && label !== '“ Paris”') {
+        const projected = tokenAnchor.clone().project(camera);
+        const distance = Math.max(.1, camera.position.distanceTo(tokenAnchor));
+        const radius = Math.min(140, Math.max(26, tokenRadius * h /
+          (2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)))) + 10;
+        const tx = (projected.x + 1) * w / 2, ty = (1 - projected.y) * h / 2;
+        tokenRect = {left: tx - radius, right: tx + radius, top: ty - radius, bottom: ty + radius};
+      }
       if (point.z < -1 || point.z > 1 || x < 1 || x > w - 1 || y < 1 || y > h - 1) {
         forgetPin();
         pin.hidden = true;
@@ -81,7 +90,9 @@
         [x + gap, y - ph - gap],
         [x - gap - pw, y - ph - gap],
         [x + gap, y + gap],
-        [x - gap - pw, y + gap]
+        [x - gap - pw, y + gap],
+        [pad, pad], [w - pw - pad, pad],
+        [pad, h - ph - pad], [w - pw - pad, h - ph - pad]
       ];
       let best = candidates[0], bestScore = -1e9, bestIndex = 0;
       for (const [index, [rawL, rawT]] of candidates.entries()) {
@@ -92,8 +103,10 @@
         const distFromCenter = Math.hypot((bx - cx) / Math.max(1, w), (by - cy) / Math.max(1, h)) * 120;
         const overlapsAnchor = (x >= cl - 8 && x <= cl + pw + 8 && y >= ct - 8 && y <= ct + ph + 8) ? 500 : 0;
         const topBias = rawT < y ? 14 : 0;
+        const tokenOverlap = tokenRect ? Math.max(0, Math.min(cl + pw, tokenRect.right) - Math.max(cl, tokenRect.left)) *
+          Math.max(0, Math.min(ct + ph, tokenRect.bottom) - Math.max(ct, tokenRect.top)) : 0;
         // Hysteresis: the current side wins near-ties, so the label stops hopping across the anchor.
-        const score = distFromCenter + topBias - clampPenalty * 2.4 - overlapsAnchor + (index === pinSide ? PIN_STAY : 0);
+        const score = distFromCenter + topBias - clampPenalty * 2.4 - overlapsAnchor - tokenOverlap * 50 + (index === pinSide ? PIN_STAY : 0);
         if (score > bestScore) {
           bestScore = score;
           best = [cl, ct];
@@ -114,6 +127,8 @@
       pinShown = [left, top];
       pin.style.left = Math.round(left) + 'px';
       pin.style.top = Math.round(top) + 'px';
+      if (pin.dataset) pin.dataset.intersectsToken = String(Boolean(tokenRect &&
+        left < tokenRect.right && left + pw > tokenRect.left && top < tokenRect.bottom && top + ph > tokenRect.top));
       leader.style.visibility = 'visible';
       leader.setAttribute('x1', x.toFixed(1));
       leader.setAttribute('y1', y.toFixed(1));
@@ -155,7 +170,7 @@
       const view = state.view === 'spatial' ? 'spatial' : 'diagram';
       const switchingView = Boolean(renderedView && renderedView !== view);
       const switchingStep = Boolean(renderedStep && renderedStep !== state.stepId);
-      const transition = !resized && (switchingView || switchingStep);
+      const transition = !resized && (switchingView || (switchingStep && view !== 'spatial'));
       if (transition && canvas.width > 0 && canvas.height > 0) {
         if (!fadeCanvas) {
           fadeCanvas = document.createElement('canvas');
@@ -179,8 +194,13 @@
       try {
         const api = view === 'spatial' ? window.ReaderSpatial : window.ReaderDiagram;
         const current = scenes[view] ??= api.create(THREE, window.ReaderTheme, renderer);
+        if (view === 'spatial' && appliedSpatialQuality !== qualityTier) {
+          current.setQuality?.(qualityTier); appliedSpatialQuality = qualityTier;
+        }
         const started = performance.now();
-        const pinState = current.update({...state, reducedMotion: reduced.matches}, width / height, width);
+        const snapCamera = view === 'spatial' && performance.now() >= settleUntil;
+        const pinState = current.update({...state, reducedMotion: reduced.matches, snapCamera}, width / height, width);
+        renderer.toneMappingExposure = current.exposure ?? 1;
         renderer.render(current.scene, current.camera);
         if (view === 'spatial') noteSpatialCost(performance.now() - started);
         frames++;
@@ -214,15 +234,18 @@
     // Spatial is the heavy view. Several slow draws in a row (a much lower bar on devices
     // that report little memory or few cores) tell the reader to fall back to the Diagram.
     const lowPower = navigator.connection?.saveData || navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 2;
+    qualityTier = lowPower ? 'low' : 'high';
     const SLOW_MS = lowPower ? 120 : 400, SLOW_RUN = 4;
     const SOFT_MS = lowPower ? 40 : 60, SOFT_RUN = 6, QUALITY_STEP = .2, QUALITY_MIN = .6;
     let slowDraws = 0, softDraws = 0;
     function noteSpatialCost(ms) {
-      // Gentle first: a run of merely heavy draws lowers the render resolution one step at a time.
+      // First remove expensive visual effects; only subsequent slow runs reduce resolution.
       softDraws = ms > SOFT_MS ? softDraws + 1 : 0;
-      if (softDraws >= SOFT_RUN && quality > QUALITY_MIN) {
+      if (softDraws >= SOFT_RUN) {
         softDraws = 0;
-        quality = Math.max(QUALITY_MIN, quality - QUALITY_STEP);
+        if (qualityTier === 'high') qualityTier = 'medium';
+        else if (qualityTier === 'medium') { qualityTier = 'low'; quality = Math.min(quality, .85); }
+        else quality = Math.max(QUALITY_MIN, quality - QUALITY_STEP);
         schedule();
       }
       slowDraws = ms > SLOW_MS ? slowDraws + 1 : 0;
@@ -240,7 +263,7 @@
       update(next) {
         const settings = { ...next.settings };
         const key = [next.stepId, next.diagramPose, next.spatialBeat, next.localT, next.view, next.camera,
-          next.opening, next.recap, next.present, next.overview, settings.cache, settings.kv, settings.effort].join('|');
+          next.opening, next.recap, next.present, next.overview, next.narrated, settings.cache, settings.kv, settings.effort].join('|');
         if (key === signature) return;
         signature = key;
         settleUntil = performance.now() + SETTLE_MS;
@@ -253,7 +276,9 @@
       },
       suspend() { suspended = true; cancel(); },
       resume() { suspended = false; schedule(); },
-      stats() { return { frames, calls, revision, lost, suspended, frame: lastFrame }; }
+      stats() { return { frames, calls, revision, lost, suspended, frame: lastFrame,
+        qualityTier, pixelRatio, triangles: renderer?.info.render.triangles ?? 0,
+        buffer: renderer ? [canvas.width, canvas.height] : [0, 0] }; }
     };
 
     try {
@@ -263,8 +288,8 @@
       revision = THREE.REVISION;
       renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true, stencil: false, powerPreference: 'high-performance' });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      // Palette tokens are authored as final colors, so no filmic curve is applied on top of them.
-      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1;
       canvas.addEventListener('webglcontextlost', event => {
         event.preventDefault();
         lost = true;
@@ -275,6 +300,7 @@
       });
       canvas.addEventListener('webglcontextrestored', () => {
         lost = false;
+        scenes.spatial?.contextRestored?.(); appliedSpatialQuality = null;
         if (fallbackStatus) fallbackStatus.textContent = 'Lifecycle diagram';
         schedule();
       });
