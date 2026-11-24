@@ -15,7 +15,9 @@ function representation(view = 'spatial', width = 390) {
   const document = {documentElement: {style: {setProperty() {}}},
     createElement: () => ({width: 1, height: 1, getContext: () => drawing})};
   const context = vm.createContext({window, document, console, innerWidth: width});
-  for (const file of ['shared/theme-tokens.js', 'one-token/scene-' + view + '.js']) {
+  const files = ['shared/theme-tokens.js', ...(view === 'spatial'
+    ? ['one-token/spatial-models.js', 'one-token/spatial-materials.js'] : []), 'one-token/scene-' + view + '.js'];
+  for (const file of files) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), context);
   }
   return window[view === 'spatial' ? 'ReaderSpatial' : 'ReaderDiagram'].create(THREE, window.ReaderTheme);
