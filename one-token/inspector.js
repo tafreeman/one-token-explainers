@@ -48,24 +48,49 @@
     const more = drawer.querySelector('.inspect-more');
     const links = drawer.querySelector('.inspect-links');
     const frame = document.createElement('iframe');
-    const compact = matchMedia('(max-width: 760px)');
     frame.tabIndex = 0;
     let concept, saved, engine, pending, expanded = false;
     let prefixHitRate, pdDisaggregated;
     let timeout;
 
+    // Phones: the figure (and so the 3D model) keeps its frame; the drawer becomes a
+    // sheet that fills only the space the figure leaves free. Portrait stacks it below
+    // the figure; a landscape phone in Present docks it in the explanation column.
+    const stackedQuery = matchMedia('(max-width: 767px), (max-width: 1023px) and (orientation: portrait)');
+    const sideQuery = matchMedia('(max-height: 500px) and (orientation: landscape)');
+
+    function sheetRegion() {
+      const mastBottom = Math.max(0, mast.getBoundingClientRect().bottom);
+      const railTop = rail?.getBoundingClientRect().top || window.innerHeight;
+      const present = document.body.dataset.mode === 'present';
+      const bay = document.getElementById('explanation-bay')?.getBoundingClientRect();
+      if (stackedQuery.matches && figure) {
+        const top = present && bay?.height ? bay.top : figure.getBoundingClientRect().bottom;
+        return {left: 0, width: window.innerWidth, top: Math.max(mastBottom, top), railTop, kind: 'stacked'};
+      }
+      if (sideQuery.matches && present && bay?.width) {
+        return {left: bay.left, width: window.innerWidth - bay.left, top: mastBottom, railTop, kind: 'side'};
+      }
+      return null;
+    }
+
     function sizeDrawer() {
       if (!saved) return;
+      const region = sheetRegion();
       const box = lesson.getBoundingClientRect();
-      if (figure) figure.inert = saved.figureInert || compact.matches;
-      drawer.style.setProperty('--inspect-left', box.left + 'px');
-      drawer.style.setProperty('--inspect-width', box.width + 'px');
-      drawer.style.setProperty('--inspect-top', Math.max(0, mast.getBoundingClientRect().bottom) + 'px');
+      if (figure) figure.inert = saved.figureInert;
       const railTop = rail?.getBoundingClientRect().top || window.innerHeight;
+      const top = region ? region.top : Math.max(0, mast.getBoundingClientRect().bottom);
+      drawer.style.setProperty('--inspect-left', (region ? region.left : box.left) + 'px');
+      drawer.style.setProperty('--inspect-width', (region ? region.width : box.width) + 'px');
+      drawer.style.setProperty('--inspect-top', top + 'px');
       drawer.style.setProperty('--inspect-bottom', Math.max(0, window.innerHeight - railTop) + 'px');
-      // The expanded cutaway takes the large figure stage (all of the free viewport on phones).
-      const stage = compact.matches || !figure ? {left: 0, top: mast.getBoundingClientRect().bottom + 56, width: window.innerWidth, height: railTop - mast.getBoundingClientRect().bottom - 56}
-        : figure.getBoundingClientRect();
+      if (region) {
+        drawer.dataset.sheet = region.kind;
+        if (expanded) { expanded = false; drawer.dataset.expanded = 'false'; expand.setAttribute('aria-pressed', 'false'); expand.textContent = 'Expand cutaway'; }
+      } else delete drawer.dataset.sheet;
+      // The expanded cutaway takes the figure stage on wide screens; sheets never cover the model.
+      const stage = figure ? figure.getBoundingClientRect() : {left: 0, top, width: window.innerWidth, height: railTop - top};
       drawer.style.setProperty('--stage-left', stage.left + 'px');
       drawer.style.setProperty('--stage-top', stage.top + 'px');
       drawer.style.setProperty('--stage-width', stage.width + 'px');
@@ -73,6 +98,7 @@
     }
 
     function setExpanded(on) {
+      if (on && drawer.dataset.sheet) on = false;
       expanded = on;
       drawer.dataset.expanded = String(on);
       expand.setAttribute('aria-pressed', String(on));
@@ -140,7 +166,7 @@
       frame.src = asset('../shared/obs-core.html?' + params);
       frameHost.append(frame);
       expand.hidden = false;
-      setExpanded(!compact.matches);
+      setExpanded(!drawer.dataset.sheet);
     }
 
     function mountLabs(target) {
@@ -269,7 +295,7 @@
       if (key === 'Escape' && frame.isConnected) close();
     });
     const observer = new ResizeObserver(sizeDrawer);
-    for (const el of [lesson, mast, rail]) if (el) observer.observe(el);
+    for (const el of [lesson, mast, rail, figure]) if (el) observer.observe(el);
     window.addEventListener('resize', sizeDrawer);
 
     return {open, close, get isOpen() { return !!saved; }};

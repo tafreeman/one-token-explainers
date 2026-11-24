@@ -20,6 +20,7 @@
     const scenes = {};
     let renderer, THREE, state, animation, fadeCanvas, fadeCtx, settleUntil = 0;
     const SETTLE_MS = 900;
+    let quality = 1;
     let frames = 0, calls = 0, raf = 0, width = 0, height = 0, pixelRatio = 0;
     let revision = null, signature, renderedView, renderedStep;
     let lastFrame = null;
@@ -141,7 +142,10 @@
       const w = viewport.clientWidth;
       const h = viewport.clientHeight;
       if (!w || !h) return;
-      const scale = Math.min(devicePixelRatio || 1, 1.5, Math.sqrt(1600000 / (w * h)));
+      // Sharp on HiDPI without paying for it everywhere: the cap and pixel budget are lower on weak
+      // devices, and `quality` steps down further if the spatial view proves slow.
+      const cap = lowPower ? 1.25 : 2, budget = lowPower ? 900000 : 2600000;
+      const scale = Math.max(1, Math.min(devicePixelRatio || 1, cap, Math.sqrt(budget / (w * h))) * quality);
       const resized = w !== width || h !== height || scale !== pixelRatio;
       if (resized) {
         width = w; height = h; pixelRatio = scale;
@@ -211,8 +215,16 @@
     // that report little memory or few cores) tell the reader to fall back to the Diagram.
     const lowPower = navigator.connection?.saveData || navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 2;
     const SLOW_MS = lowPower ? 120 : 400, SLOW_RUN = 4;
-    let slowDraws = 0;
+    const SOFT_MS = lowPower ? 40 : 60, SOFT_RUN = 6, QUALITY_STEP = .2, QUALITY_MIN = .6;
+    let slowDraws = 0, softDraws = 0;
     function noteSpatialCost(ms) {
+      // Gentle first: a run of merely heavy draws lowers the render resolution one step at a time.
+      softDraws = ms > SOFT_MS ? softDraws + 1 : 0;
+      if (softDraws >= SOFT_RUN && quality > QUALITY_MIN) {
+        softDraws = 0;
+        quality = Math.max(QUALITY_MIN, quality - QUALITY_STEP);
+        schedule();
+      }
       slowDraws = ms > SLOW_MS ? slowDraws + 1 : 0;
       if (slowDraws >= SLOW_RUN) {
         slowDraws = 0;
@@ -249,8 +261,10 @@
       hidePin();
       THREE = await window.ensureJourneyThree('160');
       revision = THREE.REVISION;
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true, powerPreference: 'high-performance' });
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true, stencil: false, powerPreference: 'high-performance' });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // Palette tokens are authored as final colors, so no filmic curve is applied on top of them.
+      renderer.toneMapping = THREE.NoToneMapping;
       canvas.addEventListener('webglcontextlost', event => {
         event.preventDefault();
         lost = true;

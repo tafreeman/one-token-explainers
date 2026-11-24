@@ -106,3 +106,87 @@ test('switching narration tracks retains selected mechanism and within-step prog
   get('play-audio').listeners.click();
   assert.equal(audio.currentTime, pausedAt, 'Pause and resume must not seek again');
 });
+
+const fullClip = id => tracks.full.find(clip => clip.id === id);
+const sharedBeats = [...new Set(stops.map(stop => stop.spatialBeat))]
+  .filter(beat => fullClip(beat) && stops.filter(stop => stop.spatialBeat === beat).length > 1);
+
+test('full recording maps every step of a shared clip to its own span of audio, forward and backward', () => {
+  assert.ok(sharedBeats.length > 0, 'the manifest has clips that narrate several steps');
+  for (const beat of sharedBeats) {
+    const steps = stops.filter(stop => stop.spatialBeat === beat);
+    const clip = fullClip(beat);
+    const {get, audio, positions, player, setPosition} = fixture();
+    for (const stop of [...steps, ...steps.toReversed()]) {
+      setPosition({id: stop.id, opening: false, localT: .5});
+      player.selectPosition(stop.id, false);
+      get('play-audio').listeners.click();
+      const slot = steps.indexOf(stop);
+      assert.equal(audio.src, clip.src, stop.id + ' plays the clip that narrates it');
+      assert.ok(Math.abs(audio.currentTime - (slot + .5) / steps.length * clip.dur) < 1e-6,
+        'Play from ' + stop.id + ' must start inside its own span, not at the clip start');
+      assert.equal(positions.at(-1)[0], stop.id, 'Play must keep ' + stop.id);
+      assert.ok(Math.abs(positions.at(-1)[1] - .5) < 1e-6);
+      player.pause();
+    }
+  }
+});
+
+test('narration advances through the steps of a shared clip in order and rewinds in reverse', () => {
+  const beat = sharedBeats.find(id => stops.filter(stop => stop.spatialBeat === id).length === 3) || sharedBeats[0];
+  const steps = stops.filter(stop => stop.spatialBeat === beat);
+  const clip = fullClip(beat);
+  const {get, audio, positions, player, setPosition} = fixture();
+  setPosition({id: steps[0].id, opening: false, localT: 0});
+  player.selectPosition(steps[0].id, false);
+  get('play-audio').listeners.click();
+  const seen = [];
+  for (const at of [.05, .55, .95].map(share => share * clip.dur)) {
+    audio.currentTime = at; audio.listeners.timeupdate();
+    seen.push(positions.at(-1)[0]);
+  }
+  const expected = t => steps[Math.floor(t / clip.dur * steps.length)].id;
+  assert.deepEqual(seen, [.05, .55, .95].map(share => expected(share * clip.dur)));
+  // Going back (a rewind or a rail click) lands on the same step the same audio time maps to.
+  for (const at of [.9, .4, .02].map(share => share * clip.dur)) {
+    audio.currentTime = at; audio.listeners.timeupdate();
+    assert.equal(positions.at(-1)[0], expected(at));
+  }
+});
+
+test('switching between full and quick recordings from a later step keeps that step and progress', () => {
+  for (const id of ['1.3', '4.4', '7.4', '10.4', '12.3']) {
+    const {get, positions, player, setPosition} = fixture();
+    setPosition({id, opening: false, localT: .6});
+    player.selectPosition(id, false);
+    get('play-audio').listeners.click();
+    for (const track of ['quick', 'full', 'quick']) {
+      get('track').value = track;
+      get('track').listeners.change();
+      assert.equal(positions.at(-1)[0], id, id + ' kept after switching to ' + track);
+      assert.ok(Math.abs(positions.at(-1)[1] - .6) < 1e-6, id + ' progress kept after switching to ' + track);
+    }
+    player.pause();
+  }
+});
+
+test('paused navigation, then resuming, reconstructs the same state in both directions', () => {
+  for (const track of ['full', 'quick']) {
+    const {get, audio, positions, player, setPosition} = fixture();
+    get('track').value = track;
+    get('track').listeners.change();
+    const order = stops.filter(stop => stop.stage >= 6 && stop.stage <= 8);
+    const sequence = [...order, ...order.toReversed(), ...order.filter((_, i) => i % 3 === 0).toReversed()];
+    const first = new Map();
+    for (const stop of sequence) {
+      setPosition({id: stop.id, opening: false, localT: .25});
+      player.selectPosition(stop.id, false);
+      get('play-audio').listeners.click();
+      const state = [positions.at(-1)[0], +positions.at(-1)[1].toFixed(6), +audio.currentTime.toFixed(6)];
+      assert.equal(state[0], stop.id, track + ' Play retains ' + stop.id);
+      if (first.has(stop.id)) assert.deepEqual(state, first.get(stop.id), track + ' ' + stop.id + ' resumes identically after going back');
+      else first.set(stop.id, state);
+      player.pause();
+    }
+  }
+});

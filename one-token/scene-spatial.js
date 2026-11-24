@@ -83,7 +83,7 @@ function box(w, h, d, mat, x, y, z, parent = scene) { const m = new THREE.Mesh(B
 function edgesBox(w, h, d, color = HEX.ink, parent = scene) {
   const g = new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d)); const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color })); parent.add(l); return l; }
 function texCanvas(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; if (renderer) t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.userData = { c, g, draw }; return t; }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; if (renderer) t.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy()); t.userData = { c, g, draw }; return t; }
 const SHADOW = texCanvas(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(18,20,23,.62)'); r.addColorStop(.55, 'rgba(18,20,23,.22)'); r.addColorStop(1, 'rgba(18,20,23,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
 function shadow(x, z, sx, sz, op = .55, parent = scene) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: SHADOW, transparent: true, depthWrite: false, opacity: op }));
@@ -133,6 +133,15 @@ const Track = (() => {
 const TOKW = .66;
 const bead = new THREE.Group(); scene.add(bead);
 bead.userData.trackedToken = true;
+/* Soft contact shadow and a faint halo anchor the token in the hall and keep it findable. Both are
+   pure functions of the bead pose, so a rewind reconstructs them exactly. */
+const beadShadow = shadow(0, 0, 1.5, 1.1, .5);
+beadShadow.visible = false;
+const HALO = texCanvas(128, 128, g => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  const c = new THREE.Color(HEX.token), rgb = [c.r, c.g, c.b].map(v => Math.round(v * 255)).join(',');
+  r.addColorStop(0, 'rgba(' + rgb + ',.55)'); r.addColorStop(.45, 'rgba(' + rgb + ',.16)'); r.addColorStop(1, 'rgba(' + rgb + ',0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
+const beadHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: HALO, transparent: true, depthTest: false, depthWrite: false, fog: false }));
+beadHalo.renderOrder = 19; beadHalo.visible = false; scene.add(beadHalo);
 { const material = lam(HEX.token); material.depthTest = false; material.fog = false;
   const core = new THREE.Mesh(BOX, material); core.scale.set(TOKW, .34, .34); core.renderOrder = 20; bead.add(core);
   const edge = edgesBox(TOKW, .34, .34, colors.mark, bead);
@@ -648,7 +657,19 @@ const State = { t: 0, dt: 0, anim: 0, J: 0, beatId: 'hero', prog: 0, tl: 0, v: O
 /* Camera rig and frame clock: the scene is a function of (beat, progress), so the rig carries the
    only memory, easing the eye, target and lens toward each authored pose in real time. */
 const CAM_RATE = 6.5, SHOW_RATE = 8;
-const rig = { ready: false, t: 0, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30 };
+const rig = { ready: false, t: 0, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30,
+  vPos: V3(0, 0, 0), vTgt: V3(0, 0, 0), vFov: 0 };
+/* Critically damped follow: unlike a plain exponential ease it starts gently, so a stop change
+   reads as a camera settling in rather than a lurch. The goal is always the pure pose. */
+const CAM_SMOOTH = .32;
+function smoothDamp(cur, goal, vel, dt) {
+  const omega = 2 / CAM_SMOOTH, x = omega * dt, e = 1 / (1 + x + .48 * x * x + .235 * x * x * x);
+  const change = cur - goal, temp = (vel + omega * change) * dt;
+  return [goal + (change + temp) * e, (vel - omega * temp) * e];
+}
+function smoothDamp3(cur, goal, vel, dt) {
+  for (const axis of ['x', 'y', 'z']) { const [p, v] = smoothDamp(cur[axis], goal[axis], vel[axis], dt); cur[axis] = p; vel[axis] = v; }
+}
 
 function towerFromJ(Jv) {
   const sp = SEG['ship-post'], sr = SEG['ship-rel'], tu = SEG['train-up'], ab = SEG['absorb'];
@@ -791,6 +812,13 @@ function update(state, aspect, viewportWidth) {
   bead.visible = S.bead.visible;
   bead.position.copy(S.bead.pos);
   bead.scale.setScalar(scale);
+  beadShadow.visible = S.bead.visible;
+  beadShadow.position.set(S.bead.pos.x, .018, S.bead.pos.z);
+  beadShadow.scale.set(1.5 * scale * (1 + S.bead.pos.y * .12), 1.1 * scale * (1 + S.bead.pos.y * .12), 1);
+  beadShadow.material.opacity = .5 * Math.exp(-S.bead.pos.y / 4);
+  beadHalo.visible = S.bead.visible;
+  beadHalo.position.copy(S.bead.pos);
+  beadHalo.scale.setScalar(1.7 * scale);
 
   S.mainX = ({ feed: Math.max(-4, S.bead.pos.x), tokens: S.bead.pos.x,
     'train-up': Math.min(S.bead.pos.x, X_TRAIN), absorb: X_TRAIN, 'ship-post': S.tower.x,
@@ -915,9 +943,11 @@ function update(state, aspect, viewportWidth) {
   if (snap || corpusOpening) {
     // The corpus close-up measures projected extents from the settled pose, so it never lags.
     rig.pos.copy(target).add(offset); rig.tgt.copy(target); rig.fov = goalFov;
+    rig.vPos.set(0, 0, 0); rig.vTgt.set(0, 0, 0); rig.vFov = 0;
   } else {
-    const k = 1 - Math.exp(-CAM_RATE * S.dt);
-    rig.pos.lerp(V3(0, 0, 0).copy(target).add(offset), k); rig.tgt.lerp(target, k); rig.fov = lerp(rig.fov, goalFov, k);
+    smoothDamp3(rig.pos, V3(0, 0, 0).copy(target).add(offset), rig.vPos, S.dt);
+    smoothDamp3(rig.tgt, target, rig.vTgt, S.dt);
+    [rig.fov, rig.vFov] = smoothDamp(rig.fov, goalFov, rig.vFov, S.dt);
     target.copy(rig.tgt); offset.copy(rig.pos).sub(rig.tgt);
   }
   rig.ready = true;

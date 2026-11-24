@@ -170,7 +170,7 @@
       state.present = false;
     }
     get('lesson').inert = state.present;
-    setExplanation(false, {focus: false});
+    setExplanation(false, {focus: false, instant: true});
     draw();
     if (state.present) {
       requestAnimationFrame(() => get('studio-play')?.focus({preventScroll: true}));
@@ -246,14 +246,24 @@
     const concept = stop.conceptSlug && window.SuiteLinks.resolve(stop.conceptSlug);
     inspect.textContent = concept ? 'Try it → ' + concept.button : 'Try it';
   }
-  function setExplanation(show, {focus = true} = {}) {
+  const EXPLANATION_EXIT_MS = 160;
+  let leaving = 0;
+  // The explanation lives in its own bay beside or below the figure, so opening it never
+  // moves or covers the model. It leaves with a short fade; Present/Read switches skip it.
+  function setExplanation(show, {focus = true, instant = false} = {}) {
+    const panel = get('explanation');
+    clearTimeout(leaving);
+    panel.removeAttribute('data-leaving');
     if (show) {
-      explanationOrigin = document.activeElement;
+      if (panel.hidden) explanationOrigin = document.activeElement;
       // Narration keeps playing, but its floating controls must not obscure
       // the step the learner has just chosen to read.
       if (get('audio-panel').matches(':popover-open')) get('audio-panel').hidePopover();
-    }
-    get('explanation').hidden = !show;
+      panel.hidden = false;
+    } else if (!panel.hidden && !instant && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      panel.dataset.leaving = '';
+      leaving = setTimeout(() => { panel.hidden = true; panel.removeAttribute('data-leaving'); }, EXPLANATION_EXIT_MS);
+    } else panel.hidden = true;
     get('explanation-preview').hidden = show;
     get('explain').setAttribute('aria-expanded', show);
     get('open-explanation').setAttribute('aria-expanded', show);
@@ -318,7 +328,7 @@
   get('next').onclick = () => move(state.opening ? 0 : state.index + 1);
   get('studio-play').onclick = () => run(false);
   get('runStory').onclick = () => run(true);
-  get('explain').onclick = () => setExplanation(get('explanation').hidden);
+  get('explain').onclick = () => setExplanation(get('explanation').hidden || 'leaving' in get('explanation').dataset);
   get('open-explanation').onclick = () => setExplanation(true);
   get('close-explanation').onclick = () => setExplanation(false);
   get('explain').setAttribute('aria-controls', 'explanation');
@@ -363,7 +373,7 @@
   window.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || inspector.isOpen || get('audio-panel').matches(':popover-open') || document.getElementById('gloss-pop')?.matches(':popover-open')) return;
     if (event.key === 'Escape') {
-      if (!get('explanation').hidden) setExplanation(false);
+      if (!get('explanation').hidden && !('leaving' in get('explanation').dataset)) setExplanation(false);
       else if (state.present) togglePresent();
       else pause();
       return;

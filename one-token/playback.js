@@ -13,6 +13,9 @@ window.ReaderPlayback = (() => {
     const seconds = n => Math.floor(n / 60) + ':' + String(Math.floor(n % 60)).padStart(2, '0');
 
     const stageOf = clip => Number(String(clip.stepId).split('.')[0]);
+    // A full-track clip can narrate several written steps (e.g. 1.2 and 1.3 share clip 1b).
+    // Split its duration evenly across them so a step maps to its own span of audio.
+    const sharedSteps = clip => (select.value === 'full' && clip ? stops.filter(stop => stop.spatialBeat === clip.id) : []);
     function selectionTime() {
       if (!selection || selection.opening) return 0;
       const current = getPosition?.();
@@ -23,6 +26,9 @@ window.ReaderPlayback = (() => {
         const index = stage.findIndex(stop => stop.id === selection.id);
         return index < 0 ? 0 : (index + localT) / stage.length * clips[clipIndex].dur;
       }
+      const shared = sharedSteps(clips[clipIndex]);
+      const slot = shared.findIndex(stop => stop.id === selection.id);
+      if (shared.length > 1 && slot >= 0) return (slot + localT) / shared.length * clips[clipIndex].dur;
       return localT * clips[clipIndex].dur;
     }
     function applySeek() {
@@ -142,11 +148,14 @@ window.ReaderPlayback = (() => {
         const at = t * stage.length;
         id = stage[Math.floor(at)].id;
         localT = at % 1;
-      } else if (select.value === 'full' && selection?.id) {
-        // When two consecutive steps share one spatialBeat clip (e.g. 1.2 and 1.3 -> 1b),
-        // avoid yanking the reader backward to the earlier step at clip start.
-        const currentStop = stops.find(s => s.id === selection.id);
-        if (currentStop && currentStop.spatialBeat === clip.id) id = currentStop.id;
+      } else {
+        const shared = sharedSteps(clip);
+        if (shared.length > 1) {
+          // Walk the written steps in step with the audio, forward and backward alike.
+          const at = t * shared.length;
+          id = shared[Math.floor(at)].id;
+          localT = at % 1;
+        }
       }
       selection = {id, opening: clip.id === 'hero' || clip.id === '00-intro', localT};
       onPosition(id, localT, clip.id === '00-intro' ? 'hero' : select.value === 'full' ? clip.id : null);

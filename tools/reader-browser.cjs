@@ -213,7 +213,7 @@ async function navigation(browser, url, artifacts) {
     await mode(page, 'present');
     await clickVisible(page, '#explain');
     await page.locator('#explanation').waitFor({state: 'visible'});
-    assert.ok((await page.locator('#explanation > p').textContent()).trim().length > 0, 'Present explanation prose');
+    assert.ok((await page.locator('#explanation-copy').textContent()).trim().length > 0, 'Present explanation prose');
     await clickVisible(page, '#close-explanation');
     await page.locator('#explanation').waitFor({state: 'hidden'});
     await clickVisible(page, '#studio-play');
@@ -232,6 +232,106 @@ async function navigation(browser, url, artifacts) {
   } finally {
     await page.close();
   }
+}
+
+const rectOf = (page, selector) => page.locator(selector).evaluate(node => node.getBoundingClientRect().toJSON());
+const intersects = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+const sameRect = (a, b) => ['left', 'top', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) <= 1);
+const isFocused = (page, selector) => page.locator(selector).evaluate(node => node === document.activeElement);
+
+// Phones: the explanation and the inspector live in free space; the 3D frame never moves or is covered.
+async function phonePopups(browser, url) {
+  const phones = [
+    {label: 'portrait', viewport: {width: 390, height: 844}},
+    {label: 'landscape', viewport: {width: 844, height: 390}},
+    {label: '360', viewport: {width: 360, height: 640}}
+  ];
+  for (const {label, viewport} of phones) {
+    for (const reducedMotion of ['no-preference', 'reduce']) {
+      const name = 'phone-' + label + '-' + reducedMotion;
+      const page = await browser.newPage({viewport, reducedMotion, hasTouch: true});
+      const errors = collectErrors(page);
+      try {
+        await page.goto(url);
+        await ready(page);
+        await gotoStep(page, '7.2');
+        await switchView(page, 'spatial');
+        await clickVisible(page, '#present');
+        await mode(page, 'present');
+        await step(page, '7.2');
+        const frame = await rectOf(page, '#viewport');
+
+        const explain = await rectOf(page, '#explain');
+        assert.ok(explain.height >= 44 && explain.width >= 44, name + ' Explain touch target');
+        await clickVisible(page, '#explain');
+        await page.locator('#explanation').waitFor({state: 'visible'});
+        await settle(page, 300);
+        const popup = await rectOf(page, '#explanation');
+        assert.ok(!intersects(popup, frame), name + ' explanation must not overlap the 3D frame');
+        assert.ok(popup.height > 60 && popup.left >= 0 && popup.right <= viewport.width + 1 && popup.bottom <= viewport.height, name + ' explanation inside the screen');
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' opening the explanation must not move or resize the 3D frame');
+        const close = await rectOf(page, '#close-explanation');
+        assert.ok(close.height >= 44 && close.width >= 44, name + ' close touch target');
+        assert.ok(await isFocused(page, '#close-explanation'), name + ' focus moves into the explanation');
+
+        // Narration position, popup copy and 3D stop move together, forward and backward.
+        const shown = async () => ({step: await page.locator('body').getAttribute('data-step'),
+          title: await page.locator('#explanation-title').textContent(), value: await page.locator('#scrubber').inputValue()});
+        const at72 = await shown();
+        assert.match(at72.title, /^7\.2\b/);
+        await clickVisible(page, '#next');
+        await step(page, '7.3');
+        const at73 = await shown();
+        assert.match(at73.title, /^7\.3\b/);
+        assert.equal(Number(at73.value), Number(at72.value) + 1, name + ' scrubber follows Next');
+        await clickVisible(page, '#previous');
+        await step(page, '7.2');
+        assert.deepEqual(await shown(), at72, name + ' going back reconstructs the same state');
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' stepping must not move the 3D frame');
+        assert.ok(await page.locator('#explanation').isVisible(), name + ' explanation stays open while stepping');
+
+        await page.keyboard.press('Escape');
+        await page.locator('#explanation').waitFor({state: 'hidden'});
+        assert.ok(await isFocused(page, '#explain'), name + ' focus returns to Explain');
+        assert.equal(await page.locator('body').getAttribute('data-mode'), 'present', name + ' Escape closes only the explanation');
+
+        // The inspector (Try it) takes the same free space.
+        await clickVisible(page, '#explain');
+        await page.locator('#explanation').waitFor({state: 'visible'});
+        await page.locator('#explanation [data-inspect]').click();
+        const drawer = page.locator('#inspector');
+        await drawer.waitFor({state: 'visible'});
+        await settle(page, 350);
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' opening the inspector must not move the 3D frame');
+        const sheet = await rectOf(page, '#inspector');
+        assert.ok(!intersects(sheet, frame), name + ' inspector must not overlap the 3D frame');
+        assert.ok(sheet.width > 200 && sheet.height > 100, name + ' inspector has room');
+        assert.ok((await rectOf(page, '#inspector .inspect-back')).height >= 44, name + ' inspector back touch target');
+        await page.keyboard.press('Escape');
+        await drawer.waitFor({state: 'hidden'});
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' closing the inspector must not move the 3D frame');
+        await page.keyboard.press('Escape');
+        await page.locator('#explanation').waitFor({state: 'hidden'});
+
+        // Read mode: the inspector sheet also leaves the sticky figure alone.
+        await clickVisible(page, '#present');
+        await mode(page, 'read');
+        await step(page, '7.2');
+        const readFrame = await rectOf(page, '#viewport');
+        await page.evaluate(() => { location.hash = 'concept=csa-hca-kv'; });
+        await drawer.waitFor({state: 'visible'});
+        await settle(page, 350);
+        assert.ok(sameRect(readFrame, await rectOf(page, '#viewport')), name + ' Read inspector must not move the 3D frame');
+        assert.ok(!intersects(await rectOf(page, '#inspector'), readFrame), name + ' Read inspector must not overlap the 3D frame');
+        await page.keyboard.press('Escape');
+        await drawer.waitFor({state: 'hidden'});
+        assert.deepEqual(errors, [], name + ' console and page errors');
+      } finally {
+        await page.close();
+      }
+    }
+  }
+  console.log('Reader phone explanation and inspector stay clear of the 3D frame (portrait, landscape, 360px)');
 }
 
 async function narration(browser, url) {
@@ -390,6 +490,7 @@ async function verifyReader(browser, base, artifacts) {
   await layouts(browser, url, artifacts);
   await navigation(browser, url, artifacts);
   await narration(browser, url);
+  await phonePopups(browser, url);
   await inspect(browser, url, false, artifacts);
   await inspect(browser, fileReader, true);
   await fallbacks(browser, url, artifacts);
@@ -463,4 +564,4 @@ async function verifyReaderWarp(browser, base, budget = 100) {
   }
 }
 
-module.exports = {verifyReader, verifyReaderWarp};
+module.exports = {verifyReader, verifyReaderWarp, phonePopups};

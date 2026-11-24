@@ -76,6 +76,16 @@
 #inspector .lens-track i { display: block; height: 100%; background: var(--attention, #1e4ec8); }
 #inspector .lens-probability [data-percent] { text-align: end; }
 
+/* Sheet: only the space the figure leaves free. The model's frame is never covered. */
+#inspector[data-sheet], [data-mode="present"] #inspector[data-sheet] {
+  left: var(--inspect-left); right: auto; width: var(--inspect-width);
+  border-inline: 0; border-block-start: 1px solid var(--ink, #16181a);
+  box-shadow: 0 -8px 24px rgba(22, 24, 26, .1);
+  padding: .75rem max(.75rem, env(safe-area-inset-left));
+}
+#inspector[data-sheet] .inspect-bar { top: -.75rem; margin: -.75rem -.75rem 0; padding-inline: .75rem; }
+#inspector[data-sheet] .inspect-expand { display: none; }
+#inspector[data-sheet] h2 { font-size: 1.25rem; margin: .6rem 0; }
 @media (max-width: 760px) {
   #inspector, [data-mode="present"] #inspector { inset-inline: 0; width: 100%; border-inline: 0; }
   #inspector :is(.ml-equation button, .ml-tokens button, .ml-presets button, .ml-break, .ml-prefix button, .ml-control input) { min-height: 44px; }

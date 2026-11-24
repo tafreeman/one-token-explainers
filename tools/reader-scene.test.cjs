@@ -123,3 +123,16 @@ for (const view of ['diagram', 'spatial']) {
     assert.deepEqual(signalMatrices(view === 'diagram' ? 1 : .54), before);
   });
 }
+
+test('Spatial token contact shadow and halo follow the token and hide with it', () => {
+  const api = spatial();
+  let token;
+  api.scene.traverse(object => { if (object.userData.trackedToken) token = object; });
+  for (const id of ['1.2', '7.2', '12.4']) {
+    api.update(position(id, {present: true, localT: .5}), 1.2, 900);
+    const sprite = api.scene.children.find(object => object.isSprite);
+    assert.ok(sprite, 'halo sprite exists');
+    assert.equal(sprite.visible, token.visible, id + ': halo visibility tracks the token');
+    if (token.visible) assert.ok(sprite.position.distanceTo(token.position) < 1e-9, id + ': halo sits on the token');
+  }
+});
