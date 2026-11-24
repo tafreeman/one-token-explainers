@@ -20,8 +20,14 @@ const embeddedClips = (source, id) =>
 
 // Caption-only factual corrections. The MP3s and all unlisted source text stay unchanged.
 const captionCorrections = {
-  '2d': {0: 'Context extension can be applied to a pretrained model.'},
-  '3c': {0: 'For behavior no test can check, model judgments guided by a written constitution can train a preference model.'},
+  '2d': {
+    0: 'Context extension can be applied to a pretrained model.',
+    3.68: 'In the representative config, position rescaling extends addressable positions from sixty-five thousand, five hundred and thirty-six to one million, forty-eight thousand, five hundred and seventy-six.',
+  },
+  '3c': {
+    0: 'For behavior no test can check, model judgments guided by a written constitution can train a preference model.',
+    8.56: 'A KL penalty to the frozen reference model, the outline on the left, discourages drift.',
+  },
   '3d': {
     0: 'Reinforcement can train reasoning when answers can be verified.',
     2.64: "Verified reasoning can earn reward during post-training; Fable five point two's exact training recipe is private.",
@@ -31,7 +37,12 @@ const captionCorrections = {
     5.76: 'The doubled track is the prefix eligible for reuse.',
     8.56: 'On a cache hit, only the rest has to be computed.',
   },
-  '6b': {8.4: 'Raw reasoning is not returned as readable text, which is why the hollow tiles stop short of your app.'},
+  '5c': {7.12: 'Thicker arcs mean more weight, and the neutral mask hides everything that comes after.'},
+  '6b': {
+    0: 'Fable five point two has adaptive thinking enabled on every turn.',
+    8.4: 'Raw reasoning is not returned as readable text, which is why the hollow tiles stop short of your app.',
+  },
+  '6c': {9.147: 'The cache gains compressed state as generation continues, so earlier computation is not repeated.'},
   '6e': {0: 'Tokens can be decoded and streamed as server-sent events; output classifiers are a separate safeguard whose ordering is not set by the stream contract.'},
   '7c': {
     0: 'With caching enabled and an eligible live prefix, the unchanged request prefix may be reused.',
@@ -39,6 +50,7 @@ const captionCorrections = {
     9.52: 'Then only the new part is computed.',
   },
   '7e': {2.36: 'With compaction enabled, nearing a configurable threshold summarizes earlier turns into one block so the run can continue.'},
+  '09-think': {12.56: 'Raw reasoning is not returned as readable text.'},
   '12-tool-loop': {8.747: 'The whole conversation goes back in; with caching enabled and an eligible live prefix, its unchanged prefix may be reused.'},
 };
 
