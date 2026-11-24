@@ -253,6 +253,9 @@ async function narration(browser, url) {
     assert.ok((await page.locator('#spoken-caption').textContent()).trim());
     const quick = page.waitForRequest(/\/end-to-end-swiss\/assets\/narration\/.*\.mp3$/);
     if (!await page.locator('#audio-panel').isVisible()) await clickVisible(page, '#narrate');
+    // After Play the panel is a mini player; expand it to reach the recording picker and chapters.
+    if (await page.locator('#audio-panel.mini').count()) await page.locator('#audio-size').click();
+    assert.equal(await page.locator('#chapters button').count(), 12, 'one chapter marker per stage');
     await page.locator('#track').selectOption('quick');
     // Selecting a recording may pause playback; use the accessible Play button to resume.
     const play = page.getByRole('button', {name: /^play narration$/i});
@@ -261,11 +264,14 @@ async function narration(browser, url) {
     const quickClip = tracks.quick.find(clip => clip.id + '.mp3' === quickFile);
     assert.ok(quickClip, 'the Quick track requested a clip from its manifest');
     assert.equal(quickClip.id, '07-forward-pass');
-    await step(page, quickClip.stepId);
+    await step(page, '7.2');
+    assert.equal(await page.locator('body').getAttribute('data-step'), '7.2',
+      'changing to the stage-wide quick recording retains the selected attention mechanism');
     const duration = tracks.quick.reduce((sum, clip) => sum + clip.dur, 0);
     const expectedTime = Math.floor(duration / 60) + ':' + String(Math.floor(duration % 60)).padStart(2, '0');
     await page.waitForFunction(expected => document.querySelector('#audio-time').textContent.endsWith('/ ' + expected), expectedTime);
     if (!await page.locator('#audio-panel').isVisible()) await clickVisible(page, '#narrate');
+    if (await page.locator('#audio-panel.mini').count()) await page.locator('#audio-size').click();
     await page.locator('#captions').uncheck();
     await page.locator('#spoken-caption').waitFor({state: 'hidden'});
     console.log('Reader audio control, local playback, track switch, mute, and captions passed');
@@ -306,7 +312,7 @@ async function inspect(browser, url, local, artifacts) {
     const frame = drawer.locator('iframe');
     await frame.waitFor();
     const frameUrl = new URL(await frame.getAttribute('src'), url);
-    assert.equal(frameUrl.searchParams.get('focus'), 'MD-2b,MD-2c');
+    assert.equal(frameUrl.searchParams.get('focus'), require('../shared/concept-map.js').CONCEPTS['csa-hca-kv'].obs.join(','));
     assert.equal(frameUrl.searchParams.get('skin'), 'light');
     assert.equal((await stat(page)).suspended, true);
     await page.waitForFunction(() => document.querySelector('.inspect-status').textContent === '', null, {timeout});

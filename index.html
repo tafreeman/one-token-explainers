@@ -26,23 +26,30 @@
 </defs></svg>
 <header class="mast">
   <a href="#top" class="brand"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-cube"/></svg>One Token</a>
-  <div class="view-switch interactive" role="group" aria-label="Figure view">
-    <button type="button" data-view="diagram" aria-pressed="true"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-diagram"/></svg>Diagram</button>
-    <button type="button" data-view="spatial" aria-pressed="false"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-spatial"/></svg>Spatial</button>
+  <div class="view-switch interactive" role="group" aria-label="Figure view: overview diagram, then 3D model">
+    <button type="button" data-view="diagram" aria-pressed="true" title="Overview diagram"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-diagram"/></svg>Diagram</button>
+    <button type="button" data-view="spatial" aria-pressed="false" title="3D model"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-spatial"/></svg>Spatial</button>
   </div>
   <nav aria-label="Reader tools">
     <button type="button" class="interactive" id="present" aria-pressed="false" aria-label="Present"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-present"/></svg><span>Present</span></button>
-    <button type="button" class="interactive" popovertarget="audio-panel" id="narrate" aria-label="Narrate"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-audio"/></svg><span>Narrate</span></button>
+    <button type="button" class="interactive" popovertarget="audio-panel" id="narrate" aria-label="Narrate"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-audio"/></svg><span>Narrate</span><span class="narr-live" hidden aria-hidden="true"></span></button>
     <a href="#sources" aria-label="Sources"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-book"/></svg><span>Sources</span></a>
   </nav>
 </header>
 <section popover id="audio-panel" aria-labelledby="audio-heading">
-  <h2 id="audio-heading">Narration</h2>
-  <label for="track">Recording</label>
-  <select id="track"><option value="full">Full walkthrough (9:41)</option><option value="quick">Quick summary (4:38)</option></select>
-  <div class="audio-options"><label><input id="captions" type="checkbox" checked>Captions</label><label><input id="muted" type="checkbox">Mute</label></div>
+  <div class="audio-head">
+    <h2 id="audio-heading">Narration</h2>
+    <button type="button" id="audio-size" class="audio-icon" aria-pressed="false" aria-label="Shrink to mini player" title="Mini player">▁</button>
+    <button type="button" id="audio-close" class="audio-icon" popovertarget="audio-panel" popovertargetaction="hide" aria-label="Close narration panel" title="Close">✕</button>
+  </div>
+  <div class="audio-full">
+    <label for="track">Recording</label>
+    <select id="track"><option value="full">Full walkthrough (9:41)</option><option value="quick">Quick summary (4:38)</option></select>
+    <div class="audio-options"><label><input id="captions" type="checkbox" checked>Captions</label><label><input id="muted" type="checkbox">Mute</label></div>
+  </div>
   <div class="audio-controls"><button id="play-audio" class="primary" type="button">Play narration</button><output id="audio-time">0:00 / 9:41</output></div>
   <p id="audio-status" role="status" hidden></p>
+  <nav class="audio-full audio-chapters" aria-label="Narration chapters, one per stage"><h3>Jump to a stage</h3><ol id="chapters"></ol></nav>
 </section>
 <main class="spread">
   <figure id="figure" aria-labelledby="figure-name">
@@ -60,21 +67,34 @@
     </div>
     <figcaption>
       <div class="figure-note"><span class="plate-id" id="plate-id">01 / 12</span><div><strong id="figure-name">Corpus</strong><span id="step-name">Word in a document</span><span id="mobile-pin"></span></div></div>
-      <label class="camera interactive" hidden><span class="camera-lbl">Camera </span><select id="camera" aria-label="Camera"><option value="director">Director</option><option value="close">Close</option><option value="overhead">Overhead</option></select></label>
+      <label class="camera interactive" hidden title="Director = guided · Close = zoomed · Overhead = top-down"><span class="camera-lbl">Camera </span><select id="camera" aria-label="Camera: Director is guided, Close is zoomed, Overhead is top-down" title="Director = guided · Close = zoomed · Overhead = top-down"><option value="director" title="Guided: the camera follows the token">Director</option><option value="close" title="Zoomed in on the action">Close</option><option value="overhead" title="Top-down view of the whole scene">Overhead</option></select></label>
       <button class="interactive" id="explain" type="button" hidden>Explanation</button>
     </figcaption>
     <div id="spoken-caption" hidden></div>
-    <section id="explanation" aria-labelledby="explanation-title" hidden>
-      <button type="button" id="close-explanation">Close explanation</button>
-      <h2 id="explanation-title">Corpus</h2><p></p>
-      <div id="explanation-detail"></div>
-      <button type="button" class="concept-bridge" data-inspect="" hidden>Inspect component</button>
-    </section>
+    <div id="explanation-bay">
+      <div id="explanation-preview">
+        <h2 id="explanation-preview-title">Corpus</h2>
+        <p id="explanation-preview-copy"></p>
+        <button type="button" id="open-explanation" aria-controls="explanation" aria-expanded="false">Read explanation <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-arrow"/></svg></button>
+      </div>
+      <section id="explanation" aria-labelledby="explanation-title" hidden>
+        <header class="explanation-head">
+          <h2 id="explanation-title">Corpus</h2>
+          <button type="button" id="close-explanation" aria-label="Close explanation">Close <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+        </header>
+        <div id="explanation-content" tabindex="0" role="region" aria-label="Step explanation">
+          <p id="explanation-copy"></p>
+          <div id="explanation-detail"></div>
+          <button type="button" class="concept-bridge try-it" data-inspect="" hidden>Try it</button>
+        </div>
+      </section>
+    </div>
   </figure>
   <div id="lesson" tabindex="-1">
     <header class="opening">
       <h1>One token, <br>end to end.</h1>
       <p>How does a word get from a training document into a reply? Follow <strong class="token-word">“&nbsp;Paris”</strong> through the making and serving of a language model.</p>
+      <p class="levels"><b>Three levels:</b> scroll for the story · switch to <b>Spatial</b> for 3D · open any <b>Try it</b> to go deeper.</p>
       <a class="primary" id="follow" href="#s-1">Follow the token <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-down"/></svg></a>
       <p class="credits"><b>Claude Fable 5.2</b> for the public API. <b>DeepSeek‑V4‑Pro</b> for representative internals. The token ID and weather example are illustrative. <a href="#sources">Sources</a></p>
     </header>
@@ -96,7 +116,7 @@
       </article>
       <article class="step" id="step-1.2" data-step="1.2">
         <h3><span class="sn">1.2</span>Remove duplicates</h3>
-        <p>One common approach uses MinHash signatures to find and remove near-duplicate documents. Deduplication reduces repeated exposure, memorised output and wasted compute; it does not eliminate memorisation. Claude’s exact deduplication pipeline is not published.</p>
+        <p>One common approach uses MinHash signatures to find and remove near-duplicate documents. Deduplication reduces repeated exposure, memorized output and wasted compute; it does not eliminate memorization. Claude’s exact deduplication pipeline is not published.</p>
         <div class="technical-detail">
           <pre class="eq"><code>sig  = minhash(shingles(doc))
 keep = not lsh_index.has_near_duplicate(sig)</code></pre>
@@ -127,7 +147,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step" id="step-2.1" data-step="2.1">
         <h3><span class="sn">2.1</span>Byte-pair encoding</h3>
         <p>When training a byte-level BPE tokenizer, frequent adjacent byte sequences are merged to build a vocabulary. Encoding new text applies those learned merge rules. Common words can form one piece with a leading space; this example treats “&nbsp;Paris” as one token. Its segmentation and ID are illustrative.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="tokenization" href="./journey-tour/index.html#concept=tokenization">Inspect component</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="tokenization" href="./journey-tour/index.html#concept=tokenization" aria-label="Try it → Tokenizer, with labs and a 3D cutaway">Try it → Tokenizer</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
 # [382, 304, 12842, 13]   illustrative IDs</code></pre>
@@ -208,6 +228,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           <div><dt>Context, representative</dt><dd>65,536 → 1,048,576<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
           <div><dt>Fable 5.2 context</dt><dd>1M tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
+          <p class="asof">Prices and limits as of 21 November 2026.</p>
         </div>
       </article>
         </div>
@@ -250,7 +271,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       </article>
       <article class="step" id="step-4.4" data-step="4.4">
         <h3><span class="sn">4.4</span>Stay near the anchor</h3>
-        <p>A KL penalty discourages divergence from the frozen starting model; it does not guarantee that reward hacking is prevented. DeepSeek‑V4 trains separate domain experts this way, then distils them into one model on-policy.</p>
+        <p>A KL penalty discourages divergence from the frozen starting model; it does not guarantee that reward hacking is prevented. DeepSeek‑V4 trains separate domain experts this way, then distills them into one model on-policy.</p>
         <div class="technical-detail">
           <dl class="spec">
           <div><dt>Recipe, representative</dt><dd>SFT → GRPO per domain → distillation<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
@@ -319,6 +340,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           <div><dt>Price</dt><dd>$8 in · $40 out / MTok</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Max output</dt><dd>128K tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
+          <p class="asof">Prices and limits as of 21 November 2026.</p>
         </div>
       </article>
       <article class="step" id="step-6.2" data-step="6.2">
@@ -338,12 +360,13 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
         <h3><span class="sn">6.4</span>Check the prefix cache</h3>
         <p>With prompt caching enabled, a matching prefix of at least 512 tokens can be reused at a cache boundary while its entry remains available. This drawing assumes those conditions. The first eligible request writes the cache; later hits read it. The default minimum lifetime is 5 minutes, refreshed on use.</p>
         <fieldset class="effort">
-          <legend>Prefix cache state, as drawn · rates per MTok</legend>
+          <legend>Prefix cache state, as drawn · rates per MTok, as of 21 November 2026</legend>
           <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
             <label><input type="radio" name="cacheMode6" data-sync="cache" value="hit" checked><span>Hit · $0.20 read</span></label>
             <label><input type="radio" name="cacheMode6" data-sync="cache" value="miss"><span>Miss · $10 write</span></label>
           </div>
           <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
+          <p class="why"><b>Why it matters here:</b> A hit reuses the shared start of the prompt at 1/40 of the normal input price and skips most of the prefill work, so the first token arrives sooner.</p>
         </fieldset>
         <div class="technical-detail">
           <dl class="spec">
@@ -352,6 +375,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           <div><dt>Uncached input</dt><dd>$8 / MTok</dd><dd class="src">Anthropic docs</dd></div>
           <div><dt>Minimum prefix, Fable 5.2</dt><dd>512 tokens</dd><dd class="src">Anthropic docs</dd></div>
         </dl>
+          <p class="asof">Prices and limits as of 21 November 2026.</p>
         </div>
       </article>
         </div>
@@ -379,6 +403,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step" id="step-7.2" data-step="7.2">
         <h3><span class="sn">7.2</span>Attend, sparsely</h3>
         <p>RMSNorm rescales a copy of the vector, then causal attention uses only permitted current and earlier positions. In DeepSeek‑V4, compressed sparse attention (CSA) selects compressed entries with a lightweight indexer, while heavily compressed attention (HCA) reads more compressed summaries. Both also read a recent-token window. RoPE rotates part of each query and key to encode position.</p>
+        <p class="plain"><b>In plain words:</b> each token looks back at earlier tokens to decide which ones matter. DeepSeek‑V4 keeps a compressed summary of the past, so it does not reread everything.</p>
 
         <fieldset class="effort">
           <legend>Attention &amp; KV mode, as drawn</legend>
@@ -387,8 +412,9 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
             <label><input type="radio" name="kvMode7" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
           </div>
           <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
+          <p class="why"><b>Why it matters here:</b> Each new token has to look back at the history. How much of it is read decides how much memory and bandwidth every step needs.</p>
         </fieldset>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="csa-hca-kv" href="./journey-tour/index.html#concept=csa-hca-kv">Inspect component</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="csa-hca-kv" href="./journey-tour/index.html#concept=csa-hca-kv" aria-label="Try it → Attention & KV, with labs and a 3D cutaway">Try it → Attention & KV</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
 out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
@@ -403,7 +429,8 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       <article class="step" id="step-7.3" data-step="7.3">
         <h3><span class="sn">7.3</span>Route to 6 of 384 experts</h3>
         <p>A router scores 384 expert networks and keeps the top 6, and one shared expert always runs. Their outputs are weighted and summed. That’s why only 49B of the 1.6T parameters touch this token.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="moe-router" href="./journey-tour/index.html#concept=moe-router">Inspect component</a></p>
+        <p class="plain"><b>In plain words:</b> this layer is a mixture of experts (MoE): it holds hundreds of small specialists, and a router picks six of them for this token while the rest stay idle.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="moe-router" href="./journey-tour/index.html#concept=moe-router" aria-label="Try it → MoE router, with labs and a 3D cutaway">Try it → MoE router</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>out = shared(x) + Σ_{j ∈ selected} g_j · expert_j(x)
 g_j = 2.5 · s_j / Σ_{k ∈ selected} s_k
@@ -418,7 +445,8 @@ g_j = 2.5 · s_j / Σ_{k ∈ selected} s_k
       <article class="step" id="step-7.4" data-step="7.4">
         <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
         <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. The drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections)<span class="rep">*</span>.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="mhc-residual" href="./journey-tour/index.html#concept=mhc-residual">Inspect component</a></p>
+        <p class="plain"><b>In plain words:</b> each layer adds its result to a running total instead of replacing it, so earlier information survives. Four parallel totals are blended with weights whose rows and columns each add up to 1, which keeps the numbers stable.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="mhc-residual" href="./journey-tour/index.html#concept=mhc-residual" aria-label="Try it → 4-stream residual, with labs and a 3D cutaway">Try it → 4-stream residual</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>for layer in layers:
     h = h + layer.attn(rmsnorm(h))
@@ -431,6 +459,7 @@ g_j = 2.5 · s_j / Σ_{k ∈ selected} s_k
       <article class="step" id="step-7.5" data-step="7.5">
         <h3><span class="sn">7.5</span>Score the vocabulary</h3>
         <p>Before the output head, the four hyper-connection streams merge through a learned reduction back to one 7,168-dimensional vector<span class="rep">*</span>. A final RMSNorm (preserving shape) and the LM head turn that vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head sharing the output head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
+        <p class="plain"><b>In plain words:</b> the model gives every word in its vocabulary a score, then turns the scores into probabilities.</p>
         <div class="technical-detail">
           <pre class="eq"><code>h = merge_4_to_1(streams)           # 4 × 7,168 → 7,168*
 p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
@@ -452,11 +481,13 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       <article class="step" id="step-8.1" data-step="8.1">
         <h3><span class="sn">8.1</span>Parallel, often compute-bound</h3>
         <p>Prefill computes prompt representations without learning or backpropagation. Parallel matrix operations often keep accelerators busy. Prompt length, reused cache state, scheduling and any generated reasoning all affect time to the first visible answer token.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="prefill-decode" href="./journey-tour/index.html#concept=prefill-decode">Inspect component</a></p>
+        <p class="plain"><b>In plain words:</b> prefill reads the whole prompt at once. Decode, which comes next, writes the reply one token at a time.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="prefill-decode" href="./journey-tour/index.html#concept=prefill-decode" aria-label="Try it → Prefill vs decode, with labs and a 3D cutaway">Try it → Prefill vs decode</a></p>
       </article>
       <article class="step" id="step-8.2" data-step="8.2">
         <h3><span class="sn">8.2</span>Fill the KV cache</h3>
         <p>Each layer caches attention state to avoid repeating earlier computation. DeepSeek‑V4 combines compressed entries with a recent-token window; its cache does not retain one permanent entry per token. It stores the positional dimensions in BF16 and the rest in FP8.</p>
+        <p class="plain"><b>In plain words:</b> the cache is the model’s notes on everything it has read, so it does not reread the prompt for each new token.</p>
         <fieldset class="effort">
           <legend>Attention &amp; KV mode, as drawn</legend>
           <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
@@ -464,6 +495,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
             <label><input type="radio" name="kvMode8" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
           </div>
           <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
+          <p class="why"><b>Why it matters here:</b> Prefill just built this cache. Its size decides how many requests fit in GPU memory and how fast each decode step can read it.</p>
         </fieldset>
         <div class="technical-detail">
           <dl class="spec">
@@ -570,11 +602,11 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       <article class="step" id="step-11.1" data-step="11.1">
         <h3><span class="sn">11.1</span>Detokenize</h3>
         <p>Token pieces are decoded into text, and SSE carries UTF-8 data. Token and network chunk boundaries can split a character’s bytes; a streaming UTF-8 decoder buffers incomplete sequences before presenting text.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="utf8-sse" href="./journey-tour/index.html#concept=utf8-sse">Inspect component</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="utf8-sse" href="./journey-tour/index.html#concept=utf8-sse" aria-label="Try it → UTF-8 buffer, with labs and a 3D cutaway">Try it → UTF-8 buffer</a></p>
       </article>
       <article class="step" id="step-11.2" data-step="11.2">
         <h3><span class="sn">11.2</span>Stream</h3>
-        <p>Text and tool input arrive as <code>content_block_delta</code> events over SSE. A single response can run to 128K output tokens.</p>
+        <p>Text and tool input arrive as <code>content_block_delta</code> events over SSE. A single response can run to 128K output tokens (as of 21 November 2026).</p>
         <div class="technical-detail">
           <pre class="eq"><code>event: content_block_delta
 data: {"delta": {"type": "input_json_delta",
@@ -612,14 +644,15 @@ data: {"delta": {"type": "input_json_delta",
         <h3><span class="sn">12.2</span>A new request, a warm prefix</h3>
         <p>In this Messages API example, the app resends the conversation, including the complete assistant response and the tool result. If caching is enabled and an eligible matching prefix is still available, that prefix is reused. New assistant and tool-result content belongs to the uncached suffix unless it was already cached.</p>
         <fieldset class="effort">
-          <legend>Prefix cache state, as drawn · rates per MTok</legend>
+          <legend>Prefix cache state, as drawn · rates per MTok, as of 21 November 2026</legend>
           <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
             <label><input type="radio" name="cacheMode12" data-sync="cache" value="hit" checked><span>Hit · $0.20 read</span></label>
             <label><input type="radio" name="cacheMode12" data-sync="cache" value="miss"><span>Miss · $10 write</span></label>
           </div>
           <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
+          <p class="why"><b>Why it matters here:</b> Every tool round trip resends the whole conversation. A warm prefix keeps each repeat cheap and fast instead of recomputing everything.</p>
         </fieldset>
-        <p class="concept-bridge-row"><a class="concept-bridge" data-inspect="mcp-loop" href="./journey-tour/index.html#concept=mcp-loop">Inspect component</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="mcp-loop" href="./journey-tour/index.html#concept=mcp-loop" aria-label="Try it → Tool loop, with labs and a 3D cutaway">Try it → Tool loop</a></p>
       </article>
       <article class="step" id="step-12.3" data-step="12.3">
         <h3><span class="sn">12.3</span>The answer</h3>
@@ -696,6 +729,24 @@ data: {"delta": {"type": "input_json_delta",
     <li><b>Serving</b><a href="https://arxiv.org/abs/2309.06180">Kwon et al., PagedAttention, SOSP 2023</a></li>
     <li><b>Serving</b><a href="https://arxiv.org/abs/2211.17192">Leviathan et al., Speculative Decoding, 2023</a></li>
   </ol>
+  <details class="glossary" id="glossary">
+    <summary>Glossary</summary>
+    <dl>
+      <dt data-match="token|tokens">Token</dt><dd>A piece of text, such as a word, part of a word or punctuation, that the model reads and writes as one integer ID.</dd>
+      <dt data-match="KV cache|KV‑cache|KV-cache">KV cache</dt><dd>The stored keys and values for earlier tokens, kept so attention does not recompute them for every new token.</dd>
+      <dt data-match="prefill|Prefill">Prefill</dt><dd>The first serving phase: the whole prompt is processed in parallel and the KV cache is filled.</dd>
+      <dt data-match="decode|Decode|decoding">Decode</dt><dd>The second serving phase: the reply is generated one token at a time, each step reading the cache.</dd>
+      <dt data-match="logits">Logits</dt><dd>The raw score the model gives every vocabulary entry before softmax turns the scores into probabilities.</dd>
+      <dt data-match="MoE|mixture of experts">MoE</dt><dd>Mixture of experts: a router sends each token to a few specialist sub-networks instead of running the whole layer.</dd>
+      <dt data-match="SSE">SSE</dt><dd>Server-sent events: a one-way stream of text from server to browser over ordinary HTTP.</dd>
+      <dt data-match="CSA">CSA</dt><dd>Compressed sparse attention: a token reads a small, selected set of compressed history entries.</dd>
+      <dt data-match="HCA">HCA</dt><dd>Heavily compressed attention: the history squeezed far harder into summaries, trading detail for memory.</dd>
+      <dt data-match="RMSNorm">RMSNorm</dt><dd>A step that rescales a vector so its average size stays steady before the next layer.</dd>
+      <dt data-match="RoPE">RoPE</dt><dd>Rotary position embedding: it encodes where a token sits by rotating its query and key vectors.</dd>
+      <dt data-match="doubly-stochastic">Doubly-stochastic matrix</dt><dd>A grid of non-negative numbers whose rows and columns each add up to 1, so mixing with it neither grows nor shrinks the total.</dd>
+      <dt data-match="manifold-constrained hyper-connections|mHC">Manifold-constrained hyper-connections (mHC)</dt><dd>Several parallel residual streams mixed by learned matrices that are constrained to stay stable.</dd>
+    </dl>
+  </details>
   <details class="other-presentations">
     <summary>Other views</summary>
     <ul>
@@ -708,7 +759,7 @@ data: {"delta": {"type": "input_json_delta",
   </details>
   <p class="project">Narration voiced with ElevenLabs. 3D with Three.js. Fonts from Google Fonts.
     <a href="https://github.com/tafreeman/one-token-explainers">Source on GitHub</a>.
-    Code MIT, content CC BY 4.0. <a href="https://github.com/tafreeman/one-token-explainers#licence">Licence</a>.</p>
+    Code MIT, content CC BY 4.0. <a href="https://github.com/tafreeman/one-token-explainers#license">License</a>.</p>
 </section>
   </div>
   <aside id="inspector" hidden></aside>
@@ -727,6 +778,7 @@ data: {"delta": {"type": "input_json_delta",
 <div id="announce" class="sr" role="status" aria-live="polite"></div>
 <script src="./shared/vendor/three-r160.min.js"></script>
 <script src="./shared/three-loader.js"></script>
+<script src="./shared/concept-map.js"></script>
 <script src="./shared/concept-links.js"></script>
 <script src="./shared/micro-labs.js"></script>
 <script src="./shared/obs-file-bridge.js"></script>
@@ -738,5 +790,6 @@ data: {"delta": {"type": "input_json_delta",
 <script src="./one-token/scene-host.js"></script>
 <script src="./one-token/inspector.js"></script>
 <script src="./one-token/playback.js"></script>
+<script src="./one-token/glossary.js"></script>
 <script src="./one-token/reader.js"></script>
 </body></html>

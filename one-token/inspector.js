@@ -16,11 +16,15 @@
     const rail = document.querySelector('.rail');
     drawer.setAttribute('aria-labelledby', 'inspect-title');
     drawer.innerHTML = `
-      <button type="button" class="inspect-back">
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 10H3m6-6-6 6 6 6"/></svg>
-        Back to lesson
-      </button>
+      <div class="inspect-bar">
+        <button type="button" class="inspect-back" aria-label="Back to lesson">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 10H3m6-6-6 6 6 6"/></svg>
+          Back to lesson
+        </button>
+        <button type="button" class="inspect-expand" aria-pressed="false" hidden>Expand cutaway</button>
+      </div>
       <h2 id="inspect-title"></h2>
+      <p class="inspect-lesson"></p>
       <details class="inspect-cutaway">
         <summary>Explore the 3D cutaway</summary>
         <p class="inspect-status" role="status"></p>
@@ -34,6 +38,8 @@
       <nav aria-label="More views of this component" class="inspect-links"></nav>`;
 
     const back = drawer.querySelector('.inspect-back');
+    const expand = drawer.querySelector('.inspect-expand');
+    const lessonNote = drawer.querySelector('.inspect-lesson');
     const title = drawer.querySelector('h2');
     const cutaway = drawer.querySelector('.inspect-cutaway');
     const status = drawer.querySelector('.inspect-status');
@@ -44,7 +50,7 @@
     const frame = document.createElement('iframe');
     const compact = matchMedia('(max-width: 760px)');
     frame.tabIndex = 0;
-    let concept, saved, engine, pending;
+    let concept, saved, engine, pending, expanded = false;
     let prefixHitRate, pdDisaggregated;
     let timeout;
 
@@ -57,6 +63,21 @@
       drawer.style.setProperty('--inspect-top', Math.max(0, mast.getBoundingClientRect().bottom) + 'px');
       const railTop = rail?.getBoundingClientRect().top || window.innerHeight;
       drawer.style.setProperty('--inspect-bottom', Math.max(0, window.innerHeight - railTop) + 'px');
+      // The expanded cutaway takes the large figure stage (all of the free viewport on phones).
+      const stage = compact.matches || !figure ? {left: 0, top: mast.getBoundingClientRect().bottom + 56, width: window.innerWidth, height: railTop - mast.getBoundingClientRect().bottom - 56}
+        : figure.getBoundingClientRect();
+      drawer.style.setProperty('--stage-left', stage.left + 'px');
+      drawer.style.setProperty('--stage-top', stage.top + 'px');
+      drawer.style.setProperty('--stage-width', stage.width + 'px');
+      drawer.style.setProperty('--stage-height', stage.height + 'px');
+    }
+
+    function setExpanded(on) {
+      expanded = on;
+      drawer.dataset.expanded = String(on);
+      expand.setAttribute('aria-pressed', String(on));
+      expand.textContent = on ? 'Shrink cutaway' : 'Expand cutaway';
+      sizeDrawer();
     }
 
     function stopCutaway() {
@@ -66,6 +87,8 @@
       engine = null;
       frame.remove();
       frame.removeAttribute('src');
+      expand.hidden = true;
+      setExpanded(false);
       scene.resume();
     }
 
@@ -116,6 +139,8 @@
       };
       frame.src = asset('../shared/obs-core.html?' + params);
       frameHost.append(frame);
+      expand.hidden = false;
+      setExpanded(!compact.matches);
     }
 
     function mountLabs(target) {
@@ -199,6 +224,8 @@
       pause();
       concept = target;
       title.textContent = target.label;
+      const map = window.ConceptMap;
+      lessonNote.textContent = 'Lesson ' + target.step + ' · Observatory: ' + target.obs.map(code => map.componentLabel(code, {tag: false})).join(', ');
       cutaway.open = more.open = false;
       status.textContent = '';
       mountLabs(target);
@@ -227,6 +254,7 @@
     }
 
     back.addEventListener('click', close);
+    expand.addEventListener('click', () => setExpanded(!expanded));
     cutaway.addEventListener('toggle', () => {
       if (saved && cutaway.open) startCutaway();
       else stopCutaway();

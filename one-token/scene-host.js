@@ -18,9 +18,11 @@
     const fallbackStatus = document.getElementById('fallback-status');
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const scenes = {};
-    let renderer, THREE, state, animation, fadeCanvas, fadeCtx;
+    let renderer, THREE, state, animation, fadeCanvas, fadeCtx, settleUntil = 0;
+    const SETTLE_MS = 900;
     let frames = 0, calls = 0, raf = 0, width = 0, height = 0, pixelRatio = 0;
-    let revision = null, signature, renderedView;
+    let revision = null, signature, renderedView, renderedStep;
+    let lastFrame = null;
     let lost = false, suspended = false, failed = false;
 
     function hidePin() {
@@ -113,14 +115,17 @@
       const h = viewport.clientHeight;
       if (!w || !h) return;
       const scale = Math.min(devicePixelRatio || 1, 1.5, Math.sqrt(1600000 / (w * h)));
-      if (w !== width || h !== height || scale !== pixelRatio) {
+      const resized = w !== width || h !== height || scale !== pixelRatio;
+      if (resized) {
         width = w; height = h; pixelRatio = scale;
         renderer.setPixelRatio(pixelRatio);
         renderer.setSize(width, height, false);
       }
       const view = state.view === 'spatial' ? 'spatial' : 'diagram';
       const switchingView = Boolean(renderedView && renderedView !== view);
-      if (switchingView && canvas.width > 0 && canvas.height > 0) {
+      const switchingStep = Boolean(renderedStep && renderedStep !== state.stepId);
+      const transition = !resized && (switchingView || switchingStep);
+      if (transition && canvas.width > 0 && canvas.height > 0) {
         if (!fadeCanvas) {
           fadeCanvas = document.createElement('canvas');
           fadeCanvas.className = 'scene-fade';
@@ -130,6 +135,10 @@
           fadeCtx = fadeCanvas.getContext('2d');
         }
         if (fadeCtx) {
+          // WebGL's default drawing buffer may have been discarded between frames.
+          // Repaint the outgoing canonical pose before taking the transition snapshot.
+          const previous = scenes[renderedView];
+          if (previous) renderer.render(previous.scene, previous.camera);
           fadeCanvas.width = canvas.width;
           fadeCanvas.height = canvas.height;
           fadeCtx.clearRect(0, 0, fadeCanvas.width, fadeCanvas.height);
@@ -139,26 +148,49 @@
       try {
         const api = view === 'spatial' ? window.ReaderSpatial : window.ReaderDiagram;
         const current = scenes[view] ??= api.create(THREE, window.ReaderTheme, renderer);
-        const pinState = current.update(state, width / height, width);
+        const started = performance.now();
+        const pinState = current.update({...state, reducedMotion: reduced.matches}, width / height, width);
         renderer.render(current.scene, current.camera);
+        if (view === 'spatial') noteSpatialCost(performance.now() - started);
         frames++;
         calls = renderer.info.render.calls;
         viewport.dataset.render = 'ready';
+        lastFrame = pinState.frame || null;
         placePin(pinState, current.camera, width, height);
       } catch (error) {
         fallback(error);
         return;
       }
-      if (switchingView && fadeCanvas && fadeCanvas.animate) {
+      if (resized) {
+        animation?.cancel();
+        if (fadeCanvas) fadeCanvas.style.opacity = '0';
+      }
+      if (transition && fadeCanvas && fadeCanvas.animate) {
         animation?.cancel();
         fadeCanvas.style.opacity = '1';
         animation = fadeCanvas.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: reduced.matches ? 90 : 260,
+          duration: reduced.matches ? 80 : switchingView ? 260 : 180,
           easing: 'cubic-bezier(.16, 1, .3, 1)'
         });
         animation.onfinish = () => { fadeCanvas.style.opacity = '0'; };
       }
       renderedView = view;
+      renderedStep = state.stepId;
+      // Keep drawing while the camera and layer fades glide to their new pose.
+      if (view === 'spatial' && !reduced.matches && performance.now() < settleUntil) schedule();
+    }
+
+    // Spatial is the heavy view. Several slow draws in a row (a much lower bar on devices
+    // that report little memory or few cores) tell the reader to fall back to the Diagram.
+    const lowPower = navigator.connection?.saveData || navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 2;
+    const SLOW_MS = lowPower ? 120 : 400, SLOW_RUN = 4;
+    let slowDraws = 0;
+    function noteSpatialCost(ms) {
+      slowDraws = ms > SLOW_MS ? slowDraws + 1 : 0;
+      if (slowDraws >= SLOW_RUN) {
+        slowDraws = 0;
+        window.dispatchEvent(new Event('reader-spatial-slow'));
+      }
     }
 
     function schedule() {
@@ -172,6 +204,7 @@
           next.opening, next.recap, next.present, next.overview, settings.cache, settings.kv, settings.effort].join('|');
         if (key === signature) return;
         signature = key;
+        settleUntil = performance.now() + SETTLE_MS;
         state = { ...next, settings };
         schedule();
       },
@@ -181,7 +214,7 @@
       },
       suspend() { suspended = true; cancel(); },
       resume() { suspended = false; schedule(); },
-      stats() { return { frames, calls, revision, lost, suspended }; }
+      stats() { return { frames, calls, revision, lost, suspended, frame: lastFrame }; }
     };
 
     try {
@@ -205,6 +238,11 @@
         schedule();
       });
       new ResizeObserver(schedule).observe(viewport);
+      reduced.addEventListener('change', () => {
+        animation?.cancel();
+        if (fadeCanvas) fadeCanvas.style.opacity = '0';
+        schedule();
+      });
       document.fonts?.ready.then(schedule);
       window.addEventListener('resize', schedule);
     } catch (error) {

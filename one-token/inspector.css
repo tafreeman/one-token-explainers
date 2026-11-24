@@ -80,3 +80,26 @@
   #inspector, [data-mode="present"] #inspector { inset-inline: 0; width: 100%; border-inline: 0; }
   #inspector :is(.ml-equation button, .ml-tokens button, .ml-presets button, .ml-break, .ml-prefix button, .ml-control input) { min-height: 44px; }
 }
+
+/* The bar stays on screen while the panel scrolls, so Back to lesson is always reachable. */
+#inspector .inspect-bar {
+  position: sticky; top: calc(-1 * clamp(1rem, 3vw, 2.75rem)); z-index: 2;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem;
+  margin: calc(-1 * clamp(1rem, 3vw, 2.75rem)) calc(-1 * clamp(1rem, 3vw, 2.75rem)) 0;
+  padding: .25rem clamp(1rem, 3vw, 2.75rem); background: var(--ground, #f6f5f2); border-block-end: 1px solid var(--line, #d6d3cb);
+}
+#inspector .inspect-back { border: 1.5px solid var(--ink, #16181a); border-radius: 4px; padding: 0 .9rem; font-weight: 640; background: var(--plate, #fff); }
+#inspector .inspect-back:hover { background: var(--ink, #16181a); color: var(--plate, #fff); }
+#inspector .inspect-expand { min-height: 44px; border: 1.5px solid var(--mark, #b8320d); border-radius: 4px; padding: 0 .9rem; font: inherit; font-weight: 640; background: var(--plate, #fff); color: var(--mark, #b8320d); cursor: pointer; }
+#inspector .inspect-expand[hidden] { display: none; }
+#inspector .inspect-lesson { margin: 0 0 .5rem; font-family: var(--mono, monospace); font-size: .8rem; color: var(--muted, #52575d); }
+/* Expanded: the cutaway fills the figure stage while the labs stay in the panel. */
+#inspector[data-expanded="true"] .inspect-frame { position: fixed; z-index: 13; left: var(--stage-left); top: var(--stage-top); width: var(--stage-width); height: var(--stage-height); }
+#inspector[data-expanded="true"] .inspect-frame iframe { height: 100%; border-width: 0 0 0 1px; }
+#inspector[data-expanded="true"] .inspect-cutaway > summary::after { content: " — open in the stage"; font-weight: 400; color: var(--muted, #52575d); }
+
+/* Disclosure markers: the flex layout above removes the native triangle, so draw one. */
+#inspector summary { list-style: none; cursor: pointer; }
+#inspector summary::-webkit-details-marker { display: none; }
+#inspector summary::before { content: "\25B8"; display: inline-block; width: 1em; flex: none; color: var(--mark, #b8320d); }
+#inspector details[open] > summary::before { content: "\25BE"; }

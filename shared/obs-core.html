@@ -1036,10 +1036,33 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
 <link rel="stylesheet" href="suite-theme.css">
 <link rel="stylesheet" href="micro-labs.css">
 <script src="micro-labs.js"></script>
+<script src="concept-map.js"></script>
 <script src="concept-links.js"></script>
 <script src="obs-file-bridge.js"></script>
+<style id="suite-readability">
+/* Labels: code + name, a readable minimum size, and a lesson tag in the second line */
+.comp-label { font-size: 11px; padding: 3px 8px; }
+.comp-label .cid { color: var(--accent-teal); font-weight: 700; }
+.comp-label .lbl-sub { font-size: 10px; color: var(--text-secondary, var(--text-muted)); }
+.toc-item .toc-lesson { color: var(--text-muted); font-size: 10px; font-weight: 500; white-space: nowrap; }
+html.embed .comp-label .lbl-lesson { color: inherit; }
+@media (max-width: 560px) { html.embed .comp-label .lbl-lesson { display: none; } }
+/* Tour caption: a compact corner card that can collapse */
+#narrativeBanner { top: calc(var(--hdr-h) + 6px); right: 14px; left: auto; max-width: min(340px, calc(100% - 32px)); transform: translateY(-8px); flex-wrap: wrap; align-items: flex-start; gap: 6px 10px; }
+#narrativeBanner.visible { transform: translateY(0); }
+#narrativeBanner .banner-copy { flex: 1 1 100%; order: 3; }
+#narrativeBanner.is-collapsed .banner-copy { display: none; }
+.banner-toggle { order: 2; min-width: 28px; height: 24px; border: 1px solid var(--border-hairline); border-radius: 5px; background: transparent; color: var(--text-primary); font: 700 14px/1 var(--ff-mono); cursor: pointer; }
+.banner-toggle:hover { border-color: var(--accent-brass); }
+.banner-step { order: 1; margin-left: auto; }
+@media (max-width: 680px) { #narrativeBanner { right: 12px; left: 12px; max-width: none; width: auto; } }
+/* Jargon glossary in the detail panel */
+.gloss-list { margin: 0; display: grid; gap: 6px; }
+.gloss-list dt { font: 700 11px/1.3 var(--ff-mono); color: var(--accent-teal); letter-spacing: .02em; }
+.gloss-list dd { margin: 0 0 4px; font-size: 12.5px; line-height: 1.45; color: var(--text-secondary, var(--text-primary)); }
+</style>
 </head><body>
-  <div id="stage">
+  <div id="stage" role="region" aria-label="3D observatory scene">
     <!-- Main 3D WebGL Canvas -->
     <canvas id="threeCanvas" tabindex="0" aria-label="LLM Systems 3D Observatory"></canvas>
 
@@ -1059,9 +1082,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       <div class="top-actions">
       <nav class="pill-row" aria-label="Realm Camera Presets">
         <button class="btn is-active" data-realm="ALL" id="btnRealmAll">Full Architecture</button>
-        <button class="btn" data-realm="TRAINING" id="btnRealmTraining">Phase 1 · Training (6 + Infra)</button>
+        <button class="btn" data-realm="TRAINING" id="btnRealmTraining">Training (6 + Infra)</button>
         <button class="btn" data-realm="MODEL" id="btnRealmModel">Shared Core · 1 Forward Pass (12)</button>
-        <button class="btn" data-realm="INFERENCE" id="btnRealmInference">Phase 2 · Inference (10 + Loop/Opts)</button>
+        <button class="btn" data-realm="INFERENCE" id="btnRealmInference">Inference (10 + Loop/Opts)</button>
       </nav>
 
       <div class="pill-row">
@@ -1073,9 +1096,10 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
 
     <!-- LIVE FLOATING PROCESS NARRATIVE BANNER -->
     <div id="narrativeBanner" class="glass-bar visible" role="status" aria-live="polite">
-      <span class="banner-badge copper" id="bannerBadge">PHASE 1 · TRAINING</span>
+      <span class="banner-badge copper" id="bannerBadge">TRAINING</span>
       <span class="banner-copy" id="bannerText">ETL &amp; Lexing: The illustrative pipeline filters and deduplicates text in TR-1, then converts it to BPE IDs in TR-2. The optional image branch represents vision-language models; DeepSeek-V4-Pro is text-only.</span>
       <span class="banner-step tabular" id="bannerStep">STEP 1 / 4</span>
+      <button type="button" class="banner-toggle" id="bannerToggle" aria-expanded="true" aria-controls="bannerText" aria-label="Collapse tour caption" title="Collapse or expand this caption">&minus;</button>
     </div>
 
     <!-- LEFT COLLAPSIBLE 31-STAGE TOC DRAWER -->
@@ -1103,7 +1127,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         <h2 class="detail-title" id="detTitle">RoPE (Rotary Positional Embeddings)</h2>
       </div>
 
-      <div class="detail-scroll">
+      <div class="detail-scroll" tabindex="0" role="region" aria-label="Component details">
         <div>
           <div class="detail-block-lbl">What It Is</div>
           <p class="detail-prose" id="detWhat"></p>
@@ -1121,6 +1145,11 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         <div>
           <div class="detail-block-lbl brass">Plain-English Walkthrough</div>
           <p class="detail-prose" id="detNarrative"></p>
+        </div>
+
+        <div id="detGlossWrap" hidden>
+          <div class="detail-block-lbl">Jargon, in plain English</div>
+          <dl class="gloss-list" id="detGloss"></dl>
         </div>
 
         <div>
@@ -1167,9 +1196,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
     <!-- COMPACT FLOATING BOTTOM BAR -->
     <footer class="bottom-bar glass-bar">
       <div class="pill-row" role="group" aria-label="Process Showcase Modes">
-        <button class="btn btn--copper is-active" data-showcase="TRAINING" id="btnModeTraining">⟲ Phase 1: Train &amp; Backprop</button>
-        <button class="btn btn--teal" data-showcase="FORWARD" id="btnModeForward">▶ Phase 2: Inference Flow</button>
-        <button class="btn btn--emerald" data-showcase="RLVR" id="btnModeRlvr">🎯 RLVR / GRPO Loop</button>
+        <button class="btn btn--copper is-active" data-showcase="TRAINING" id="btnModeTraining">⟲ Train &amp; Backprop</button>
+        <button class="btn btn--teal" data-showcase="FORWARD" id="btnModeForward">▶ Inference Flow</button>
+        <button class="btn btn--emerald" data-showcase="RLVR" id="btnModeRlvr" title="RLVR: reinforcement learning with verifiable rewards. GRPO scores a group of attempts and reinforces the best.">🎯 RLVR / GRPO Loop</button>
         <button class="btn" data-showcase="AGENT" id="btnModeAgent">🔧 Agent Tool Loop</button>
       </div>
 
@@ -1217,8 +1246,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
     const COMPONENTS = [
       // ---------------- PHASE 1 · TRAINING PIPELINE (LINEAR -Z -> +Z) ----------------
       {
-        id: 'TR-1', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
-        shortLabel: '1.1 Data Pipeline',
+        id: 'TR-1', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Training Pipeline',
+        shortLabel: 'Data Pipeline',
         title: 'Data Pipeline: Ingestion, Deduplication & Filtering',
         pos: [-27.0, 0.4, -17.5],
         camOffset: [-7.0, 5.6, 8.6],
@@ -1233,8 +1262,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ['Sources: Web, Code, Books', 'Hash Deduplication', 'PII & Safety Scrubbing', 'Dataset Weighting']
       },
       {
-        id: 'TR-2', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
-        shortLabel: '1.2 Tokenizer',
+        id: 'TR-2', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Training Pipeline',
+        shortLabel: 'Tokenizer',
         title: "Tokenizer & Vision Encoder",
         pos: [-27.0, 0.4, -10.5],
         camOffset: [-6.8, 5.2, 8.2],
@@ -1249,8 +1278,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Sub-word Lexer (BPE)", "Vocab Trained on a Data Sample", "Vision Encoder (ViT-style Patches)", "Control & Tool Tags"]
       },
       {
-        id: 'TR-3', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
-        shortLabel: '1.3 Pretraining',
+        id: 'TR-3', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Training Pipeline',
+        shortLabel: 'Pretraining',
         title: 'Pretraining: Learning by Next-Token Prediction',
         pos: [-27.0, 0.4, -3.5],
         camOffset: [-7.2, 5.8, 8.8],
@@ -1265,8 +1294,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Next-Token Guessing (Cross-Entropy)", "Calls Center Core (Fwd + Backprop)", "MTP Extra-Token Objective", "Muon matrix updates", "AdamW coordinate updates", "FP8 Training, FP4 Experts"]
       },
       {
-        id: 'TR-4', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
-        shortLabel: '1.4 Mid-Training',
+        id: 'TR-4', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Training Pipeline',
+        shortLabel: 'Mid-Training',
         title: 'Mid-Training: Long-Context Expansion & Polishing',
         pos: [-27.0, 0.4, 3.5],
         camOffset: [-6.6, 5.2, 8.8],
@@ -1281,8 +1310,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Long-context extension","YaRN position rescaling","Curated long-document data"]
       },
       {
-        id: 'TR-5', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
-        shortLabel: '1.5 Post-Training',
+        id: 'TR-5', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Training Pipeline',
+        shortLabel: 'Post-Training',
         title: 'Post-Training: Instructions, Preferences & Verifiable RL',
         pos: [-27.0, 0.4, 10.5],
         camOffset: [-6.6, 5.8, 8.8],
@@ -1297,8 +1326,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Stage 1: Domain Specialists (SFT + GRPO)", "Rule Verifiers + Rubric Self-Judging", "Group of Attempts (e.g., 8–64)", "Anti-Drift Tether (KL)", "Stage 2: On-Policy Distillation (OPD)"]
       },
       {
-        id: 'TR-6', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Phase 1 · Training Pipeline',
-        shortLabel: '1.6 Eval & Release Gate',
+        id: 'TR-6', realm: 'TRAINING', role: 'PIPELINE', realmTitle: 'Training Pipeline',
+        shortLabel: 'Eval & Release Gate',
         title: 'Eval & Release Gate: Automated Testing & Ship Approval',
         pos: [-27.0, 0.4, 17.5],
         camOffset: [-6.6, 5.4, 8.6],
@@ -1313,8 +1342,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Automated Benchmarks (SWE-bench/Math)", "Adversarial Red-Teaming", "Regression Checks", "Human Sign-Off", "Freeze Read-Only Weights"]
       },
       {
-        id: 'TR-7', realm: 'TRAINING', role: 'SUPPORT', realmTitle: 'Phase 1 Support · Compute Cluster',
-        shortLabel: 'INFRA · GPU Cluster',
+        id: 'TR-7', realm: 'TRAINING', role: 'SUPPORT', realmTitle: 'Training Support · Compute Cluster',
+        shortLabel: 'GPU Cluster',
         title: 'Cluster Infrastructure: Sharding, Optimizer & Monitoring',
         pos: [-37.2, 0.4, 3.5],
         camOffset: [-7.2, 5.8, 9.2],
@@ -1332,7 +1361,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       // ---------------- SHARED SUB-PROCESS · MODEL CORE (1 FORWARD PASS) ----------------
       {
         id: 'MD-1', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 1 · Embedding',
+        shortLabel: 'Embedding',
         title: 'Token IDs → Meaning Vectors (Lookup Table)',
         pos: [0.0, 1.0, 4.4],
         camOffset: [-5.6, 3.8, 8.2],
@@ -1348,7 +1377,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2a', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2a · Normalize 1',
+        shortLabel: 'Normalize 1',
         title: 'Pre-Attention RMSNorm (Signal Leveler)',
         pos: [0.0, 3.0, 0.0],
         camOffset: [-6.0, 3.2, 7.2],
@@ -1364,7 +1393,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2b', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2b · Q/K/V Split',
+        shortLabel: 'Q/K/V Split',
         title: 'Q / K / V Projections (Search Views & Memory Compression)',
         pos: [3.4, 4.6, 1.2],
         camOffset: [-5.2, 3.0, 7.8],
@@ -1380,7 +1409,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2c', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2c · RoPE Order',
+        shortLabel: 'RoPE Order',
         title: 'RoPE: Encoding Word Position via Rotation',
         pos: [-3.2, 6.2, 1.4],
         camOffset: [-6.2, 2.8, 7.2],
@@ -1396,7 +1425,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2d', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2d · Attention + Cache',
+        shortLabel: 'Attention + Cache',
         title: 'Causal Self-Attention & KV Cache Lookup',
         pos: [3.6, 7.9, -1.2],
         camOffset: [-5.4, 3.0, 8.2],
@@ -1412,7 +1441,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2e', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2e · Merge Bus 1',
+        shortLabel: 'Merge Bus 1',
         title: 'Output Projection & mHC Stream Merge',
         pos: [0.0, 9.5, 0.0],
         camOffset: [-6.0, 2.8, 7.2],
@@ -1428,7 +1457,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2f', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2f · Normalize 2',
+        shortLabel: 'Normalize 2',
         title: "Pre-FFN RMSNorm (Second Leveler)",
         pos: [0.0, 11.1, 0.0],
         camOffset: [-6.0, 2.8, 7.2],
@@ -1444,7 +1473,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2g', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2g · MoE Router',
+        shortLabel: 'MoE Router',
         title: 'MoE Router: Smart Traffic Dispatcher (Top-k)',
         pos: [-3.0, 12.7, 0.8],
         camOffset: [-6.2, 3.0, 7.4],
@@ -1460,7 +1489,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2h', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 2h · Experts (FFN)',
+        shortLabel: 'Experts (FFN)',
         title: "Sparse Experts: Shared & Routed Knowledge Banks",
         pos: [3.6, 14.3, 0.4],
         camOffset: [-5.4, 3.4, 8.6],
@@ -1476,7 +1505,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-2i', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: "Core 2i · Stack ×61",
+        shortLabel: "Stack ×61",
         title: "Weighted Combine & Layer Stack (×61 Blocks)",
         pos: [0.0, 16.2, 0.0],
         camOffset: [-6.2, 3.0, 7.6],
@@ -1492,7 +1521,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-3', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 3 · Final Norm',
+        shortLabel: 'Final Norm',
         title: 'Final RMSNorm (Pre-Output Polish)',
         pos: [0.0, 18.0, 0.0],
         camOffset: [-6.0, 2.6, 7.2],
@@ -1508,7 +1537,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       },
       {
         id: 'MD-4', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
-        shortLabel: 'Core 4 · Output Scores',
+        shortLabel: 'Output Scores',
         title: 'LM Head: Scoring Every Token in the Vocabulary',
         pos: [0.0, 20.1, 0.0],
         camOffset: [-6.6, 3.2, 8.2],
@@ -1525,8 +1554,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
 
       // ---------------- PHASE 2 · PRODUCTION INFERENCE SERVING (LINEAR -Z -> +Z) ----------------
       {
-        id: 'IN-1', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.1 Client Request',
+        id: 'IN-1', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Client Request',
         title: 'Client Request (API Call Ingress)',
         pos: [27.0, 0.4, -25.2],
         camOffset: [-6.0, 5.0, 7.8],
@@ -1541,8 +1570,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ['HTTPS Messages API Entry', 'Conversation & Tool Payload', 'Generation Config Parameters']
       },
       {
-        id: 'IN-2', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.2 Gateway',
+        id: 'IN-2', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Gateway',
         title: 'API Gateway: Auth, Rate Limits & Safety Firewall',
         pos: [27.0, 0.4, -19.6],
         camOffset: [-6.2, 5.2, 8.0],
@@ -1557,8 +1586,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["API Auth & Quotas", "Token-Bucket Rate Limit", "Abuse / Safety Classifier", "Cache-Aware Load Balancing"]
       },
       {
-        id: 'IN-3', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.3 Prompt Assembly',
+        id: 'IN-3', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Prompt Assembly',
         title: 'Prompt Assembly (Context Templating)',
         pos: [27.0, 0.4, -14.0],
         camOffset: [-6.4, 5.0, 8.2],
@@ -1573,8 +1602,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["System Instructions", "Chat History (App-Built)", "JSON Tool Schemas (App-Defined)", "RAG Docs (App-Retrieved)", "Chat Template Tags (Provider)"]
       },
       {
-        id: 'IN-4', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.4 Tokenizer',
+        id: 'IN-4', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Tokenizer',
         title: 'Inference Tokenizer (Fast Word-to-ID Lexer)',
         pos: [27.0, 0.4, -8.4],
         camOffset: [-6.2, 4.8, 7.8],
@@ -1589,8 +1618,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ['Fast Sub-Word Lexer', 'Preserves Control Tags', 'Matches Training Vocab']
       },
       {
-        id: 'IN-5', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.5 Scheduler',
+        id: 'IN-5', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Scheduler',
         title: 'Scheduler: Continuous Batching & Memory Admission',
         pos: [27.0, 0.4, -2.8],
         camOffset: [-6.6, 5.8, 8.6],
@@ -1605,8 +1634,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ['Continuous Iteration Batching', 'Chunked Prefill (Limits Interference)', 'VRAM Cache Admission']
       },
       {
-        id: 'IN-6', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.6 Prefill',
+        id: 'IN-6', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Prefill',
         title: 'Prefill: Parallel Prompt Read & Cache Warm-Up',
         pos: [27.0, 0.4, 2.8],
         camOffset: [-6.6, 5.8, 8.6],
@@ -1621,8 +1650,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ['Parallel Positions, Optional Chunks', 'Populates Initial KV Cache', 'Contributes to Time-to-First-Token']
       },
       {
-        id: 'IN-7', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.7 Decode Loop',
+        id: 'IN-7', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Decode Loop',
         title: 'Decode Loop: Generating One Token Per Tick',
         pos: [27.0, 0.4, 8.4],
         camOffset: [-6.6, 5.4, 8.4],
@@ -1637,8 +1666,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Ordinary Decode: 1 Token per Step", "Reuses & Appends KV Cache", "Hidden Reasoning Tokens (Test-Time Compute)", "Sets Streaming Speed (tok/s)"]
       },
       {
-        id: 'IN-8', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.8 Sampler',
+        id: 'IN-8', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Sampler',
         title: 'Sampler: Shaping a Distribution & Selecting a Token',
         pos: [27.0, 0.4, 14.0],
         camOffset: [-6.4, 5.4, 8.2],
@@ -1653,8 +1682,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ['Temperature (Probability Sharpness)', 'Drops Low-Prob Tail (Top-p/k)', 'Supported JSON Constraints; Validate Tools', 'Checks Stop & Tool Triggers']
       },
       {
-        id: 'IN-9', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.9 Detokenize',
+        id: 'IN-9', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Detokenize',
         title: "Detokenize & Buffer (ID → Text Chunks)",
         pos: [27.0, 0.4, 19.6],
         camOffset: [-6.2, 5.0, 8.0],
@@ -1669,8 +1698,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Reverse ID-to-Text Lookup", "Strips Hidden Control Tags", "Buffers Multi-Byte UTF-8", "Hands Text to Guardrail (IN-10)"]
       },
       {
-        id: 'IN-10', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
-        shortLabel: '2.10 Output Filters',
+        id: 'IN-10', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Inference Serving',
+        shortLabel: 'Output Filters',
         title: "Output Guardrails, SSE Flush & Telemetry Logging",
         pos: [27.0, 0.4, 25.2],
         camOffset: [-6.2, 5.2, 8.2],
@@ -1685,8 +1714,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Streaming Output Check", "Flush to SSE / Cut Stream", "PII / Secret Redaction", "Latency & Billing Logs"]
       },
       {
-        id: 'IN-11', realm: 'INFERENCE', role: 'BRANCH', realmTitle: 'Phase 2 Branch · Agentic Execution',
-        shortLabel: 'BRANCH · Tool Loop',
+        id: 'IN-11', realm: 'INFERENCE', role: 'BRANCH', realmTitle: 'Inference Branch · Agentic Execution',
+        shortLabel: 'Tool Loop',
         title: "Agent / Tool Loop (Client-Run Function Calling)",
         pos: [37.5, 0.4, 11.2],
         camOffset: [-6.4, 5.8, 8.8],
@@ -1701,8 +1730,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         subs: ["Emits Tool Call, Generation Stops", "Client App Runs the Tool", "New Request Carries the Result", "Eligible Prefix Reuse + Suffix Prefill", "Hosted Tools: Provider Runs It"]
       },
       {
-        id: 'IN-12', realm: 'INFERENCE', role: 'SUPPORT', realmTitle: 'Phase 2 Support · Speed & Memory Engine',
-        shortLabel: 'SUBSTRATE · Serving Opts',
+        id: 'IN-12', realm: 'INFERENCE', role: 'SUPPORT', realmTitle: 'Inference Support · Speed & Memory Engine',
+        shortLabel: 'Serving Optimizations',
         title: 'Serving Optimizations: Paging, Speculative Decode & Quantization',
         pos: [37.5, 0.4, 0.0],
         camOffset: [-6.4, 5.8, 8.8],
@@ -1733,7 +1762,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
 
     const QS = new URLSearchParams(location.search);
     const EMBED = QS.get('embed') === '1';
-    let SKIN = ({ light: 1, keynote: 1, blueprint: 1 })[QS.get('skin')] ? QS.get('skin') : (EMBED ? 'light' : '');
+    const FROM_READER = QS.get('from') === 'reader';
+    let SKIN = ({ light: 1, keynote: 1, blueprint: 1 })[QS.get('skin')] ? QS.get('skin') : (EMBED || FROM_READER ? 'light' : '');
     const LABEL_DISPLAY = EMBED ? 'inline-flex' : 'block';
     let currentRealm = 'ALL';
     const highlightSet = new Set();
@@ -1751,7 +1781,7 @@ let gantryShell=null;
     let isLightMode = (function () {
       const t = document.documentElement.dataset.theme;
       if (t === 'dark') return false;
-      if (t === 'light') return true;
+      if (t === 'light' || FROM_READER) return true;
       return !(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     })();
     let isPaused = prefersReducedMotion;
@@ -1811,7 +1841,7 @@ let gantryShell=null;
     // 4 Slowed-Down Process Showcase Scripts for the Top Narrative Banner
     const SHOWCASE_SCRIPTS = {
       TRAINING: {
-        badge: 'PHASE 1 · TRAINING',
+        badge: 'TRAINING',
         badgeClass: 'copper',
         steps: [
           'ETL & Lexing: The illustrative pipeline filters and deduplicates text in TR-1, then converts it to BPE IDs in TR-2. The optional image branch represents vision-language models; DeepSeek-V4-Pro is text-only.',
@@ -1821,7 +1851,7 @@ let gantryShell=null;
         ]
       },
       FORWARD: {
-        badge: 'PHASE 2 · INFERENCE',
+        badge: 'INFERENCE',
         badgeClass: 'teal',
         steps: [
           'API Request & Lexing: Your prompt passes gateway authentication and optional abuse checks (IN-2); your app’s history/RAG/tools are rendered through the provider’s chat template (IN-3); the text is split into token IDs (IN-4).',
@@ -3353,7 +3383,7 @@ let gantryShell=null;
 
         case 'MD-2g': {
           // MoE Router (audit V4): one gate scores all 384 routed experts and keeps the top 6.
-          // The 384 slots form one uniform dial; exactly 6 are lit, all in one colour. No topic chutes.
+          // The 384 slots form one uniform dial; exactly 6 are lit, all in one color. No topic chutes.
           const turretBase = addShadow(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.42, 0.44, 24), P.ceramicSlate()));
           grp.add(turretBase);
 
@@ -3424,7 +3454,7 @@ let gantryShell=null;
             const frac = (t * 0.55) % 1.0;
             const smooth = frac * frac * (3 - 2 * frac);
             rotor.rotation.y = (idx + smooth) * 0.78;
-            // One new token per rotor tick: the router re-scores and keeps a new top 6 (always 6, one colour)
+            // One new token per rotor tick: the router re-scores and keeps a new top 6 (always 6, one color)
             if (moeAuto) setMoeOffset((idx * 29) % MOE_N);
           });
           break;
@@ -3432,7 +3462,7 @@ let gantryShell=null;
 
         case 'MD-2h': {
           // Experts (audit V4): 384 routed experts as one uniform 24x16 bank. Exactly the router's 6 are lit
-          // (one colour), plus 1 shared expert that every token uses. No topic specialists.
+          // (one color), plus 1 shared expert that every token uses. No topic specialists.
           const bay = addShadow(new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.22, 1.6), P.walnutGraphite()));
           bay.position.set(0.1, 0.11, 0);
           grp.add(bay);
@@ -4538,9 +4568,9 @@ let gantryShell=null;
         }
       };
 
-      drawZoneBox(-27.0, 0.0, 11.4, 46.5, pal.teal,    'PHASE 1 // OFFLINE TRAINING', 'TR-1 → TR-6 · READ-WRITE WEIGHTS');
+      drawZoneBox(-27.0, 0.0, 11.4, 46.5, pal.teal,    'OFFLINE TRAINING', 'TR-1 → TR-6 · READ-WRITE WEIGHTS');
       drawZoneBox(-37.2, 3.5,  9.8, 16.0, pal.copper,  'INFRA // GB200 NVL72',        'TR-7 · 5D SHARDING + MUON');
-      drawZoneBox( 27.0, 0.0, 11.4, 61.0, pal.emerald, 'PHASE 2 // ONLINE INFERENCE', 'IN-1 → IN-10 · FROZEN θ* SERVING');
+      drawZoneBox( 27.0, 0.0, 11.4, 61.0, pal.emerald, 'ONLINE INFERENCE', 'IN-1 → IN-10 · FROZEN θ* SERVING');
       drawZoneBox( 37.5, 0.0, 10.0, 12.6, pal.teal,    'SUBSTRATE // SERVING OPTS',   'IN-12 · PD DISAGG · PAGED KV · FP4');
       drawZoneBox( 37.5, 11.2, 10.0, 10.2, pal.brass,  'BRANCH // AGENT TOOL LOOP',   'IN-11 · CLIENT / MCP / HOSTED');
 
@@ -4582,9 +4612,9 @@ let gantryShell=null;
       // 4. 2D PCB / Blueprint Schematic Data-Flow Buses Connecting All Phases & Components
       // Phase 1 Training -> Core (Forward Pass) & Core -> TR-7/TR-3 (Backprop Gradients)
       drawTrace([[-22.0, -3.5], [-16.0, -3.5], [-12.5, 0.0], [-8.8, 0.0]], pal.teal, 4.5, 3, 'TRAIN FWD (TOKENS)', 0, [14, -18]);
-      drawTrace([[-22.0,  3.5], [-16.5,  3.5], [-12.5, 1.8], [-8.8, 1.8]], pal.teal, 3.5, 2, 'MID-TRAIN 1M', 0, [16, 18]);
+      drawTrace([[-22.0,  3.5], [-16.5,  3.5], [-12.5, 1.8], [-8.8, 1.8]], pal.teal, 3.5, 2);
       drawTrace([[-8.8, -4.2], [-14.0, -9.4], [-34.0, -9.4], [-37.2, -5.0]], pal.copper, 4.5, 3, '∇L BACKPROP GRADIENTS', 1, [0, -16]);
-      drawTrace([[-33.2, -1.5], [-31.0, -3.5], [-29.0, -3.5]], pal.brass, 3.5, 2, 'Δθ MUON', 0, [-14, -15]);
+      drawTrace([[-33.2, -1.5], [-31.0, -3.5], [-29.0, -3.5]], pal.brass, 3.5, 2);
       drawTrace([[-33.2,  3.5], [-29.0,  3.5]], pal.brass, 3.0, 2);
       drawTrace([[-33.2,  8.5], [-31.0, 10.5], [-29.0, 10.5]], pal.brass, 3.5, 2);
 
@@ -4596,8 +4626,8 @@ let gantryShell=null;
       drawTrace([[33.0, -3.8], [18.0, -3.8], [13.5, -1.8], [8.8, -1.8]], pal.emerald, 3.2, 2, 'LOAD FROZEN θ*', 0, [-16, -15]);
 
       // Phase 2 Inference <-> Shared Model Core (Prefill & Decode -> Logits)
-      drawTrace([[22.0, 2.8], [15.5, 2.8], [12.5, 0.8], [8.8, 0.8]], pal.teal, 4.5, 3, 'PREFILL / DECODE FWD', 0, [-10, -16]);
-      drawTrace([[8.8, 5.4], [15.5, 8.4], [22.0, 8.4]], pal.brass, 4.5, 3, '129K VOCAB LOGITS', 1, [-20, 18]);
+      drawTrace([[22.0, 2.8], [15.5, 2.8], [12.5, 0.8], [8.8, 0.8]], pal.teal, 4.5, 3, 'PROMPT → MODEL', 0, [-10, -16]);
+      drawTrace([[8.8, 5.4], [15.5, 8.4], [22.0, 8.4]], pal.brass, 4.5, 3, 'MODEL → LOGITS', 1, [-20, 18]);
 
       // Autoregressive Decode Feedback Loop (IN-8 -> IN-7)
       drawTrace([[22.2, 14.0], [18.8, 14.0], [18.8, 9.6], [22.2, 9.6]], pal.emerald, 3.5, 2, 'NEXT TOK LOOP', 1, [-60, 0]);
@@ -4923,11 +4953,11 @@ let gantryShell=null;
     // =========================================================================
     // Tier-0 Major Zone Floating Headers (shown cleanly when panned out so machines are 100% unobstructed)
     const MAJOR_ZONES = [
-      { id: 'Z-TRAIN', title: 'Phase 1 · Offline Training', sub: 'TR-1 → TR-6 · Data to Release Gate', pos: [-27.0, 5.2, -21.2], cls: 'z-teal',    realm: 'TRAINING' },
-      { id: 'Z-INFRA', title: 'GB200 NVL72 Cluster',        sub: 'TR-7 · Sharding · Muon + FP8', pos: [-37.2, 5.0,  -3.2], cls: 'z-copper',  compId: 'TR-7' },
+      { id: 'Z-TRAIN', title: 'Offline Training', sub: 'TR-1 → TR-6 · Data to Release Gate', pos: [-27.0, 5.2, -21.2], cls: 'z-teal',    realm: 'TRAINING' },
+      { id: 'Z-INFRA', title: 'GPU Cluster (GB200 NVL72)',        sub: 'TR-7 · Sharding · Muon + FP8', pos: [-37.2, 5.0,  -3.2], cls: 'z-copper',  compId: 'TR-7' },
       { id: 'Z-CORE',  title: 'Shared Model Core (×61L)',   sub: 'MD-1 → MD-4 · CSA+HCA · 384E MoE',   pos: [  0.0, 24.4,  0.0], cls: 'z-brass',   realm: 'MODEL' },
-      { id: 'Z-INFER', title: 'Phase 2 · Online Inference', sub: 'IN-1 → IN-10 · Frozen θ* Serving',   pos: [ 27.0, 5.2, -28.8], cls: 'z-emerald', realm: 'INFERENCE' },
-      { id: 'Z-OPTS',  title: 'Serving Optimizations',      sub: 'IN-12 · PD Disagg · PagedKV · FP4',  pos: [ 37.5, 4.4,  -4.6], cls: 'z-teal',    compId: 'IN-12' },
+      { id: 'Z-INFER', title: 'Online Inference', sub: 'IN-1 → IN-10 · Serving with frozen weights (θ*)',   pos: [ 27.0, 5.2, -28.8], cls: 'z-emerald', realm: 'INFERENCE' },
+      { id: 'Z-OPTS',  title: 'Serving Optimizations',      sub: 'IN-12 · Split prefill/decode · Paged KV · 4-bit',  pos: [ 37.5, 4.4,  -4.6], cls: 'z-teal',    compId: 'IN-12' },
       { id: 'Z-AGENT', title: 'Agent Tool Loop',            sub: 'IN-11 · Client / MCP / Hosted',      pos: [ 37.5, 4.8,  15.6], cls: 'z-brass',   compId: 'IN-11' }
     ];
 
@@ -4968,6 +4998,76 @@ let gantryShell=null;
       'IN-12': { tier: 1, dx:  0.0, dy: 3.0, dz: 0,    sub: 'PD DISAGG · PAGED · FP4' }
     };
 
+    // Labels read "TR-2 · Tokenizer" (code + name only). The lesson-stage tag comes from
+    // shared/concept-map.js, the single mapping table; no phase-style 1.x / 2.x numbers.
+    // Plain-English definitions for jargon on labels, zone headers and the detail panel.
+    const GLOSSARY = [
+      [/frozen\s*θ\*|θ\*/i,          'Frozen θ*', 'The trained weights, locked for serving. They are read on every request and never updated.'],
+      [/\bPD[\s-]*disagg/i,          'PD disaggregation', 'Prefill/decode split: one pool of GPUs reads the prompt, another writes the reply, so neither slows the other.'],
+      [/GB200\s*NVL72/i,             'GB200 NVL72', 'An NVIDIA rack of 72 GPUs joined by one fast network. An example rack, not a statement of what any model used.'],
+      [/paged\s*kv|PagedAttention/i, 'PagedKV', 'The KV cache stored in small fixed pages, so memory is handed out on demand instead of reserved up front.'],
+      [/\bRLVR\b/i,                  'RLVR', 'Reinforcement learning with verifiable rewards: the model is rewarded only when an automatic checker confirms the answer.'],
+      [/\bGRPO\b/i,                  'GRPO', 'Group-relative policy optimization: sample several attempts, then reinforce the ones that beat the group average.'],
+      [/\bOPD\b|on-policy distill/i, 'OPD', 'On-policy distillation: one student model learns from several specialist teachers, on its own outputs.'],
+      [/\bKV\b/i,                    'KV cache', 'Stored keys and values for earlier tokens, kept so attention does not recompute them for every new token.'],
+      [/\bCSA\b/i,                   'CSA', 'Compressed sparse attention: each token reads a small, compressed subset of the history.'],
+      [/\bHCA\b/i,                   'HCA', 'Heavily compressed attention: the history squeezed far harder, trading detail for memory.'],
+      [/\bmHC\b/i,                   'mHC', 'Manifold-constrained hyper-connections: four parallel residual streams mixed by learned, constrained matrices.'],
+      [/\bRoPE\b/i,                  'RoPE', 'Rotary position embedding: encodes where a token sits by rotating its query and key vectors.'],
+      [/\bMoE\b|mixture of experts/i, 'MoE', 'Mixture of experts: a router sends each token to a few specialist sub-networks instead of the whole layer.'],
+      [/\bMTP\b/i,                   'MTP', 'Multi-token prediction: extra heads guess several tokens ahead, used to speed up decoding.'],
+      [/\bEAGLE\b|speculative/i,     'Speculative decoding', 'A cheap draft guesses several tokens; the full model checks them in one pass.'],
+      [/\bMuon\b/i,                  'Muon', 'An optimizer that updates weight matrices with orthogonalized steps.'],
+      [/\bSSE\b/i,                   'SSE', 'Server-sent events: a one-way stream of text from server to browser over plain HTTP.'],
+      [/\bTTFT\b/i,                  'TTFT', 'Time to first token: how long the reader waits before any reply text appears.'],
+      [/\bTPOT\b/i,                  'TPOT', 'Time per output token: the pace of the stream once it starts.'],
+      [/\bRMSNorm\b/i,               'RMSNorm', 'Rescales a vector so its average magnitude is steady before the next layer.'],
+      [/\bBPE\b/i,                   'BPE', 'Byte-pair encoding: merges frequent byte pairs into a fixed vocabulary of pieces.'],
+      [/\bFP4\b|\bFP8\b/i,           'FP4 / FP8', 'Four- and eight-bit floating-point numbers: smaller and faster than 16-bit, at some precision cost.'],
+      [/\bHBM3E\b/i,                 'HBM3E', 'High-bandwidth memory stacked next to the GPU. Decode speed is mostly limited by how fast it can be read.'],
+      [/logits/i,                    'Logits', 'The raw score for every vocabulary entry before they are turned into probabilities.']
+    ];
+    function glossaryFor(text, limit = 3) {
+      const found = [];
+      for (const [re, term, def] of GLOSSARY) {
+        if (re.test(text) && !found.some(f => f.term === term)) found.push({ term, def });
+        if (found.length >= limit) break;
+      }
+      return found;
+    }
+    function glossaryTitle(text) {
+      return glossaryFor(text).map(f => f.term + ': ' + f.def).join('\n');
+    }
+
+    const LABEL_NAME_OVERRIDE = { 'TR-4': 'Context extension · 1M', 'TR-7': 'Example rack · Muon + FP8' };
+    function lessonTagFor(id) { return window.ConceptMap ? ConceptMap.lessonTag(id) : ''; }
+    function buildLabel(lbl, comp, meta) {
+      const name = LABEL_NAME_OVERRIDE[comp.id] || comp.shortLabel;
+      const tag = lessonTagFor(comp.id);
+      const main = document.createElement('span');
+      main.className = 'lbl-main';
+      const cid = document.createElement('span');
+      cid.className = 'cid';
+      cid.textContent = comp.id;
+      main.append(cid, ' · ' + name);
+      if (EMBED && tag) {
+        const lesson = document.createElement('span');
+        lesson.className = 'lbl-lesson';
+        lesson.textContent = ' · ' + tag;
+        main.append(lesson);
+      }
+      lbl.append(main);
+      if (!EMBED) {
+        const sub = document.createElement('span');
+        sub.className = 'lbl-sub';
+        sub.textContent = [tag, meta.sub].filter(Boolean).join(' · ');
+        lbl.append(sub);
+      }
+      lbl.setAttribute('aria-label', comp.id + ' ' + name + (tag ? ', ' + tag : ''));
+      const gloss = glossaryTitle([name, meta.sub, comp.title].join(' '));
+      if (gloss) lbl.title = gloss;
+    }
+
     function buildAll31Components() {
       const labelsLayer = document.getElementById('labelsLayer');
       labelsLayer.innerHTML = '';
@@ -4979,6 +5079,8 @@ let gantryShell=null;
         el.type = 'button';
         el.className = 'zone-label ' + z.cls;
         el.innerHTML = `${z.title}<span class="zl-sub">${z.sub}</span>`;
+        const zoneGloss = glossaryTitle(z.title + ' ' + z.sub);
+        if (zoneGloss) el.title = zoneGloss;
         el.addEventListener('click', (e) => {
           e.stopPropagation();
           if (z.compId) enterPopOutFocus(COMP_BY_ID[z.compId]);
@@ -5013,7 +5115,8 @@ let gantryShell=null;
 
         const meta = LABEL_META[comp.id] || { tier: 1, dx: 0, dy: comp.labelY + 0.6, dz: 0, sub: '' };
         const lbl = document.createElement('button');
-        lbl.type='button';lbl.className='comp-label';lbl.textContent=comp.id==='TR-4'?'Context extension · 1M':comp.id==='TR-7'?'Example rack · Muon + FP8':comp.shortLabel;
+        lbl.type='button';lbl.className='comp-label';
+        buildLabel(lbl, comp, meta);
         if(!EMBED)lbl.onclick=()=>enterPopOutFocus(index);
         labelsLayer.appendChild(lbl);
 
@@ -5487,12 +5590,21 @@ let gantryShell=null;
       const d = rec.data;
 
       // Populate Right Slide-In Detail Inspector
-      document.getElementById('detRealm').textContent = `${d.realmTitle.toUpperCase()} · ${d.id}`;
+      document.getElementById('detRealm').textContent = `${d.realmTitle.toUpperCase()} · ${d.id}` + (lessonTagFor(d.id) ? ` · ${lessonTagFor(d.id).toUpperCase()}` : '');
       document.getElementById('detTitle').textContent = d.title;
       document.getElementById('detWhat').textContent = d.what;
       document.getElementById('detDoing').textContent = d.doing;
       document.getElementById('detNarrative').textContent = d.narrative;
       document.getElementById('detEquation').textContent = d.equation;
+      const glossEl = document.getElementById('detGloss');
+      glossEl.replaceChildren();
+      const glossTerms = glossaryFor([d.title, d.shortLabel, d.keyFact, d.equation, d.subs.join(' ')].join(' '), 6);
+      for (const g of glossTerms) {
+        const dt = document.createElement('dt'); dt.textContent = g.term;
+        const dd = document.createElement('dd'); dd.textContent = g.def;
+        glossEl.append(dt, dd);
+      }
+      document.getElementById('detGlossWrap').hidden = glossTerms.length === 0;
       const labs = document.getElementById('componentLabs');
       labs.replaceChildren();
       MicroLabs.dock(labs, MicroLabs.components[d.id], {onRoute: (k, bias) => window.obs.setRouting(k, bias)});
@@ -5583,16 +5695,16 @@ let gantryShell=null;
       const q = filterStr.trim().toLowerCase();
 
       const groups = [
-        { filter: c => c.realm === 'TRAINING' && c.role === 'PIPELINE', label: 'Phase 1 · Training (Linear Flow)' },
-        { filter: c => c.realm === 'TRAINING' && c.role === 'SUPPORT',  label: 'Phase 1 · Infrastructure Substrate' },
+        { filter: c => c.realm === 'TRAINING' && c.role === 'PIPELINE', label: 'Training (linear flow)' },
+        { filter: c => c.realm === 'TRAINING' && c.role === 'SUPPORT',  label: 'Training · Infrastructure substrate' },
         { filter: c => c.realm === 'MODEL',                             label: 'Shared Core · 1 Forward Pass (Sub-Process)' },
-        { filter: c => c.realm === 'INFERENCE' && c.role === 'PIPELINE',label: 'Phase 2 · Inference (Linear Flow)' },
-        { filter: c => c.realm === 'INFERENCE' && c.role !== 'PIPELINE',label: 'Phase 2 · Tool Branch & Opts Substrate' }
+        { filter: c => c.realm === 'INFERENCE' && c.role === 'PIPELINE',label: 'Inference (linear flow)' },
+        { filter: c => c.realm === 'INFERENCE' && c.role !== 'PIPELINE',label: 'Inference · Tool branch & optimizations' }
       ];
 
       groups.forEach(g => {
         const matches = COMPONENTS.filter(c => g.filter(c) && (
-          !q || c.id.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || c.subs.join(' ').toLowerCase().includes(q)
+          !q || c.id.toLowerCase().includes(q) || c.shortLabel.toLowerCase().includes(q) || lessonTagFor(c.id).toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || c.subs.join(' ').toLowerCase().includes(q)
         ));
         if (matches.length === 0) return;
 
@@ -5607,7 +5719,8 @@ let gantryShell=null;
           btn.type = 'button';
           btn.className = 'toc-item' + (focusedCompIndex === idx ? ' is-selected' : '');
           btn.dataset.index = String(idx);
-          btn.innerHTML = `<span class="toc-code">${c.id}</span><span>${c.shortLabel}</span>`;
+          const tocTag = lessonTagFor(c.id);
+          btn.innerHTML = `<span class="toc-code">${c.id}</span><span>${c.shortLabel}${tocTag ? ` <small class="toc-lesson">· ${tocTag}</small>` : ''}</span>`;
           btn.addEventListener('click', () => {
             if (isNarrowLayout()) {
               document.getElementById('tocDrawer').classList.add('collapsed');
@@ -5725,9 +5838,9 @@ let gantryShell=null;
     // ACCESSIBLE TEXT VIEW (all 31 stages as plain HTML; also used by the WebGL error overlay)
     // =========================================================================
     const TEXT_VIEW_REALMS = [
-      { realm: 'TRAINING',  title: 'Phase 1 · Training Pipeline' },
+      { realm: 'TRAINING',  title: 'Training Pipeline' },
       { realm: 'MODEL',     title: 'Shared Core · One Forward Pass' },
-      { realm: 'INFERENCE', title: 'Phase 2 · Inference Serving' }
+      { realm: 'INFERENCE', title: 'Inference Serving' }
     ];
 
     function textViewPara(label, text) {
@@ -5828,6 +5941,18 @@ let gantryShell=null;
         tocReopen.classList.remove('visible');
       });
       document.getElementById('tocFilter').addEventListener('input', (e) => renderTOC(e.target.value));
+
+      // Tour caption: collapsible so it never has to cover the model
+      const banner = document.getElementById('narrativeBanner');
+      const bannerToggle = document.getElementById('bannerToggle');
+      function setBannerCollapsed(collapsed) {
+        banner.classList.toggle('is-collapsed', collapsed);
+        bannerToggle.setAttribute('aria-expanded', String(!collapsed));
+        bannerToggle.setAttribute('aria-label', collapsed ? 'Expand tour caption' : 'Collapse tour caption');
+        bannerToggle.innerHTML = collapsed ? '+' : '&minus;';
+      }
+      bannerToggle.addEventListener('click', () => setBannerCollapsed(!banner.classList.contains('is-collapsed')));
+      setBannerCollapsed(isNarrowLayout());
 
       // Detail Panel Controls
       document.getElementById('btnExitFocus').addEventListener('click', exitPopOutFocus);
@@ -6043,7 +6168,7 @@ let gantryShell=null;
     //    when there is headroom.
     //  - Static batching: unanimated single-material meshes inside each assembly are merged per
     //    material. A per-frame guard ejects any member that an animation later moves, hides or
-    //    recolours, before that frame is drawn.
+    //    recolors, before that frame is drawn.
     //  - Shadow map re-rendered only when a caster moved. Frames where nothing changed are skipped.
     //  - ?perf=1 shows a HUD. window.__perf = { samples(), reset(), info() } is always available.
     //  - Query overrides for measuring: ?quality=high|low|auto  ?aa=0|1  ?pr=<ratio>  ?aniso=<n>
@@ -6412,7 +6537,7 @@ let gantryShell=null;
       return true;
     }
 
-    // A caster this small throws a shadow under ~3 shadow texels, inside the PCF blur of its larger neighbours
+    // A caster this small throws a shadow under ~3 shadow texels, inside the PCF blur of its larger neighbors
     function perfCullTinyCaster(o) {
       if (!o.castShadow) return;
       const g = o.geometry;
@@ -7321,11 +7446,11 @@ let gantryShell=null;
               visibleByLod = true;
               showSubDetail = true;
             } else if (camDist <= 28 || dComp < 22) {
-              visibleByLod = (dComp < 52);
-              showSubDetail = (dComp < 26);
+              visibleByLod = (dComp < 38);
+              showSubDetail = (dComp < 20);
             } else if (camDist <= 50) {
-              visibleByLod = (meta.tier === 1 && dComp < 62) || (rec.waveHighlight > 0.72 && dComp < 56);
-              showSubDetail = (dComp < 24);
+              visibleByLod = (meta.tier === 1 && dComp < 44) || (rec.waveHighlight > 0.85 && dComp < 40);
+              showSubDetail = (dComp < 18);
             } else {
               // Panned-out overview: keep machines completely unobstructed! (Only hovered or top 1 wavefront peak)
               visibleByLod = false;
@@ -7370,18 +7495,22 @@ let gantryShell=null;
         for (let k = 0; k < candCount; k++) {
           const item = sortedCands[k];
           const meta = item.rec.labelMeta;
-          const estW = item.showSubDetail ? 132 : 112;
-          const estH = item.showSubDetail ? 32 : 22;
+          const estW = item.showSubDetail ? 190 : 164;
+          const estH = item.showSubDetail ? 44 : 26;
           const anchorX = meta.side === 'left' ? -estW - 10 : (meta.side === 'right' ? 10 : -estW * 0.5);
           const anchorY = meta.side ? -estH * 0.5 : -estH - 12;
           const bx1 = item.sx + anchorX, by1 = item.sy + anchorY, bx2 = bx1 + estW, by2 = by1 + estH;
 
+          if (!item.isFocused && !item.isHovered && (bx1 < 6 || bx2 > viewW - 6)) {
+            perfLabelDim(item.rec);
+            continue;
+          }
           // Skip colliding lower-priority labels (never drop focused or hovered!)
           let collides = false;
           if (!item.isFocused && !item.isHovered && labelMode === 'AUTO') {
             for (let p = 0; p < placedCount; p++) {
               const b = placedBoxes[p];
-              if (bx1 < b.x2 + 4 && bx2 > b.x1 - 4 && by1 < b.y2 + 4 && by2 > b.y1 - 4) {
+              if (bx1 < b.x2 + 10 && bx2 > b.x1 - 10 && by1 < b.y2 + 8 && by2 > b.y1 - 8) {
                 collides = true;
                 break;
               }
@@ -7603,7 +7732,7 @@ let gantryShell=null;
     let skinGrid = null, floorMats = null, currentSkinTok = null;
     let printedSkinKey = '';
 
-    // Hue-bucket a v2 hex into an Astra role colour for this realm
+    // Hue-bucket a v2 hex into an Astra role color for this realm
     function skinHexFor(role, hex, realm, tok) {
       switch (role) {
         case 'aluminum': return tok.metal;
@@ -7872,7 +8001,7 @@ let gantryShell=null;
       document.documentElement.dataset.skin = dName;
       const lerpN = (x, y) => x + (y - x) * t;
 
-      // backdrop: clear colour is not output-encoded, fog is (so convert fog to linear)
+      // backdrop: clear color is not output-encoded, fog is (so convert fog to linear)
       tmpSkinColor.setHex(A.bg); tmpSkinColor2.setHex(B.bg);
       scene.background.copy(tmpSkinColor).lerp(tmpSkinColor2, t);
       lerpHex(A.bg, B.bg, t, scene.fog.color);
@@ -8179,7 +8308,30 @@ let gantryShell=null;
       in7Kv?.setCount(4);if(SKIN)applySkin(SKIN);setRealmVisible(QS.get('realm')||'ALL');
       if(QS.get('focus'))api.focus(QS.get('focus').split(','),{fly:false});if(QS.has('kv'))api.setKV(+QS.get('kv'));
       if (EMBED) forwardJourneyKeys();
-      else if (window.SuiteLinks) SuiteLinks.mountReturnChip(document.querySelector('.top-actions'), 'obs');
+      else {
+        if (window.SuiteLinks) SuiteLinks.mountReturnChip(document.querySelector('.top-actions'), 'obs');
+        deepLinkInit();
+        window.addEventListener('hashchange', deepLinkInit);
+      }
+    }
+
+    // ?from=reader&pos=X#concept=Y: stop the tour, fly to the component, select it in the
+    // index and open its description. Arrivals from the lesson start with the index collapsed.
+    function deepLinkInit() {
+      const concept = window.SuiteLinks && SuiteLinks.parseConceptHash(location.hash);
+      if (FROM_READER && !deepLinkInit.done) {
+        document.getElementById('tocDrawer').classList.add('collapsed');
+        document.getElementById('tocReopenBtn').classList.add('visible');
+      }
+      deepLinkInit.done = true;
+      if (!concept) return;
+      const target = window.ConceptMap && ConceptMap.CONCEPTS[concept.slug];
+      const index = target ? COMP_BY_ID[target.primary] : undefined;
+      if (index === undefined) return;
+      if (!isPaused) togglePause();
+      enterPopOutFocus(index);
+      setHighlight(target.obs);
+      requestRender(3);
     }
     function initObservatory() {
       try {
@@ -8269,7 +8421,7 @@ let gantryShell=null;
         // v4 perf: one explicit matrix update per frame in animate() instead of a second one inside render()
         scene.autoUpdate = false;
         if (perf.tier === 'low' && typeof renderer.setOpaqueSort === 'function') {
-          // Front-to-back opaque order maximises early depth rejection on fill-bound rasterizers
+          // Front-to-back opaque order maximizes early depth rejection on fill-bound rasterizers
           renderer.setOpaqueSort((a, b) => (a.groupOrder - b.groupOrder) || (a.renderOrder - b.renderOrder) || (a.z - b.z) || (a.id - b.id));
         }
 

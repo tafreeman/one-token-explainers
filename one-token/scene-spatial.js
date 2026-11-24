@@ -9,15 +9,22 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
-const damp = (c, t, r, dt) => lerp(c, t, 1 - Math.exp(-r * dt));
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const frac = x => x - Math.floor(x);
+const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
+/* The hall is a warm stone floor that fades to a lighter haze at the horizon, so the hardware
+   stands on something instead of floating in white. Hardware tints are darker than the floor and
+   keep the warm-neutral order: slab < pale < steelL < steel. */
 const HEX = {
-  hall: colors.ground, plinth: colors.hardwarePlinth, ink: colors.ink, ink2: colors.silhouette,
-  steel: colors.hardwareFrame, steelL: colors.hardwareBody, pale: colors.hardwareDeck,
-  graphite: colors.hardwareFrame, token: colors.token, train: colors.fault,
-  serve: colors.cache, tool: colors.tool, slab: colors.hardwarePale
+  hall: mix(colors.ground, colors.hardwarePlinth, .78),       // floor
+  haze: mix(colors.ground, colors.hardwarePlinth, .34),       // fog and sky, lighter than the floor
+  plinth: mix(colors.hardwarePlinth, colors.hardwareBody, .9), ink: colors.ink, ink2: colors.silhouette,
+  steel: mix(colors.hardwareFrame, colors.silhouette, .3), steelL: mix(colors.hardwareBody, colors.hardwareFrame, .5),
+  pale: mix(colors.hardwareBody, colors.hardwareFrame, .2),
+  graphite: mix(colors.hardwareFrame, colors.silhouette, .3), token: colors.token, train: colors.fault,
+  serve: colors.cache, tool: colors.tool, slab: mix(colors.hardwareBody, colors.hardwareFrame, .1)
 };
+scene.background = new THREE.Color(HEX.haze);
 
 /* ---------------- world layout ---------------- */
 const Y0 = 0.62, X_GATE = 5, X_TOK = 12, X_TRAIN = 27, X_POST = 45, X_REL = 58, X_INTAKE = 72, X_TOWER = 86,
@@ -59,10 +66,13 @@ const segAtJ = J => { for (const s of SEGS) if (J <= s.j1 + 1e-9) return s; retu
 const jOf = (k, u) => SEG[k].j0 + (SEG[k].j1 - SEG[k].j0) * u;
 const uIn = (s, J) => clamp((J - s.j0) / (s.j1 - s.j0));
 const uAtY = (k, y) => { const s = SEG[k]; for (let i = 0; i <= 400; i++) { const u = i / 400; if (s.c.getPointAt(u).y >= y) return u; } return 1; };
-scene.fog = new THREE.Fog(HEX.hall, 80, 400);
+scene.fog = new THREE.Fog(HEX.haze, 80, 400);
 const camera = new THREE.PerspectiveCamera(30, 1, .3, 900);
 
-const lam = c => new THREE.MeshLambertMaterial({ color: c });
+// Satin surfaces retain the mineral palette while making the cut faces legible.
+// A restrained specular lobe needs no environment map or postprocessing pass.
+const lam = c => new THREE.MeshPhongMaterial({ color: c, shininess: 24,
+  specular: new THREE.Color(colors.hardwarePale).multiplyScalar(.16) });
 const bas = c => new THREE.MeshBasicMaterial({ color: c });
 const M = { ink: lam(HEX.ink2), graphite: lam(HEX.graphite), steel: lam(HEX.steel), steelL: lam(HEX.steelL), plinth: lam(HEX.plinth),
   train: lam(HEX.train), serve: lam(HEX.serve), tool: lam(HEX.tool), white: lam(0xffffff), slab: lam(HEX.slab) };
@@ -74,14 +84,20 @@ function edgesBox(w, h, d, color = HEX.ink, parent = scene) {
 function texCanvas(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; if (renderer) t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.userData = { c, g, draw }; return t; }
 const SHADOW = texCanvas(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(18,20,23,.62)'); r.addColorStop(.55, 'rgba(18,20,23,.22)'); r.addColorStop(1, 'rgba(18,20,23,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
-const HALO = texCanvas(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,74,28,.55)'); r.addColorStop(.35, 'rgba(255,74,28,.2)'); r.addColorStop(1, 'rgba(255,74,28,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
 function shadow(x, z, sx, sz, op = .55, parent = scene) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: SHADOW, transparent: true, depthWrite: false, opacity: op }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, .015, z); m.scale.set(sx, sz, 1); m.renderOrder = 1; parent.add(m); return m; }
-function tube(curve, r, mat, seg = 48) { return new THREE.Mesh(new THREE.TubeGeometry(curve, seg, r, 8, false), mat); }
+function tube(curve, r, mat, seg = 48) {
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, seg, r, 8, false), mat);
+  mesh.userData.curve = curve;
+  return mesh;
+}
 
 /* floor */
-{ const f = new THREE.Mesh(new THREE.PlaneGeometry(1400, 700), bas(HEX.hall)); f.rotation.x = -Math.PI / 2; f.position.set(50, 0, 0); scene.add(f); }
+{ const f = new THREE.Mesh(new THREE.PlaneGeometry(1400, 700), bas(HEX.hall)); f.rotation.x = -Math.PI / 2; f.position.set(50, 0, 0); scene.add(f);
+  // Faint 4-unit tile joints give the floor scale and perspective; fog dissolves them at distance.
+  const grid = new THREE.GridHelper(480, 120, mix(HEX.hall, colors.hardwareBody, .45), mix(HEX.hall, colors.hardwareBody, .45));
+  grid.material.transparent = true; grid.material.opacity = .55; grid.material.depthWrite = false; grid.position.set(60, .004, 0); scene.add(grid); }
 
 /* ---------------- floor track: state by line pattern ---------------- */
 const Track = (() => {
@@ -115,18 +131,21 @@ const Track = (() => {
 /* ---------------- token bead ---------------- */
 const TOKW = .66;
 const bead = new THREE.Group(); scene.add(bead);
-{ const core = new THREE.Mesh(BOX, new THREE.MeshBasicMaterial({ color: HEX.token, depthTest: false, fog: false })); core.scale.set(TOKW, .34, .34); core.renderOrder = 20; bead.add(core);
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: HALO, depthTest: false, depthWrite: false, transparent: true, fog: false })); halo.scale.set(3.2, 3.2, 1); halo.renderOrder = 19; bead.add(halo); bead.userData.halo = halo; }
+bead.userData.trackedToken = true;
+{ const material = lam(HEX.token); material.depthTest = false; material.fog = false;
+  const core = new THREE.Mesh(BOX, material); core.scale.set(TOKW, .34, .34); core.renderOrder = 20; bead.add(core);
+  const edge = edgesBox(TOKW, .34, .34, colors.mark, bead);
+  edge.material.depthTest = false; edge.material.fog = false; edge.renderOrder = 21; }
 
 /* ---------------- token trains (tiles riding with the token) ---------------- */
 const pieceW = s => .2 + .075 * s.length;
 function makeTrain(ahead, behind, color = HEX.ink2) {
   const list = [...ahead.map((p, i) => ({ p, side: 1, k: i })), ...behind.map((p, i) => ({ p, side: -1, k: i }))];
-  const mesh = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), list.length);
+  const mesh = new THREE.InstancedMesh(BOX, lam(0xffffff), list.length);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(mesh);
   const cols = list.map(it => new THREE.Color(it.p.color || color));
   list.forEach((it, i) => mesh.setColorAt(i, cols[i]));
-  // cumulative offsets along the path (world units) from bead centre
+  // cumulative offsets along the path (world units) from bead center
   let a = TOKW / 2, b = TOKW / 2; const GAP = .14;
   for (const it of list.filter(x => x.side === 1)) { const w = pieceW(it.p.t); it.off = a + GAP + w / 2; a += GAP + w; it.w = w; }
   for (const it of list.filter(x => x.side === -1)) { const w = pieceW(it.p.t); it.off = -(b + GAP + w / 2); b += GAP + w; it.w = w; }
@@ -166,8 +185,8 @@ const Corpus = (() => {
   box(1.9, .16, 1.2, M.steelL, X_GATE + .9, .08, 2.35, g); shadow(X_GATE + .9, 2.35, 2.6, 1.8, .35, g); shadow(X_GATE, 0, 1.4, 3.2, .4, g);
   box(14.8, .06, .9, M.plinth, X_GATE + 2.4, .03, 0, g);
   // particles
-  const N = 56, P = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), N); P.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(P);
-  const keepC = new THREE.Color(HEX.ink2), dropC = new THREE.Color(colors.hardwarePale);
+  const N = 56, P = new THREE.InstancedMesh(BOX, lam(0xffffff), N); P.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(P);
+  const keepC = new THREE.Color(HEX.ink2), dropC = new THREE.Color(HEX.slab);
   const parts = Array.from({ length: N }, (_, i) => ({ r: i % 5, ph: (i * .6180339) % 1, drop: (i * 7) % 10 < 3 }));
   const main = new THREE.CatmullRomCurve3([V3(-3, Y0, 0), V3(X_GATE, Y0, 0)]); const tail = new THREE.CatmullRomCurve3([V3(X_GATE, Y0, 0), V3(X_TOK - .6, Y0, 0)]);
   const tmp = new THREE.Vector3();
@@ -225,11 +244,11 @@ const Tokenizer = (() => {
 /* ---------------- the tower ---------------- */
 const Tower = (() => {
   const g = new THREE.Group(); scene.add(g);
-  const base = box(4.5, .62, 4.5, lam(colors.hardwarePlinth), 0, .31, 0, g);
+  const base = box(4.5, .62, 4.5, M.plinth, 0, .31, 0, g);
   const row = box(4.1, .07, .16, M.ink, 0, .5, .9, g);
   // cutaway: three quadrants per layer; the front-right quarter is open so the rod and the token stay visible
   const QUAD = [[1.3, 1.3, -1, -1], [2.0, 1.3, .65, -1], [1.3, 2.0, -1, .65]], NQ = QUAD.length;
-  const plates = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), NPL * NQ); g.add(plates);
+  const plates = new THREE.InstancedMesh(BOX, lam(0xffffff), NPL * NQ); g.add(plates);
   for (let i = 0; i < NPL; i++) QUAD.forEach(([sx, sz, px, pz], q) => { dummy.position.set(px, PLATE0 + i * PSTEP, pz); dummy.rotation.set(0, 0, 0); dummy.scale.set(sx, .13, sz); dummy.updateMatrix(); plates.setMatrixAt(i * NQ + q, dummy.matrix); plates.setColorAt(i * NQ + q, new THREE.Color(HEX.graphite)); });
   // residual stream: four twisted mHC strands (DeepSeek-V4 hc_mult = 4) bundled into the steel rod, with binding collars
   const ROD0 = .4, ROD1 = TOWER_TOP + .1, TURN = 4.6, NSTR = 4, NCOL = 7;
@@ -238,15 +257,15 @@ const Tower = (() => {
   for (let i = 0; i < NCOL; i++) { dummy.position.set(0, ROD0 + .3 + i * (ROD1 - ROD0 - .6) / (NCOL - 1), 0); dummy.rotation.set(Math.PI / 2, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); collars.setMatrixAt(i, dummy.matrix); }
   const crownRing = new THREE.Mesh(new THREE.TorusGeometry(.5, .06, 8, 32), M.steel); crownRing.rotation.x = Math.PI / 2; crownRing.position.y = TOWER_TOP + .08; g.add(crownRing);
   // LM head bars
-  const NB = 25, bars = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), NB); bars.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(bars);
+  const NB = 25, bars = new THREE.InstancedMesh(BOX, lam(0xffffff), NB); bars.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(bars);
   const barH = Array.from({ length: NB }, (_, i) => .12 + .55 * Math.exp(-Math.pow((i - 12) / 5, 2)) * (.6 + .4 * Math.sin(i * 2.7) ** 2));
-  barH[12] = 1.9; barH[9] = .85; barH[15] = .7; const cur = barH.map(() => .1);
+  barH[12] = 1.9; barH[9] = .85; barH[15] = .7;
   const NM = 13, mtp = new THREE.InstancedMesh(BOX, M.steel, NM); mtp.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(mtp);
   const mtpH = Array.from({ length: NM }, (_, i) => .1 + .45 * Math.exp(-Math.pow((i - 6) / 3, 2)) * (.5 + .5 * Math.cos(i * 1.9) ** 2));
   // gradient rings
   const rings = [0, 1, 2].map(() => { const r = new THREE.Mesh(new THREE.TorusGeometry(2.05, .075, 8, 56), M.train); r.rotation.x = Math.PI / 2; g.add(r); return r; });
   const shad = shadow(0, 0, 8, 8, .6, g);
-  const pale = new THREE.Color(colors.hardwareDeck), graph = new THREE.Color(HEX.graphite), flashC = new THREE.Color(colors.hardwarePale), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
+  const pale = new THREE.Color(HEX.pale), graph = new THREE.Color(HEX.graphite), flashC = new THREE.Color(HEX.token), sweepC = new THREE.Color(HEX.ink2), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
   const tokC = new THREE.Color(HEX.token), inkC = new THREE.Color(HEX.ink2);
   return { g, update(S) {
     g.position.x = S.tower.x;
@@ -260,17 +279,18 @@ const Tower = (() => {
       c.copy(pale).lerp(graph, tr);
       const fl = S.v.flicker * (1 - tr * .5) * .5 * (.5 + .5 * Math.sin(a * 6.3 + i * 1.73) * Math.sin(a * 2.1 + i * .61));
       if (fl > 0) c.lerp(pale, fl * .55);
-      const fv = Math.exp(-Math.pow((by - y) / .55, 2)) * .85; if (fv > .01) c.lerp(flashC, fv);
+      const fv = Math.exp(-Math.pow((by - y) / .55, 2)) * .7; if (fv > .01) c.lerp(flashC, fv);
       if (gv > .02) { let rv = 0; rings.forEach(r => rv = Math.max(rv, Math.exp(-Math.pow((r.position.y - y) / .3, 2)))); c.lerp(gradC, rv * .55 * gv); }
-      if (S.v.layers > .02) { const sweep = frac(a * .35) * (NPL + 10) - 5; c.lerp(flashC, Math.exp(-Math.pow((sweep - i) / 1.6, 2)) * .6 * S.v.layers); }
+      if (S.v.layers > .02) { const sweep = frac(a * .35) * (NPL + 10) - 5; c.lerp(sweepC, Math.exp(-Math.pow((sweep - i) / 1.6, 2)) * .6 * S.v.layers); }
       for (let q = 0; q < NQ; q++) plates.setColorAt(i * NQ + q, c);
     }
     plates.instanceColor.needsUpdate = true;
     // logits
     const lv = Math.max(S.v.logits, S.headHot);
     for (let i = 0; i < NB; i++) {
-      const tgt = lerp(.1, barH[i] * (1 + .12 * Math.sin(a * 3 + i)), lv); cur[i] = damp(cur[i], tgt, 5, S.dt);
-      dummy.position.set(-1.62 + i * .135, TOWER_TOP + .22 + cur[i] / 2, .2); dummy.rotation.set(0, 0, 0); dummy.scale.set(.09, cur[i], .09); dummy.updateMatrix(); bars.setMatrixAt(i, dummy.matrix);
+      // Reconstruct the exact pose on a seek; frame-history damping drifts on A → B → A.
+      const h = lerp(.1, barH[i] * (1 + .12 * Math.sin(a * 3 + i)), lv);
+      dummy.position.set(-1.62 + i * .135, TOWER_TOP + .22 + h / 2, .2); dummy.rotation.set(0, 0, 0); dummy.scale.set(.09, h, .09); dummy.updateMatrix(); bars.setMatrixAt(i, dummy.matrix);
       bars.setColorAt(i, i === 12 && S.winnerHot > .5 ? tokC : inkC);
     }
     bars.instanceMatrix.needsUpdate = true; bars.instanceColor.needsUpdate = true;
@@ -284,7 +304,7 @@ const Tower = (() => {
 /* training floor: cluster + context bracket */
 const Cluster = (() => {
   const g = new THREE.Group(); scene.add(g);
-  const n = 24, racks = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
+  const n = 24, racks = new THREE.InstancedMesh(BOX, lam(0xffffff), n);
   for (let i = 0; i < n; i++) { dummy.position.set(X_TRAIN - 3.6 + (i % 8) * 1.03, .75, -6.4 - Math.floor(i / 8) * 1.15); dummy.rotation.set(0, 0, 0); dummy.scale.set(.82, 1.5, .78); dummy.updateMatrix(); racks.setMatrixAt(i, dummy.matrix); racks.setColorAt(i, new THREE.Color(HEX.graphite)); }
   g.add(racks); shadow(X_TRAIN, -7.5, 11, 5, .45, g); box(9.6, .06, 4.1, M.plinth, X_TRAIN, .03, -7.55, g);
   box(7, .06, 7, M.plinth, X_TRAIN, .03, 0, g); box(7, .06, 7, M.plinth, X_TOWER, .03, 0, g);
@@ -383,7 +403,6 @@ const Serve = (() => {
   // KV rack
   const NKV = 30, kv = new THREE.InstancedMesh(BOX, M.serve, NKV); kv.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(kv);
   box(NKV * .14 + .4, .08, 1.5, M.plinth, X_TOWER + 2.3 + NKV * .07, .04, 2.7, g);
-  const kvCur = new Float32Array(NKV);
   // batch rows
   const batch = new THREE.InstancedMesh(BOX, lam(colors.hardwareFrame), 12); batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(batch);
   // thinking tiles (hollow)
@@ -421,7 +440,7 @@ const Serve = (() => {
   return { g, drawScreen, resetScreen() { screenKey = ''; }, update(S) {
     const a = S.anim;
     // KV rack
-    for (let i = 0; i < NKV; i++) { kvCur[i] = damp(kvCur[i], i < S.kv ? 1 : 0, 99, S.dt); const s = kvCur[i];
+    for (let i = 0; i < NKV; i++) { const s = clamp(S.kv - i);
       dummy.position.set(X_TOWER + 2.4 + i * .14, .08 + .8 * s, 2.7); dummy.rotation.set(0, 0, 0); dummy.scale.set(.075, Math.max(.001, 1.6 * s), 1.25); dummy.updateMatrix(); kv.setMatrixAt(i, dummy.matrix); }
     kv.instanceMatrix.needsUpdate = true;
     // batch
@@ -463,7 +482,7 @@ const Callouts = (() => {
   // MoE
   const moe = new THREE.Group(); g.add(moe);
   const MX = X_TOWER - 14, MY = 9.2, MZ = 4.4, CW = .27, COLS = 24, ROWS = 16;
-  const cells = new THREE.InstancedMesh(BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), COLS * ROWS); moe.add(cells);
+  const cells = new THREE.InstancedMesh(BOX, lam(0xffffff), COLS * ROWS); moe.add(cells);
   const LIT = [41, 98, 171, 214, 287, 340];
   const pc = new THREE.Color(colors.hardwareBody), lc = new THREE.Color(HEX.token), hotC = new THREE.Color(HEX.train);
   function paintMoeBank(entries, collapsed) {
@@ -487,6 +506,32 @@ const Callouts = (() => {
   const router = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .16, 24), M.serve); router.rotation.x = Math.PI / 2; router.position.set(MX + .5, MY - .9, MZ); moe.add(router);
   const streams = [...LIT.map(i => { const cx = i % COLS, cy = Math.floor(i / COLS); return V3(MX + 1.9 + cx * CW, MY - ROWS * CW / 2 + cy * CW, MZ + .05); }), V3(MX + .5, MY + 1.1, MZ + .07)].map((p, k) => {
     const c = new THREE.QuadraticBezierCurve3(V3(MX + .5, MY - .9, MZ + .1), V3((MX + .5 + p.x) / 2, (MY - .9 + p.y) / 2 + .5, MZ + .5), p); const m = tube(c, k === 6 ? .03 : .018 + .02 * ((k * 37) % 5) / 4, new THREE.MeshBasicMaterial({ color: HEX.token }), 30); moe.add(m); return m; });
+  // One instanced draw carries direction along the active connections. The arrows
+  // follow lesson progress, never a wall clock; rewinding reconstructs each pose.
+  const signal = new THREE.InstancedMesh(new THREE.ConeGeometry(.105, .31, 8), bas(0xffffff), 12);
+  signal.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  signal.frustumCulled = false;
+  signal.userData.connectionSignal = true;
+  g.add(signal);
+  const signalUp = V3(0, 1, 0), signalDirection = V3(0, 0, 0);
+  const signalBlue = new THREE.Color(colors.attention).lerp(new THREE.Color(0xffffff), .22);
+  const signalToken = new THREE.Color(colors.token).lerp(new THREE.Color(0xffffff), .2);
+  function setSignals(paths, progress, color, reducedMotion) {
+    signal.visible = paths.length > 0;
+    signal.count = paths.length;
+    paths.forEach((path, i) => {
+      const u = reducedMotion ? .92 : lerp(.08, .92, sstep(i * .012, .82 + i * .012, progress));
+      const curve = path.userData.curve;
+      dummy.position.copy(curve.getPoint(u));
+      dummy.quaternion.setFromUnitVectors(signalUp, curve.getTangent(u, signalDirection).normalize());
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      signal.setMatrixAt(i, dummy.matrix);
+      signal.setColorAt(i, color);
+    });
+    signal.instanceMatrix.needsUpdate = true;
+    if (signal.instanceColor) signal.instanceColor.needsUpdate = true;
+  }
   const lead2 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V3(0, 0, 0), V3(0, 0, 0)]), new THREE.LineDashedMaterial({ color: colors.hardwareFrame, dashSize: .2, gapSize: .14 })); g.add(lead2);
   const setLead = (l, a, b) => { const p = l.geometry.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true; l.computeLineDistances(); l.geometry.computeBoundingSphere(); };
   return { anchors: { query: () => V3(AX + 12 * SP, AY + .6, AZ), mask: () => V3(AX + 12.55 * SP, AY + .95, AZ), blocks: () => V3(AX + 3.5 * SP, AY + .5, AZ), window: () => V3(AX + 10 * SP, AY + .5, AZ), indexer: () => V3(AX + 5.5 * SP, AY + 1.9, AZ),
@@ -504,12 +549,21 @@ const Callouts = (() => {
       lead.visible = va > .3; if (lead.visible) setLead(lead, V3(AX + 12 * SP, AY - .2, AZ), V3(S.tower.x + .2, AY, 1.7));
       moe.visible = vm > .01; moe.scale.set(1, Math.max(.001, vm), 1); moe.position.y = MY * (1 - Math.max(.001, vm));
       lead2.visible = vm > .3; if (lead2.visible) setLead(lead2, V3(MX + 1.9 + 23 * CW, MY, MZ), V3(S.tower.x + .2, MY, 1.7));
+      setSignals(vm > .01 ? streams : va > .01 ? (S.v.attnS > .01 ? arcS : arcD) : [],
+        S.prog, vm > .01 ? signalToken : signalBlue, S.reducedMotion);
     } };
 })();
 
 /* ---------------- beats ---------------- */
 const J = jOf;
 const L6 = [6, 6];
+const POST_STATION = [[X_POST - 7, 0, -6], [X_POST + 9, 8.8, 5.5]];
+const MODEL_FRAME = [];
+for (const x of [-2.3, 2.3]) for (const y of [0, TOWER_TOP + 2.4]) for (const z of [-2.3, 2.3]) {
+  MODEL_FRAME.push([X_TOWER + x, y, z]);
+}
+const ATTENTION_PLATE = [[X_TOWER - 14.1, 6.8, 3.9], [X_TOWER - 1.2, 10.8, 4.9], ...MODEL_FRAME];
+const EXPERT_PLATE = [[X_TOWER - 14.2, 6.7, 4], [X_TOWER - 5.2, 11.8, 5.1], ...MODEL_FRAME];
 const B = {
   hero: { cam: [51, 60, 152, 51, 2, -3], fov: 26, A: 1.78, ox: 0, oy: .2, loopJ: [0, 1, 24], ph: .62, tags: [], show: { corpus: 1, chop: 1, lane: 1 } },
   p1: { cam: [-1, 15, 38, 1, 1.6, -1], fov: 30, A: 1.78, loopJ: [J('feed', 0), J('tokens', 1), 7], tower: [X_TRAIN, .04], tags: ['s1', 's2'], show: { corpus: 1, chop: 1 } },
@@ -523,23 +577,23 @@ const B = {
   '2c': { cam: [39, 10, -21, 28, 3, -5], loopJ: [J('train-up', 0), J('train-up', 1), 4.6], tower: [X_TRAIN, [.65, .85]], tags: ['cluster'], show: { flicker: 1, cluster: 1, grad: .6 } },
   '2d': { cam: [12, 6.5, 18, 18.5, 1, 0], loopJ: [J('tokens', .3), J('tokens', 1), 3.2], tower: [X_TRAIN, [.85, 1]], tags: ['ctx'], show: { ctx: 1 }, ctx: [0, 1] },
   p3: { cam: [50, 22, 60, 50, 6.5, -1], fov: 30, A: 1.78, parkJ: J('ship-post', 0), tower: [X_TRAIN, 1], tags: ['s4', 's5'] },
-  '3a': { cam: [31, 12, 38, 40, 6.5, 0], parkJ: J('ship-post', .3), tower: [[X_TRAIN, X_POST], 1], tags: ['s4'], show: { sft: 1 } },
-  '3b': { cam: [60, 16, 40, 51, 8.6, 0], parkJ: J('ship-post', .7), ph: .6, tower: [X_POST, 1], tags: ['verifier'], show: { rl: 1, grad: .7 } },
-  '3c': { cam: [33, 11, 31, 44, 6.5, -3], parkJ: J('ship-post', .8), tower: [X_POST, 1], tags: ['ref', 'cons'], show: { ghost: 1, cons: 1 } },
-  '3d': { cam: [54, 11, 43, 50, 8.6, 0], parkJ: J('ship-post', .9), ph: .6, tower: [X_POST, 1], tags: ['verifier'], show: { rl: 1 } },
+  '3a': { cam: [31, 12, 38, 40, 6.5, 0], parkJ: J('ship-post', .3), tower: [[X_TRAIN, X_POST], 1], tags: ['s4'], fit: POST_STATION, show: { sft: 1 } },
+  '3b': { cam: [60, 16, 40, 51, 8.6, 0], parkJ: J('ship-post', .7), ph: .6, tower: [X_POST, 1], tags: ['verifier'], fit: POST_STATION, show: { rl: 1, grad: .7 } },
+  '3c': { cam: [33, 11, 31, 44, 6.5, -3], parkJ: J('ship-post', .8), tower: [X_POST, 1], tags: ['ref', 'cons'], fit: POST_STATION, show: { ghost: 1, cons: 1 } },
+  '3d': { cam: [54, 11, 43, 50, 8.6, 0], parkJ: J('ship-post', .9), ph: .6, tower: [X_POST, 1], tags: ['verifier'], fit: POST_STATION, show: { rl: 1 } },
   '3e': { cam: [70, 9, 39, 58, 8, 0], parkJ: J('ship-rel', .4), tower: [[X_POST, X_REL], 1], tags: ['evals'], show: { scan: 1 }, lamps: [0, 6.2] },
   '3f': { follow: 'tower', off: [8, 12, 40, 0, 7, 0], scrubJ: [J('ship-rel', .55), J('ship-rel', 1)], lamps: L6, tags: [] },
   p4: { cam: [93, 24, 60, 93, 4, -3], fov: 30, A: 1.78, parkJ: J('request', 0), tags: ['s6', 's7', 's8', 's9', 's10', 's11'], lamps: L6 },
   '4a': { cam: [104, 9, 22, 110.5, 1.6, -3.2], loopJ: [J('request', 0), J('request', .75), 5.2], ph: .4, tags: ['screen', 'backtrack'], lamps: L6 },
   '4b': { cam: [68, 6, 14, 74, 1, -.6], loopJ: [J('request', .72), J('serve-up', .2), 4], ph: .7, tags: ['intake'], lamps: L6 },
   '4c': { cam: [74, 9.5, 15, 77.5, .4, 0], loopJ: [J('serve-up', 0), J('serve-up', .45), 4], cache: [X_INTAKE + .6, X_INTAKE + 6.6], tags: ['cache'], lamps: L6 },
-  '4d': { cam: [74, 10, 22, 80, 1, 0], loopJ: [J('serve-up', 0), J('serve-up', .5), 4], tags: ['others'], show: { batch: 1 }, lamps: L6 },
+  '4d': { cam: [74, 10, 22, 80, 1, 0], loopJ: [J('serve-up', 0), J('serve-up', .5), 4], tags: ['others'], fit: [[X_INTAKE - 2, 0, -2], [X_INTAKE + 14, 3, 3]], show: { batch: 1 }, lamps: L6 },
   p5: { cam: [102, 12, 40, 86, 7, 0], fov: 30, A: 1.78, loopJ: [J('serve-up', 0), J('serve-up', 1), 4.6], tags: ['s7', 'kv'], lamps: L6 },
   '5a': { cam: [77, 8.5, 23, 86, 1.4, 2], loopJ: [J('serve-up', .36), J('serve-up', .56), 3], tags: ['embed'], show: { embed: 1 }, lamps: L6 },
   '5b': { cam: [100, 10, 34, 86, 7, 0], loopJ: [J('serve-up', .5), J('serve-up', 1), 3.6], tags: ['rod'], lamps: L6 },
-  '5c': { cam: [78.5, 9.5, 26, 78.5, 7.4, 4], parkJ: J('serve-up', uAtY('serve-up', 7.4)), tags: ['mask'], show: { attn: 1 }, lamps: L6 },
-  '5d': { cam: [78.5, 9.6, 26.5, 78.5, 7.4, 4], parkJ: J('serve-up', uAtY('serve-up', 7.4)), tags: ['blocks', 'window', 'indexer'], show: { attnS: 1 }, lamps: L6 },
-  '5e': { cam: [76.5, 10.5, 26, 76.5, 9.2, 4.4], parkJ: J('serve-up', uAtY('serve-up', 9.2)), tags: ['router', 'shared', 'experts'], show: { moe: 1 }, lamps: L6 },
+  '5c': { cam: [78.5, 9.5, 26, 78.5, 7.4, 4], parkJ: J('serve-up', uAtY('serve-up', 7.4)), tags: ['mask'], fit: ATTENTION_PLATE, show: { attn: 1 }, lamps: L6 },
+  '5d': { cam: [78.5, 9.6, 26.5, 78.5, 7.4, 4], parkJ: J('serve-up', uAtY('serve-up', 7.4)), tags: ['blocks', 'window', 'indexer'], fit: ATTENTION_PLATE, show: { attnS: 1 }, lamps: L6 },
+  '5e': { cam: [76.5, 10.5, 26, 76.5, 9.2, 4.4], parkJ: J('serve-up', uAtY('serve-up', 9.2)), tags: ['router', 'shared', 'experts'], fit: EXPERT_PLATE, show: { moe: 1 }, lamps: L6 },
   '5f': { cam: [103, 8, 34, 86, 6.5, 0], loopJ: [J('serve-up', .5), J('serve-up', 1), 3.4], tags: ['layers'], show: { layers: 1 }, lamps: L6 },
   '5g': { cam: [91.5, 17, 12, 86, 13.6, 0], parkJ: J('serve-up', 1), tags: ['lmhead', 'mtp'], show: { logits: 1 }, winner: 1, lamps: L6 },
   p6: { cam: [99, 20, 52, 99, 5, -2], fov: 30, A: 1.78, loopJ: [J('serve-up', 0), J('stream', 1), 7], tags: ['s7', 's8', 's9'], show: { lane: 1 }, lamps: L6 },
@@ -547,13 +601,13 @@ const B = {
   '6b': { cam: [100, 5.5, 14, 96, .8, -1.8], parkJ: J('decode', 0), hideBead: true, tags: ['thinking', 'notret'], show: { thinking: 1, logits: .8 }, kv: 15, kvTick: true, lamps: L6 },
   '6c': { cam: [98, 9, 26, 90, 6, 0], loopJ: [J('decode', 0), J('decode', 1), 2.6], ph: .7, tags: ['kv'], show: { draft: 1, logits: 1, lane: 1 }, kv: 15, kvTick: true, winner: 1, lamps: L6 },
   '6d': { cam: [88, 6.2, 13.5, 97.5, 1.5, -.2], loopJ: [J('decode', .6), J('stream', .3), 2.8], ph: .7, tags: ['sampler'], show: { lane: 1 }, lamps: L6 },
-  '6e': { cam: [106, 5, 17, 110.5, 2, 0], loopJ: [J('stream', .2), J('stream', 1), 3], ph: .95, tags: ['outcls', 'screen'], show: { lane: 1 }, lamps: L6 },
+  '6e': { cam: [106, 5, 17, 110.5, 2, 0], loopJ: [J('stream', .2), J('stream', 1), 3], ph: .95, tags: ['outcls', 'screen'], fit: [[X_STREAM - 3, 0, -2], [X_SCREEN + 4.5, 6, 2]], show: { lane: 1 }, lamps: L6 },
   p7: { cam: [93, 30, 42, 93, 0, -4], fov: 30, A: 1.78, loopJ: [J('tool', 0), J('tool', 1), 6.5], ph: .3, tags: ['s10', 's11'], lamps: L6 },
   '7a': { cam: [111, 11, 5, 104, .4, -8.4], loopJ: [J('tool', 0), J('tool', .45), 4], ph: .6, tags: ['bench'], lamps: L6 },
   '7b': { cam: [88, 13, 9, 84, .5, -5], loopJ: [J('tool', .4), J('tool', 1), 4.4], ph: .4, tags: ['backtrack'], lamps: L6 },
   '7c': { cam: [74, 9.5, 15, 79, .5, 0], loopJ: [J('cached', 0), J('cached', 1), 3], cache: [X_INTAKE - 1.2, X_TOWER - 1.6], tags: ['cache'], lamps: L6 },
   '7d': { cam: [106, 5, 15, 112.5, 2.1, 0], loopJ: [J('answer', .4), J('answer', 1), 4.2], ph: .985, noTok: true, tags: ['screen'], lamps: L6 },
-  '7e': { cam: [76, 6, 12, 75.5, .6, 0], parkJ: J('answer', 1), hideBead: true, tags: ['compact'], show: { compact: 1 }, lamps: L6 },
+  '7e': { cam: [76, 6, 12, 75.5, .6, 0], parkJ: J('answer', 1), hideBead: true, tags: ['compact'], fit: [[X_INTAKE - 1, 0, -2], [X_INTAKE + 7, 3, 2]], show: { compact: 1 }, lamps: L6 },
   f1: { follow: 'bead', off: [5.5, 6, 14, 0, 0, 0], scrubJ: [0, 1], A: 1.78, ox: .14, oy: .12, tags: [] },
   ledger: { cam: [51, 60, 152, 51, 2, -3], parkJ: 1, covered: true },
 };
@@ -564,7 +618,7 @@ const TAGS = {
   s4: ['4 Post-training', () => V3(X_POST + 7.2, 6.2, 4.1)], s5: ['5 Release gate', () => V3(X_REL, 16.4, 2.8)], s6: ['6 Request', () => V3(X_INTAKE, 1.6, 0)],
   s7: ['7 Model', () => V3(X_TOWER, 1.2, 3.6)], s8: ['8 Decode', () => V3(X_SAMPLE, 2.2, 0)], s9: ['9 Stream', () => V3(X_STREAM, 1.6, 0)],
   s10: ['10 Tool loop', () => V3(X_BENCH, 1.6, Z_BACK - 2.6)], s11: ['11 Reply', () => V3(X_SCREEN + 2.7, 4.4, 0)],
-  r0: ['public web', () => V3(-15.2, 5.9, -3.2)], r1: ['third-party data', () => V3(-15.2, 5.9, -1.6)], r2: ['labelled examples', () => V3(-15.2, 5.9, 0)],
+  r0: ['public web', () => V3(-15.2, 5.9, -3.2)], r1: ['third-party data', () => V3(-15.2, 5.9, -1.6)], r2: ['labeled examples', () => V3(-15.2, 5.9, 0)],
   r3: ['opted-in users', () => V3(-15.2, 5.9, 1.6)], r4: ['generated by Anthropic', () => V3(-15.2, 5.9, 3.2)],
   gate: ['dedupe · filter', () => V3(X_GATE, 2.45, 0)], reject: ['dropped', () => V3(X_GATE + .9, .3, 2.35)],
   blade: ['BPE cut', () => V3(X_TOK, 2.1, 0)], ribbon: ['raw text', () => V3(X_TOK - 5, .32, 0)], vision: ['image → patches', () => V3(X_TOK - 2.6, .6, -3.3)],
@@ -590,6 +644,10 @@ const SHOW_KEYS = ['corpus', 'chop', 'vision', 'flicker', 'grad', 'cluster', 'ct
 const State = { t: 0, dt: 0, anim: 0, J: 0, beatId: 'hero', prog: 0, tl: 0, v: Object.fromEntries(SHOW_KEYS.map(k => [k, 0])),
   tower: { x: X_TOWER, trained: 1 }, bead: { pos: V3(0, 0, 0), visible: true, seg: SEGS[0], u: 0 }, mainX: 0, backX: 999, cache: null, kv: 0, ctx: 0, lampsOn: 6,
   headHot: 0, winnerHot: 0, screen: {} };
+/* Camera rig and frame clock: the scene is a function of (beat, progress), so the rig carries the
+   only memory, easing the eye, target and lens toward each authored pose in real time. */
+const CAM_RATE = 6.5, SHOW_RATE = 8;
+const rig = { ready: false, t: 0, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30 };
 
 function towerFromJ(Jv) {
   const sp = SEG['ship-post'], sr = SEG['ship-rel'], tu = SEG['train-up'], ab = SEG['absorb'];
@@ -655,6 +713,38 @@ function locate(state) {
   return { b, u, j };
 }
 
+/* Director framing helpers */
+function interestPoints(b, scale) {
+  const points = [];
+  if (State.bead.visible) {
+    const half = V3(TOKW * scale / 2, .34 * scale / 2, .34 * scale / 2);
+    for (const sign of [-1, 1]) {
+      points.push(State.bead.pos.clone().add(V3(sign * half.x, 0, 0)), State.bead.pos.clone().add(V3(0, sign * half.y, 0)));
+    }
+  }
+  for (const tag of b.tags || []) if (TAGS[tag]) points.push(TAGS[tag][1]());
+  for (const extent of b.fit || []) points.push(V3(...extent));
+  if (b.tower || b === B['5b'] || b === B['5f']) {
+    for (const x of [-1.9, 1.9]) for (const y of [0, TOWER_TOP + 1.2]) for (const z of [-1.9, 1.9]) points.push(V3(State.tower.x + x, y, z));
+  }
+  return points;
+}
+function fitShot(points, offset, fovDeg, aspect, margin) {
+  const center = new THREE.Box3().setFromPoints(points).getCenter(V3(0, 0, 0));
+  const back = offset.clone().normalize();
+  const right = V3(0, 1, 0).cross(back).normalize();
+  const up = back.clone().cross(right);
+  const tanV = Math.tan(THREE.MathUtils.degToRad(fovDeg) / 2), tanH = tanV * aspect;
+  let distance = 0;
+  for (const point of points) {
+    const relative = point.clone().sub(center);
+    const depth = relative.dot(back);
+    distance = Math.max(distance, depth + Math.abs(relative.dot(right)) / (margin.x * tanH), depth + Math.abs(relative.dot(up)) / (margin.y * tanV));
+  }
+  // Sparse beats may zoom in, but never closer than 60% of the authored distance, so context stays in view.
+  return { center, distance: Math.max(distance, offset.length() * .6) };
+}
+
 function update(state, aspect, viewportWidth) {
   const { b, u, j } = locate(state);
   const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < .85;
@@ -662,8 +752,13 @@ function update(state, aspect, viewportWidth) {
   const settings = state.settings || {};
   const S = State;
   S.prog = u;
+  S.reducedMotion = !!state.reducedMotion;
   S.anim = u * (b.loopJ?.[2] ?? 4) + .8;
-  S.dt = 1;
+  // Without a frame clock (tests, headless reconstruction) every pose is exact and order-independent.
+  const hasClock = typeof performance !== 'undefined', clock = hasClock ? performance.now() : 0, gap = rig.t ? (clock - rig.t) / 1000 : 0;
+  rig.t = clock;
+  const snap = !hasClock || !rig.ready || S.reducedMotion;
+  S.dt = snap ? 1 : (gap <= 0 || gap > .25 ? 1 / 60 : clamp(gap, 1 / 240, .05));
   S.J = j;
   beamCacheBust = settings.cache === 'miss';
   const segment = segAtJ(j);
@@ -686,6 +781,7 @@ function update(state, aspect, viewportWidth) {
     bead.rotation.y = Math.abs(tangent.y) > .8 ? 0 : Math.atan2(-tangent.z, tangent.x);
   } else {
     S.bead.pos.set(S.tower.x, TOWER_TOP + .4, 0);
+    bead.rotation.y = 0;
     if (sk === 'absorb') scale *= 1 - .85 * sstep(.2, .9, t);
   }
   if (sk === 'cached') scale *= 1 - .45 * sstep(.6, 1, t);
@@ -715,6 +811,7 @@ function update(state, aspect, viewportWidth) {
     || ((sk === 'decode' || sk === 'answer') && t < .25) ? 1 : 0;
   S.winnerHot = b.winner || (sk === 'decode' && t < .2) || (sk === 'answer' && t < .15) ? 1 : 0;
   S.screen = screenFromJ(j);
+  const shownBefore = { ...S.v };
   for (const key of SHOW_KEYS) S.v[key] = b.show?.[key] ?? 0;
   if (b === B.hero || b === B.f1) {
     Object.assign(S.v, { corpus: 1, chop: 1, grad: +(sk === 'absorb'), lane: 1,
@@ -724,6 +821,8 @@ function update(state, aspect, viewportWidth) {
     S.v.attn = 1;
     S.v.attnS = 0;
   }
+  // Layers fade and scale in over ~300 ms instead of popping at the beat boundary.
+  if (!snap) for (const key of SHOW_KEYS) S.v[key] = damp(shownBefore[key], S.v[key], SHOW_RATE, S.dt);
 
   trainCorpus.hide(); trainPrompt.hide(); trainResend.hide(); trainAnswer.hide();
   if (S.bead.visible) {
@@ -744,7 +843,6 @@ function update(state, aspect, viewportWidth) {
   Track.update(S); Corpus.update(S); Tokenizer.update(S); Tower.update(S); Cluster.update(S);
   Post.update(S); Gate.update(S); Serve.update(S); Callouts.update(S);
   Tokenizer.g.visible = Tower.g.visible = Serve.g.visible = !corpusOpening;
-  bead.userData.halo.material.opacity = .6;
 
   let shot = b.cam || B.hero.cam;
   if (state.opening) shot = compact ? openingTight : openingCam;
@@ -762,6 +860,8 @@ function update(state, aspect, viewportWidth) {
   }
 
   const offset = eye.sub(target);
+  const directorFit = state.camera === 'director' && !state.opening && !state.recap && !b.A && !b.follow && !(state.present && aspect < 0.9);
+  let fitPoints = null;
   if (state.camera === 'overhead') {
     const distance = offset.length();
     offset.setLength(distance * .48);
@@ -776,6 +876,7 @@ function update(state, aspect, viewportWidth) {
         corner & 1 ? half.x : -half.x, corner & 2 ? half.y : -half.y, corner & 4 ? half.z : -half.z)));
     }
     for (const tag of b.tags || []) if (TAGS[tag]) points.push(TAGS[tag][1]());
+    for (const extent of b.fit || []) points.push(V3(...extent));
     if (!points.length) points.push(target.clone());
     target.copy(new THREE.Box3().setFromPoints(points).getCenter(V3(0, 0, 0)));
     const back = offset.clone().normalize();
@@ -789,6 +890,17 @@ function update(state, aspect, viewportWidth) {
         relative.dot(back) + Math.abs(relative.dot(up)) / (tanV * .72));
     }
     offset.setLength(distance);
+  } else if (directorFit) {
+    // Director keeps the authored viewing direction but re-centres on what matters in this
+    // beat (the token, its callouts, and the tower when the beat is about it) and sets the
+    // distance so all of it sits inside the plate at any aspect ratio.
+    const points = interestPoints(b, scale);
+    if (points.length) {
+      const fit = fitShot(points, offset, b.fov || 30, aspect, compact ? { x: .74, y: .58 } : { x: .78, y: .7 });
+      target.copy(fit.center);
+      offset.setLength(fit.distance);
+      fitPoints = points;
+    }
   } else if (!state.opening && (state.camera === 'close' || compact)) {
     offset.multiplyScalar(compact ? .79 : .69);
   }
@@ -798,8 +910,18 @@ function update(state, aspect, viewportWidth) {
   }
   // Fitting always starts from the same projection, including after resize or
   // leaving the corpus close-up. Do not measure through the previous fit.
+  const goalFov = state.opening ? 34 : (b.fov || 30);
+  if (snap || corpusOpening) {
+    // The corpus close-up measures projected extents from the settled pose, so it never lags.
+    rig.pos.copy(target).add(offset); rig.tgt.copy(target); rig.fov = goalFov;
+  } else {
+    const k = 1 - Math.exp(-CAM_RATE * S.dt);
+    rig.pos.lerp(V3(0, 0, 0).copy(target).add(offset), k); rig.tgt.lerp(target, k); rig.fov = lerp(rig.fov, goalFov, k);
+    target.copy(rig.tgt); offset.copy(rig.pos).sub(rig.tgt);
+  }
+  rig.ready = true;
   camera.zoom = 1;
-  camera.fov = state.opening ? 34 : (b.fov || 30);
+  camera.fov = rig.fov;
   camera.aspect = aspect;
   camera.position.copy(target).add(offset);
   camera.lookAt(target);
@@ -818,14 +940,16 @@ function update(state, aspect, viewportWidth) {
   scene.fog.near = offset.length() * 1.4;
   scene.fog.far = offset.length() * 4;
 
+  if (fitPoints) camera.updateMatrixWorld();
+  const frame = fitPoints && fitPoints.map(point => { const ndc = point.clone().project(camera); return [+ndc.x.toFixed(3), +ndc.y.toFixed(3)]; });
   const tags = b.tags || [];
   const tag = tags[Math.min(tags.length - 1, Math.floor(u * tags.length))];
   if (tag && TAGS[tag]) {
     const [label, getAnchor] = TAGS[tag];
-    return { anchor: getAnchor(), label: b === B['5d'] && settings.kv === 'dense' ? 'dense attention' : label };
+    return { anchor: getAnchor(), label: b === B['5d'] && settings.kv === 'dense' ? 'dense attention' : label, frame };
   }
-  return S.bead.visible ? { anchor: S.bead.pos, label: '“ Paris”', activeCoverage }
-    : { anchor: V3(S.tower.x, TOWER_TOP, 0), label: 'model weights' };
+  return S.bead.visible ? { anchor: S.bead.pos, label: '“ Paris”', activeCoverage, frame }
+    : { anchor: V3(S.tower.x, TOWER_TOP, 0), label: 'model weights', frame };
 }
 
 return { scene, camera, update, setRouting: Callouts.setRouting };

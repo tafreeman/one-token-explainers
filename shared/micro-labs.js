@@ -7,7 +7,7 @@
   const hex = b => b.toString(16).toUpperCase().padStart(2, '0');
 
   const rules = [], pairs = new Map(), pieces = Array.from({length: 256}, (_, i) => [i]);
-  for (const w of [' The', 'The', ' café', ' café!', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京']) {
+  for (const w of [' The', 'The', ' café', ' café!', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'is', ' in']) {
     const b = bytesOf(w); let left = b[0];
     for (const right of b.slice(1)) {
       const k = left + ',' + right;
@@ -121,7 +121,7 @@
   const setA = (n, p) => { for (const [k, v] of Object.entries(p)) n.setAttribute(k, String(v)); return n; };
   const svg = (tag, p, parent, txt) => { const n = setA(document.createElementNS('http://www.w3.org/2000/svg', tag), p); if (txt !== undefined) n.textContent = txt; parent.append(n); return n; };
   const graphic = (box, viewBox, label) => svg('svg', {viewBox, role: 'img', 'aria-label': label, class: 'ml-graphic'}, box);
-  const note = (box, text) => box.append(el('p', text, 'ml-note'));
+  const note = (box, text) => { const p = el('p', text, 'ml-note'); box.append(p); return p; };
   function slider(box, label, min, max, start, update, describe = String) {
     const field = el('label', undefined, 'ml-control'), value = el('span', describe(start), 'ml-value');
     const input = Object.assign(el('input'), {type: 'range', min, max, value: start});
@@ -152,16 +152,22 @@
   }
 
   function bpeLab(box, stream) {
-    const field = el('label', 'Prompt', 'ml-field'), input = Object.assign(el('textarea'), {rows: 2, maxLength: 160, value: ' The café 🚀'});
+    // The tokenizer lab opens on the lesson's own sentence; the UTF-8 lab keeps the emoji and CJK examples.
+    const start = stream ? ' The café 🚀' : 'is in Paris.';
+    const field = el('label', 'Prompt', 'ml-field'), input = Object.assign(el('textarea'), {rows: 2, maxLength: 160, value: start});
     field.append(input);
     const presets = el('div', undefined, 'ml-presets');
-    for (const [l, v] of [['café 🚀', ' The café 🚀'], ['Paris', ' Paris'], ['你好 東京', '你好 東京']]) {
+    const samples = stream
+      ? [['café 🚀', ' The café 🚀'], ['你好 東京', '你好 東京'], ['🚀 alone', '🚀']]
+      : [['is in Paris.', 'is in Paris.'], [' Paris', ' Paris'], ['the cat sat', 'the cat sat']];
+    for (const [l, v] of samples) {
       const b = btn(l); b.onclick = () => { input.value = v; update(); }; presets.append(b);
     }
-    const result = el('div', undefined, 'ml-pieces'), steps = el('ol', undefined, 'ml-merges'), trace = el('details');
-    trace.append(el('summary', 'Merge order'), steps);
+    const result = el('div', undefined, 'ml-pieces'), steps = el('ol', undefined, 'ml-merges'), trace = el('details', undefined, 'ml-trace');
+    trace.append(el('summary', 'Show merge order'), steps);
     box.append(field, presets, result, trace);
-    note(box, 'Fixed teaching vocabulary. ␠ marks a space. Labels below each piece are its local token ID.');
+    const vocab = note(box, 'Demo vocabulary: IDs differ from the main story. ␠ marks a space. Labels below each piece are its demo token ID.');
+    vocab?.classList?.add('ml-demo-vocab');
     let cursor, wire, status, buffered = true, bufToggle;
     function decode() {
       const s = streamPrefix(input.value, cursor.value, buffered);
@@ -173,11 +179,16 @@
     }
     if (stream) {
       cursor = slider(box, 'Bytes received', 0, 1, 0, decode);
-      bufToggle = btn('Break: UTF-8 Stream Buffer Off', 'ml-break', false);
+      bufToggle = btn('UTF-8 buffer: On', 'ml-break ml-switch', false);
+      bufToggle.setAttribute('role', 'switch');
+      bufToggle.setAttribute('aria-checked', 'true');
+      bufToggle.removeAttribute('aria-pressed');
+      const bufHint = el('p', 'Turn off to see broken characters.', 'ml-hint');
       bufToggle.onclick = () => {
         buffered = !buffered;
-        bufToggle.setAttribute('aria-pressed', String(!buffered));
-        bufToggle.textContent = buffered ? 'Break: UTF-8 Stream Buffer Off' : 'UTF-8 Buffer OFF (U+FFFD active) · Restore';
+        bufToggle.setAttribute('aria-checked', String(buffered));
+        bufToggle.textContent = buffered ? 'UTF-8 buffer: On' : 'UTF-8 buffer: Off';
+        bufToggle.classList.toggle('is-off', !buffered);
         if (!buffered) {
           const raw = enc.encode('data: ' + JSON.stringify({text: input.value}));
           const at = raw.findIndex(b => b >= 240); const fb = raw.findIndex(b => b >= 128);
@@ -186,7 +197,7 @@
         decode();
       };
       wire = el('pre', '', 'ml-wire'); status = el('div', '', 'ml-readout');
-      box.append(bufToggle, wire, status);
+      box.append(bufToggle, bufHint, wire, status);
     }
     function update() {
       const {ids, merges} = tokenize(input.value);

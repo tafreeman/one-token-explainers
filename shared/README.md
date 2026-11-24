@@ -6,6 +6,8 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 |---|---|---|
 | `obs-core.html` | The LLM Systems Observatory, the Three.js engine. The journey pages embed it with `?embed=1`. It also opens on its own. | journey-story, journey-tour, landing footer link |
 | `micro-labs.js` and `micro-labs.css` | Offline, on-demand math labs. Run `node --test` at the repository root. | Story, Tour, standalone Observatory, Beamline Study |
+| `concept-map.js` | The single table mapping lesson steps to Observatory codes (TR-2, MD-2d, IN-9) and to the seven Inspect panels. Labels, lesson-stage tags, deep links and the "Back to One Token" chip all read it. Load it before `concept-links.js`. | Reader, Swiss, Beamline, Story, Tour, Observatory |
+| `concept-links.js` | Concept hashes and cross-explainer links, built on `concept-map.js`. | all explainers |
 | `obs-file-bridge.js` | Connects local-file journey pages to the Observatory when the browser isolates their origins. | Story, Tour, Observatory |
 | `journey-narration/` | 32 MP3s (an intro, one per tour stop, an outro), `manifest.json` and `narration-script.md` | journey-story, journey-tour |
 
@@ -13,12 +15,13 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 
 - **Open on its own:** [`obs-core.html?embed=1&skin=blueprint&realm=MODEL&focus=MD-2g,MD-2h`](obs-core.html?embed=1&skin=blueprint&realm=MODEL&focus=MD-2g,MD-2h) shows the router and the experts.
 - **Query options passed through from the pages:** `perf`, `rm`, `quality`, `pr`, `aa`.
+- **Deep links:** `obs-core.html?from=reader&pos=2.1#concept=tokenization` pauses the tour, flies to the matching component (TR-2), selects it in the index and opens its description. Arrivals from the lesson start with the index collapsed and the light skin.
+- **Labels:** components are named by code and name only ("TR-2 · Tokenizer"). The lesson-stage tag ("Lesson 02") comes from `concept-map.js`; TR-4, TR-7 and IN-12 have none.
 - **Depends on:** Three.js r128 bundled in `vendor/`, and Google Sans Flex and Inter Tight from Google Fonts.
 - **Lineage:**
   - The audit IDs are **O1/O3** in `Downloads\animations\ANIMATIONS-ANALYSIS-2026-11-21.md`.
   - Source: `Downloads\animations\observatory\llm-observatory-merge\final\obs-core.html` (V4-Pro).
 - **Known limits:**
-  - The 3D scene has no WebGL context-loss handling.
   - A ghost label shows behind the toolbar.
 
 ## Component labs

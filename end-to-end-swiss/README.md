@@ -35,5 +35,5 @@ their existing URLs and are linked with explicit HTML paths for local-file use.
   - Source: `Downloads\animations\final-copies\final copies\one-token-end-to-end-v2-hardened\1121-0356__llm-frontier-journey-artifact__page.html`, plus an inline favicon.
   - The 2026-11-21 fact fixes are in that audit, §4b.
 - **Known limits** (cosmetic, from the audit):
-  - The active axis label crowds its neighbours.
+  - The active axis label crowds its neighbors.
   - A stage-12 label touches the screen edge on mobile.

@@ -3,6 +3,9 @@
 (function () {
   'use strict';
 
+  // Lesson step, Observatory codes, panel labels: shared/concept-map.js is the only copy.
+  const map = (typeof window !== 'undefined' && window.ConceptMap) || require('./concept-map.js');
+
   const PAGES = {
     reader:   { dir: '',                    name: 'One Token',   file: '../index.html' },
     swiss:    { dir: 'end-to-end-swiss',    name: 'Swiss',       file: '../end-to-end-swiss/index.html' },
@@ -17,69 +20,60 @@
   // DeepSeek-V4 Story/Tour's PD-disaggregation and MCP component cutaways.
   const CONCEPTS = {
     'tokenization': {
-      label: 'Tokenization (BPE)',
       swiss:    { hash: '#s-2',  g: 2.0,  stage: 2 },
       beamline: { beat: '1c',    study: true },
       story:    { stop: 3,       ch: 1,   stepId: 'step-3' },
       tour:     { stop: 3,       hash: '#stop-3' },
-      obs:      ['TR-2'],
       lab:      'bpe'
     },
     'mhc-residual': {
-      label: 'mHC 4-Stream Residual',
       swiss:    { hash: '#s-7',  g: 7.4,  stage: 7 },
       beamline: { beat: '5b',    study: true },
       story:    { stop: 16,      ch: 4,   stepId: 'step-16' },
       tour:     { stop: 16,      hash: '#stop-16' },
-      obs:      ['MD-2e', 'MD-2f'],
       lab:      'mix'
     },
     'csa-hca-kv': {
-      label: 'CSA + HCA Attention & KV',
       swiss:    { hash: '#s-7',  g: 7.2,  stage: 7 },
       beamline: { beat: '5d',    study: true },
       story:    { stop: 15,      ch: 4,   stepId: 'step-15' },
       tour:     { stop: 15,      hash: '#stop-15' },
-      obs:      ['MD-2b', 'MD-2c'],
       lab:      'kv'
     },
     'moe-router': {
-      label: 'MoE Router (6 of 384)',
       swiss:    { hash: '#s-7',  g: 7.3,  stage: 7 },
       beamline: { beat: '5e',    study: true },
       story:    { stop: 17,      ch: 4,   stepId: 'step-17' },
       tour:     { stop: 17,      hash: '#stop-17' },
-      obs:      ['MD-2g', 'MD-2h'],
       lab:      'moe'
     },
     'prefill-decode': {
-      label: 'Prefill & Decode Serving',
       swiss:    { hash: '#s-8',  g: 8.0,  stage: 8 },
       beamline: { beat: '6a',    study: true },
       story:    { stop: 23,      ch: 5,   stepId: 'step-23' },
       tour:     { stop: 23,      hash: '#stop-23' },
-      obs:      ['IN-5', 'IN-6', 'IN-7', 'IN-12'],
       lab:      'pd'
     },
     'utf8-sse': {
-      label: 'UTF-8 Buffer & SSE Stream',
       swiss:    { hash: '#s-11', g: 11.1, stage: 11 },
       beamline: { beat: '6e',    study: true },
       story:    { stop: 26,      ch: 5,   stepId: 'step-26' },
       tour:     { stop: 26,      hash: '#stop-26' },
-      obs:      ['IN-8', 'IN-9', 'IN-10'],
       lab:      'stream'
     },
     'mcp-loop': {
-      label: 'Tool Loop & Prefix Cache',
       swiss:    { hash: '#s-12', g: 12.2, stage: 12 },
       beamline: { beat: '7c',    study: true },
       story:    { stop: 30,      ch: 6,   stepId: 'step-30' },
       tour:     { stop: 30,      hash: '#stop-30' },
-      obs:      ['IN-11', 'IN-12'],
       lab:      'cache'
     }
   };
+
+  for (const slug of Object.keys(CONCEPTS)) {
+    const { label, obs, step, button, primary } = map.CONCEPTS[slug];
+    Object.assign(CONCEPTS[slug], { label, obs: obs.slice(), step, button, primary });
+  }
 
   const ALIASES = {
     'kv-cache': 'csa-hca-kv',
@@ -192,7 +186,7 @@
     if (!href) return null;
     const customLabel = qs.get('fromLabel');
     const stageText = customLabel ? ' · ' + customLabel :
-      (from === 'reader' && pos ? ' · Step ' + pos :
+      (from === 'reader' && pos ? ' · ' + (map.backLabel(pos) || 'Step ' + pos) :
       from === 'swiss' && pos ? ' · Stage ' + Math.max(1, Math.min(12, Math.round(parseFloat(pos)) || 1)) :
       from === 'beamline' && pos ? ' · Beat ' + pos :
       from === 'tour' && pos ? ' · Stop ' + pos : '');
@@ -213,7 +207,7 @@
   }
 
   const api = Object.freeze({
-    PAGES, CONCEPTS, ALIASES, resolve, urlFor, parseConceptHash,
+    PAGES, CONCEPTS, ALIASES, map, resolve, urlFor, parseConceptHash,
     swissToBeamlineBeat, beamlineBeatToSwissG, returnHref, mountReturnChip, pulseTarget
   });
 

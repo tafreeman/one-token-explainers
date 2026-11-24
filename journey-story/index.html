@@ -37,7 +37,7 @@ html.rm #bg{ transition:background-color .45s ease } html.rm #bg > div{ transiti
 #fx{ position:fixed; inset:0; width:100%; height:100%; z-index:3; pointer-events:none }
 main{ position:relative; z-index:1 }
 .wrap{ width:100%; max-width:1320px; margin:0 auto; padding-left:var(--gutL); padding-right:var(--gutR); box-sizing:border-box }
-.dyn{ transition:none } /* ink flips at the luminance crossover, where both inks clear 4.4:1; a colour tween would dip below it */
+.dyn{ transition:none } /* ink flips at the luminance crossover, where both inks clear 4.4:1; a color tween would dip below it */
 .skip{ position:absolute; left:16px; top:-60px; z-index:10; background:#121522; color:#fff; padding:10px 14px; border-radius:10px; font:500 15px var(--sans) }
 .skip:focus{ top:16px }
 
@@ -312,6 +312,7 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}
 <script src="../shared/micro-labs.js"></script>
 <link rel="stylesheet" href="./component-math.css">
 <script src="./component-math.js"></script>
+<script src="../shared/concept-map.js"></script>
 <script src="../shared/concept-links.js"></script>
 <script src="../shared/obs-file-bridge.js"></script>
 </head><body>
@@ -535,14 +536,14 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}
  * forward (up) pass of the one model tower that recurs in chapters 2-5. Its counterpart is the
  * copper gradient wave that runs DOWN that tower in training only. Those two flows are the
  * signature choreography; everything else is quiet.
- * Continuity: one backdrop whose colour, grid form (dot <-> line, same 24px pitch) and ink are
+ * Continuity: one backdrop whose color, grid form (dot <-> line, same 24px pitch) and ink are
  * interpolated by scroll; styles are skins over shared tokens, so nothing hard-cuts.
  * Feedback: rail, prev/next and the Training/Inference switch acknowledge with short (150-500ms)
  * spring or expo-out transitions.
  * Budget: scroll-scrubbed SVG attribute writes, one DPR-capped canvas for ch2/ch5 particles,
  * time loops only while their region is on screen and the tab is visible; rAF stops when idle.
  * Reduced motion: no scrubbing or particles; steps crossfade; the thread jumps; both tower
- * directions are static labelled paths that crossfade with the mode.
+ * directions are static labeled paths that crossfade with the mode.
  */
 (() => {
 'use strict';
@@ -566,7 +567,7 @@ const toSrgb = v => { v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(Math.max
 function rgb2ok(c) { const r = toLin(c[0]), g = toLin(c[1]), b = toLin(c[2]); const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b); return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; }
 function ok2rgb(o) { const l = Math.pow(o[0] + 0.3963377774 * o[1] + 0.2158037573 * o[2], 3), m = Math.pow(o[0] - 0.1055613458 * o[1] - 0.0638541728 * o[2], 3), s = Math.pow(o[0] - 0.0894841775 * o[1] - 1.291485548 * o[2], 3); return [toSrgb(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), toSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), toSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)]; }
 const ACC_DIR = (() => { const o = rgb2ok([94, 96, 250]), h = Math.hypot(o[1], o[2]); return [o[1] / h, o[2] / h]; })();
-/* perceptual mix; `tint` bows the midpoint toward the accent hue so dark<->light blends never pass through flat grey */
+/* perceptual mix; `tint` bows the midpoint toward the accent hue so dark<->light blends never pass through flat gray */
 function mixOK(a, b, t, tint) { const A = rgb2ok(a), B = rgb2ok(b), o = A.map((v, i) => v + (B[i] - v) * t); if (tint) { const k = tint * Math.sin(Math.PI * t); o[1] += ACC_DIR[0] * k; o[2] += ACC_DIR[1] * k; } return ok2rgb(o); }
 const blendOf = t => sstep(clamp((t - 0.3) / 0.4));
 function cubicBez(x1, y1, x2, y2) { const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by; const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx; return x => { let t = x; for (let i = 0; i < 8; i++) { const d = dX(t); if (Math.abs(d) < 1e-6) break; t = clamp(t - (X(t) - x) / d); } return Y(t); }; }
@@ -1515,7 +1516,7 @@ const sequence=STOPS.flatMap(s=>s.ids.map(id=>({s,id})));let items=sequence;
 function drawerContent(fly){
   const overview=catalog&&pos<0;const entry=overview?null:items[pos];const s=entry?.s||STOPS[0];
   const rec=entry&&api.getComponent(entry.id);document.getElementById('partIndex').textContent=overview?'Observatory overview':(catalog?'Component '+(pos+1)+' / '+items.length:'Chapter '+(s.ch+1)+' · '+entry.id);
-  document.getElementById('partTitle').textContent=overview?'All 31 components':catalog?rec.shortLabel:s.title;
+  document.getElementById('partTitle').textContent=overview?'All 31 components':catalog?(window.ConceptMap?ConceptMap.componentLabel(rec.id):rec.shortLabel):s.title;
   document.getElementById('componentTitle').textContent=overview?'Training, model and inference':rec.title;
   const fields=document.getElementById('partFields'),box=document.getElementById('detailDiagram');fields.replaceChildren();box.replaceChildren();
   if(overview){fields.textContent='Follow the training line, look inside the shared model, then trace a request through inference. Use Next to inspect each component.';api.setSkin('light');api.setRealm('ALL');api.setHighlight([]);api.setPose({pos:[48,49,76],target:[0,4,0]},{fly});api.setPlaying(false)}

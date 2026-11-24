@@ -94,7 +94,7 @@ test('narrated mechanisms can follow an order that differs from the written less
 
 test('browser scripts expose the same data without fetching a manifest', () => {
   const context = vm.createContext({ window: {} });
-  for (const file of ['shared/concept-links.js', 'one-token/narration-data.js', 'one-token/stops-manifest.js']) {
+  for (const file of ['shared/concept-map.js', 'shared/concept-links.js', 'one-token/narration-data.js', 'one-token/stops-manifest.js']) {
     vm.runInContext(read(file), context, { filename: file });
   }
   assert.deepEqual(JSON.parse(JSON.stringify(context.window.ReaderManifest)), manifest);

@@ -31,7 +31,7 @@ and known limits. A file sits in `shared/` only when more than one explainer use
 | [`end-to-end-beamline/`](end-to-end-beamline/) | **One Token, End to End (Beamline)** | Classic Beamline edition: eleven physical stations in a pale hall, with Watch and Study modes. | 45 clips, 9:41 | Beamline: Archivo, one floor track, Three.js 0.160 |
 | [`journey-story/`](journey-story/) | **One Token's Journey** | Six chapters take one token from raw text to the next token through DeepSeek-V4-Pro, with 3D rooms you can orbit and inspect. | 32 clips, 6:25 (shared) | Blueprint sheets plus the shared 3D engine |
 | [`journey-tour/`](journey-tour/) | **Guided Tour** | Thirty stops through the same model, with a chapter rail and a 31-component index. | 32 clips, 6:25 (shared) | Same engine as the story |
-| [`shared/`](shared/) | Shared files | `theme-tokens.js`, `obs-core.html` (the shared 3D Observatory), `micro-labs.js`, `concept-links.js`, and `journey-narration/`. | n/a | n/a |
+| [`shared/`](shared/) | Shared files | `theme-tokens.js`, `obs-core.html` (the shared 3D Observatory), `micro-labs.js`, `concept-map.js` (the one table mapping lesson steps to Observatory codes and Inspect panels), `concept-links.js`, and `journey-narration/`. | n/a | n/a |
 
 ### Old URLs
 
@@ -100,6 +100,6 @@ The lessons cite primary references including:
 
 Model details change. If a page disagrees with the current docs, the docs win.
 
-## Licence
+## License
 
-Source code is under the [MIT licence](LICENSE). Narration audio, text and diagrams are under [CC BY 4.0](LICENSE-CONTENT.md). Third-party libraries and fonts keep their own licences.
+Source code is under the [MIT license](LICENSE). Narration audio, text and diagrams are under [CC BY 4.0](LICENSE-CONTENT.md). Third-party libraries and fonts keep their own licenses.
