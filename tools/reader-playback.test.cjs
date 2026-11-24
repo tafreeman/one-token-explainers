@@ -58,6 +58,16 @@ test('Narrated run starts at the introduction and plays the complete selected ro
   assert.ok(get('audio-time').textContent.startsWith('0:00 / '));
 });
 
+test('media ended advances even when actual duration is shorter than route metadata', () => {
+  const {get, audio, player} = fixture();
+  get('narrStory').listeners.click();
+  audio.currentTime = 20.96; // Actual hero.mp3 metadata is shorter than the authored 21.034 s range.
+  audio.listeners.ended();
+  assert.equal(audio.src, tracks.full.find(clip => clip.id === 'p1').src);
+  assert.equal(player.playing, true);
+  assert.match(get('play-audio').textContent, /Pause narration/);
+});
+
 test('a pending metadata seek keeps captions and the scene on the selected quick substep', () => {
   const {get, audio, positions, player, setPosition} = fixture({deferSeek: true});
   get('track').value = 'quick';

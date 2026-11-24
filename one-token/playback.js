@@ -239,7 +239,8 @@ window.ReaderPlayback = (() => {
       if (playing && audio.error) failure(audio.error);
     });
     audio.addEventListener('ended', () => {
-      if (playing) position();
+      // Real MP3 metadata can be slightly shorter than the authored route duration.
+      if (playing) advance();
     });
     renderChapters();
     return {pause, selectPosition, seekStage, get playing() { return playing; }};
