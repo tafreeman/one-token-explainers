@@ -209,9 +209,17 @@ async function navigation(browser, url, artifacts) {
     await page.locator('#scrubber').press('Home');
     await step(page, '1.1');
 
+    await clickVisible(page, '#explain');
+    await page.locator('#explanation').waitFor({state: 'visible'});
+    assert.ok((await page.locator('#explanation-copy').textContent()).trim().length > 0, 'Read explanation prose');
+    await clickVisible(page, '#close-explanation');
+    await page.locator('#explanation').waitFor({state: 'hidden'});
+
     await clickVisible(page, '#present');
     await mode(page, 'present');
-    await clickVisible(page, '#explain');
+    const openExplanation = await rectOf(page, '#open-explanation');
+    assert.ok(openExplanation.width > 100 && openExplanation.height >= 44, 'Present explanation action is obvious');
+    await clickVisible(page, '#open-explanation');
     await page.locator('#explanation').waitFor({state: 'visible'});
     assert.ok((await page.locator('#explanation-copy').textContent()).trim().length > 0, 'Present explanation prose');
     await clickVisible(page, '#close-explanation');
@@ -347,7 +355,7 @@ async function narration(browser, url) {
     const fullFile = path.posix.basename(new URL((await full).url()).pathname);
     const fullClip = tracks.full.find(clip => clip.id + '.mp3' === fullFile);
     assert.ok(fullClip, 'the Full track requested a clip from its manifest');
-    assert.equal(fullClip.id, '5d');
+    assert.equal(fullClip.id, '5c');
     await step(page, fullClip.stepId);
     await page.locator('#spoken-caption').waitFor({state: 'visible'});
     assert.ok((await page.locator('#spoken-caption').textContent()).trim());
@@ -378,6 +386,30 @@ async function narration(browser, url) {
   } finally {
     await page.close();
   }
+}
+
+async function narrationScroll(browser, url) {
+  const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
+  try {
+    await page.addInitScript(() => {
+      const NativeAudio = window.Audio;
+      window.Audio = function (...args) { const audio = new NativeAudio(...args); window.__readerTestAudio = audio; return audio; };
+    });
+    await page.goto(url); await ready(page); await gotoStep(page, '7.2');
+    await clickVisible(page, '#narrate'); await page.locator('#muted').check();
+    await page.locator('#play-audio').click();
+    await page.waitForFunction(() => window.__readerTestAudio?.readyState >= 1);
+    const routed = page.waitForRequest(/\/5e\.mp3$/);
+    await page.evaluate(() => {
+      const article = document.querySelector('#step-7\\.3');
+      window.scrollTo({top: scrollY + article.getBoundingClientRect().top - innerHeight * .35, behavior: 'instant'});
+    });
+    await routed; await step(page, '7.3');
+    assert.equal(await page.locator('#play-audio').textContent(), 'Pause narration',
+      'scrolling seeks narration without pausing it');
+    assert.equal(await page.evaluate(() => window.__readerTestAudio.paused), false);
+    console.log('Reader active scrolling seeks narration without pausing');
+  } finally { await page.close(); }
 }
 
 async function inspect(browser, url, local, artifacts) {
@@ -490,6 +522,7 @@ async function verifyReader(browser, base, artifacts) {
   await layouts(browser, url, artifacts);
   await navigation(browser, url, artifacts);
   await narration(browser, url);
+  await narrationScroll(browser, url);
   await phonePopups(browser, url);
   await inspect(browser, url, false, artifacts);
   await inspect(browser, fileReader, true);

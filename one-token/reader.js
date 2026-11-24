@@ -68,7 +68,7 @@
       button.setAttribute('aria-pressed', button.dataset.view === state.view);
     }
     $('.camera').hidden = state.view !== 'spatial';
-    get('explain').hidden = !state.present;
+    get('explain').hidden = false;
     get('studio-play').hidden = !state.present;
     get('studio-play').textContent = timer ? 'Pause' : 'Play';
     get('studio-play').setAttribute('aria-label', timer ? 'Pause journey' : 'Play journey');

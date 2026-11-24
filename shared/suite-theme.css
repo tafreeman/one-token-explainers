@@ -123,12 +123,16 @@
   align-items: center;
   gap: 6px;
   margin-top: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
   font-family: var(--mono, ui-monospace, monospace);
   font-size: 12px;
   line-height: 1.35;
   letter-spacing: 0.04em;
   color: var(--token-ink, var(--acc-ink, inherit));
-  text-decoration: underline;
+  text-decoration: none;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
   text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
@@ -136,6 +140,7 @@
 }
 .concept-bridge:hover,
 .concept-bridge:focus-visible {
+  background: color-mix(in srgb, currentColor 8%, transparent);
   text-decoration-color: currentColor;
 }
 
