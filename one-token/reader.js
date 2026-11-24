@@ -294,7 +294,7 @@
   window.addEventListener('blur', release);
   const descriptions = {
     kv: {sparse: $('[data-out="kv"]').textContent, dense: 'Illustrative dense attention reads all stored history. KV format and precision determine storage; this switch gives no measured bandwidth or speed ratio.'},
-    cache: {hit: $('[data-out="cache"]').textContent, miss: 'Cold prefix cache miss ($8.00 / MTok): the full prompt is processed again.'}
+    cache: {hit: $('[data-out="cache"]').textContent, miss: 'Eligible prefix miss: prefill and write the 5-minute cache at $10 / MTok; uncached suffix input costs $8 / MTok.'}
   };
   function applySettingChange(input) {
     if (!input.matches('input[type=radio]')) return;
@@ -302,7 +302,7 @@
     settings[key] = input.value;
     if (key === 'effort') {
       const effort = {low: 6, medium: 11, high: 16, xhigh: 21, max: 28};
-      const text = effort[input.value] + ' thinking tokens in the drawing (illustrative; real runs use far more)';
+      const text = effort[input.value] + ' thinking tokens in the drawing (illustrative; actual use varies by request)';
       get('effortOut').textContent = text;
       document.querySelectorAll('input[name="effort"], input[name="effort_present"]').forEach(el => { el.checked = el.value === input.value; });
       document.querySelectorAll('#explanation-detail .effort-out').forEach(el => { el.textContent = text; });

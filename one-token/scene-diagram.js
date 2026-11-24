@@ -205,7 +205,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       labels:[
         ['tower · 61 layers*',V(-3.2,9.5,0),0.08,0.4],
         ['loss = −log p(“ Paris”)',V(0.9,T.top+1.5,0),0.36,0.62],
-        ['gradients flow down to every weight',V(GX+0.3,8,0),0.42,0.8],
+        ['gradients flow through active computation',V(GX+0.3,8,0),0.42,0.8],
         ['1,048,576 · YaRN ×16*',t=>V(-5+Lr(t),0.9,4.6),0.86,1],
         ['65,536',V(-5,0.9,4.6),0.8,1],
         ['causal mask: position n sees ≤ n',V(-3.2,5.0,0),0.14,0.36],
@@ -349,7 +349,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       labels:[
         ['render order = cache order',V(R0+2,2.2,0),0.14,0.34],
         ['same tokenizer as training',V(BX,3.7,0),0.32,0.62],
-        [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok (doubled)':'prefix cache miss · $8.00 / MTok (full prefill)',V(px/2,2.7,0),0.62,1],
+        [()=>CACHE_MODE==='hit'?'eligible prefix read · $0.20 / MTok (doubled)':'eligible prefix write · $10 / MTok (5m)',V(px/2,2.7,0),0.62,1],
         ['prefix: tools + system',V(px/2,2.1,0),0.62,1],
         ['same ID as in stage 2',slotP.clone().add(V(0.4,1.6,0)),0.58,0.86],
         ...slabs.map(s=>[s.name,t=>slabAt(s,t).p.add(V(0,0.75,0)),0,0.32])
@@ -477,7 +477,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
         [()=>KV_MODE==='dense'?'illustrative dense KV cache':'hybrid KV · compressed + local',V(6.4,10.6,1.2),0.35,0.66],
         ['KV cache · keys + values per layer',V(5,13.7,0),0.3,0.95],
         ['“ Paris” lives here now',slotW.clone().add(V(0.6,0.8,0)),0.62,0.95],
-        ['other requests join (continuous batching)',V(-8.6,1.9,2.4),0.66,0.98],
+        ['illustrative continuous batching',V(-8.6,1.9,2.4),0.66,0.98],
         ['time to first token grows with prompt length',V(TX-3.6,T.top+1.2,0),0.2,0.36]
       ]
     };
@@ -501,7 +501,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       tok:track([{t:0,p:V(-12,0.45,0)},{t:0.1,p:slotW},{t:0.92,p:slotW},{t:1,p:V(12,0.45,0)}]),
       shape:()=>SLICE.clone(),
       cams:[{t:0,c:cam(-8.7,0,-2,12.5,14,2,-26,20)}],
-      labels:[[()=>`thinking tokens · hidden · effort ${EFFORT}`,V(7.6,1.7,0),0.16,0.86],['each step reads the KV cache, “ Paris” included',V(0.8,13.7,0),0.2,0.8],['display: "omitted" (default) or "summarized"',V(10.4,2.6,0),0.8,1]]
+      labels:[[()=>`illustrative thinking · effort ${EFFORT}`,V(7.6,1.7,0),0.16,0.86],['attention selects cached history',V(0.8,13.7,0),0.2,0.8],['raw reasoning encrypted · optional readable summary',V(10.4,2.6,0),0.8,1]]
     };
   });
 
@@ -533,10 +533,10 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       labels:[
         [t=>PARTS.filter((_,k)=>t>tk(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.6,0),0.16,1],
         ['one pass up the tower per new token',V(TX,T.top+3.6,0),0.06,0.28],
-        ['attention over the prompt steers logits to “Paris”',V(-3.2,T.top+1.6,0),0.72,0.86],
+        ['prompt supplies the illustrated city name',V(-3.2,T.top+1.6,0),0.72,0.86],
         ['“Paris” ≠ “ Paris”: different IDs',V(4.4,-0.9,0),0.74,0.92],
         ['stop_reason "tool_use"',V(4.4,-0.9,0),0.88,1],
-        ['memory-bound: each step reads the weights and the cache',V(-0.6,13.8,0),0.06,0.29],
+        ['often memory-bound: weights + selected cached history',V(-0.6,13.8,0),0.06,0.29],
         ['MTP draft, verified next step',V(4.4,-0.9,0),0.52,0.74],
         ['sampler · temperature, top_p, top_k fixed',V(TX-2.2,T.top+2.7,0),0.29,0.52]
       ]
@@ -646,7 +646,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       labels:[
         ['your code runs get_weather',V(-3.6,2.9,0),0.04,0.2],
         [()=>innerWidth<520?'tool_result · {"temp_c": 18, "conditions": "clear"}':'tool_result · {"temp_c": 18, "conditions": "clear"} (illustrative)',V(-1.6,2.3,0),0.2,0.29],
-        [()=>CACHE_MODE==='hit'?'prefix cache hit · $0.20 / MTok · reuse KV':'prefix cache miss · $8.00 / MTok · full prefill',V(2.0,1.4,1.2),0.29,0.53],
+        [()=>CACHE_MODE==='hit'?'eligible prefix read · $0.20 / MTok':'eligible prefix write · $10 / MTok (5m)',V(2.0,1.4,1.2),0.29,0.53],
         ['150K compaction → summary',V(CX0,1.55,CZ),0.76,1],
         [t=>ANS.filter((_,k)=>t>ta(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.7,0),0.53,0.76],
         [()=>CACHE_MODE==='hit'?'prefill only the new tokens':'prefill entire prompt stack',V(MX+1.5,mtop+0.6,0),0.42,0.53],

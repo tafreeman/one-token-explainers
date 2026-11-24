@@ -1074,7 +1074,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
     <!-- LIVE FLOATING PROCESS NARRATIVE BANNER -->
     <div id="narrativeBanner" class="glass-bar visible" role="status" aria-live="polite">
       <span class="banner-badge copper" id="bannerBadge">PHASE 1 · TRAINING</span>
-      <span class="banner-copy" id="bannerText">ETL &amp; Lexing: Raw books, text, and images are scrubbed of duplicates/PII in TR-1; in TR-2 text is sliced into integer BPE token IDs and images go through a vision encoder.</span>
+      <span class="banner-copy" id="bannerText">ETL &amp; Lexing: The illustrative pipeline filters and deduplicates text in TR-1, then converts it to BPE IDs in TR-2. The optional image branch represents vision-language models; DeepSeek-V4-Pro is text-only.</span>
       <span class="banner-step tabular" id="bannerStep">STEP 1 / 4</span>
     </div>
 
@@ -1227,8 +1227,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "DeepSeek-V4 pretraining corpus: 33T diverse high-quality tokens",
         keyFactSource: "DeepSeek-V4 paper",
         what: 'Books, web text and code enter a common text-cleaning pipeline. The three chutes are illustrative.',
-        doing: "Strips duplicate documents using fast hashing, scrubs personal data (PII) and toxic content into the side reject bin, and balances how much code vs. text goes into training. Quality filtering typically discards the large majority of a raw web crawl (exact share varies by pipeline; illustrative).",
-        narrative: 'Garbage in, garbage out. Just like cleaning data before indexing a search engine, this stage filters out spam, duplicates, and leaked secrets, then dials up high-value sources like source code and technical books before passing clean text forward.',
+        doing: "The illustrative pipeline uses hashing to identify duplicate documents, applies quality and privacy filters, and adjusts source weights. Filtering reduces unwanted material but does not guarantee that every duplicate, personal detail or secret is removed. DeepSeek reports continued refinement of its web filtering and long-document curation.",
+        narrative: 'Data preparation shapes what the model learns. Deduplication reduces repetition, quality filters reduce spam and templated text, and source weighting controls the balance of code, mathematics and other material. The chutes and reject bin show these general operations.',
         equation: 'clean_data = balance_mix( filter_pii_and_quality( dedupe_hash(raw_sources) ) )',
         subs: ['Sources: Web, Code, Books', 'Hash Deduplication', 'PII & Safety Scrubbing', 'Dataset Weighting']
       },
@@ -1274,7 +1274,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         assembly: 'Telescoping context rails and YaRN dial',
         keyFact: "DeepSeek-V4-Pro native context: 4K → 16K → 64K → 1M tokens (CSA + HCA)",
         keyFactSource: "DeepSeek-V4 paper",
-        what: 'A telescoping rail marks two stages of context extension.',
+        what: 'A telescoping rail marks the stages of context extension.',
         doing: "DeepSeek-V4-Pro extends its context in stages from 4K to 16K to 64K to 1M tokens, switching on sparse CSA+HCA attention from 64K.",
         narrative: "Pretraining uses short chunks for speed. Mid-training invokes the Shared Model Core on longer sequences so it can attend across entire codebases at once, pairing curated high-value data with rescaled RoPE frequencies.",
         equation: 'context_limit = extend_rope_and_csa_hca(4K → 16K → 64K → 1M)',
@@ -1292,8 +1292,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFactSource: "DeepSeek-V4 paper",
         what: 'The alignment and reasoning workbench—an 8-arm carousel that generates multiple solutions, grades them on a balance scale, and keeps updates tethered so the model doesn’t break.',
         doing: "Stage 1 cultivates separate domain specialists (math, code, agentic, instruction) via SFT and RL with GRPO (using rule verifiers plus rubric-guided self-judging). Stage 2 merges all specialist teachers into one unified student via On-Policy Distillation (OPD).",
-        narrative: "The policy samples several answers to one prompt. A verifier scores each attempt, then GRPO compares each score with the group mean. A KL penalty keeps the policy distribution near the reference (starting) model.",
-        equation: "advantage_i = (score_i - mean(scores)) / std(scores);  student = on_policy_distill(specialist_teachers)",
+        narrative: "The policy samples several answers to one prompt. A verifier scores each attempt, then GRPO compares each score with the group mean. A KL penalty can constrain drift from a reference policy; V4’s documented OPD then aligns the student with specialist teachers using reverse KL.",
+        equation: "advantage_i = (score_i - mean(scores)) / (std(scores) + ε_std);  student = on_policy_distill(specialist_teachers)",
         subs: ["Stage 1: Domain Specialists (SFT + GRPO)", "Rule Verifiers + Rubric Self-Judging", "Group of Attempts (e.g., 8–64)", "Anti-Drift Tether (KL)", "Stage 2: On-Policy Distillation (OPD)"]
       },
       {
@@ -1306,8 +1306,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         assembly: 'Inspection Gantry + Semaphore Release Gate',
         keyFact: "DeepSeek-V4-Pro Max: SWE-bench Verified 80.6% · MRCR 1M 83.5% · Terminal-Bench 2.0 67.9%",
         keyFactSource: "DeepSeek-V4-Pro model card",
-        what: 'The CI/CD quality and security gate—an inspection gantry with a sweeping scanner, a quarantine bay for failing builds, and a release arm.',
-        doing: "Runs benchmark test suites, security red-teaming (jailbreak/exploit probes), and regression checks—on intermediate checkpoints throughout training, not only at the end. A candidate that clears the thresholds still needs human sign-off before its weights are locked read-only and deployed to Production Inference.",
+        what: 'An illustrative CI/CD quality and security gate—an inspection gantry with a sweeping scanner, a quarantine bay for failing builds, and a release arm.',
+        doing: "This illustrative release workflow combines benchmark suites, security red-teaming and regression checks, with thresholds and human review before deployment. Evaluation also happens during model development; the published benchmark scores do not establish this pictured release process.",
         narrative: "Like a production release gate in software engineering: if a candidate build fails safety testing or regresses on coding benchmarks, it gets shunted to quarantine. Real gates are thresholds, not \"zero failures\": a build ships when metrics clear the bar and people sign off. Only then are weights frozen (read-only) and shipped to the serving tier.",
         equation: "if (benchmarks >= min_bar && safety_evals_within_threshold && no_major_regressions && human_signoff) deploy_readonly(model);",
         subs: ["Automated Benchmarks (SWE-bench/Math)", "Adversarial Red-Teaming", "Regression Checks", "Human Sign-Off", "Freeze Read-Only Weights"]
@@ -1340,7 +1340,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         assembly: 'Index-Drawer Cabinet + Vector Rods',
         keyFact: "DeepSeek-V4-Pro hidden size 7,168 · enters 4-stream mHC residual bus",
         keyFactSource: "DeepSeek-V4-Pro config",
-        what: 'A giant lookup table (like a read-only hash map) at the base of the Model Core, shown as drawers ejecting numbered vector rods onto the central spine.',
+        what: 'An indexed array of learned embedding vectors at the base of the Model Core, shown as drawers ejecting numbered vector rods onto the central spine. It is updated during training and read with frozen weights during inference.',
         doing: "Looks up each integer token ID and returns an array of learned floats (an embedding vector; 7,168 floats in DeepSeek-V4-Pro) representing that token’s meaning.",
         narrative: "An integer like 4182 has no inherent meaning. This lookup table swaps each token ID for a coordinate array where related concepts (\"function\", \"method\", \"class\") point in similar directions—then drops it onto the central data bus (Residual Stream). The core is the same function in both phases, but only inference has a KV cache: in training it processes all positions of a sequence in parallel (teacher forcing) with no KV cache and stores activations for the backward pass.",
         equation: "vector = EMBEDDING_TABLE[token_id]   // O(1) array lookup -> float[7168]",
@@ -1358,9 +1358,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFactSource: "RMSNorm paper (Zhang & Sennrich, 2019)",
         what: 'An automatic signal leveler wrapped around the central spine like a camera iris diaphragm.',
         doing: "Makes a rescaled copy of each token’s float array and feeds that copy into the attention branch, so the branch math stays in a stable numeric range across 61 stacked layers. In this pre-norm design the residual stream itself is not normalized; only the branch input is.",
-        narrative: "Think of RMSNorm like automatic volume leveling in audio—or input sanitization before a heavy calculation. It keeps the vectors entering attention in a clean, predictable numeric range, while the main spine keeps accumulating un-normalized.",
+        narrative: "Think of RMSNorm like automatic volume leveling in audio: it rescales the branch input using its root-mean-square magnitude and learned gains. It helps control signal scale; it does not validate inputs or guarantee that overflow and NaNs are impossible. The residual bus is not normalized by this operation.",
         equation: "attn_in = rms_norm(x) = (x / sqrt(mean(x^2) + eps)) * scale_weights   // x itself is left as-is",
-        subs: ["Normalizes Branch Input (Pre-Norm)", "Prevents Float Overflow / NaN", "Stabilizes Deep Stacks"]
+        subs: ["Normalizes Branch Input (Pre-Norm)", "Helps Stabilize Signal Scale", "Stabilizes Deep Stacks"]
       },
       {
         id: 'MD-2b', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
@@ -1389,8 +1389,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "DeepSeek-V4-Pro applies decoupled 64-dim RoPE (compress_rope_theta = 160,000)",
         keyFactSource: "DeepSeek-V4-Pro config",
         what: 'A nested clockwork astrolabe whose inner brass rings spin quickly and outer steel rings turn slowly.',
-        doing: 'Rotates each token’s Query and Key vectors by an angle tied to its index in the prompt so the model knows exact relative distances between words.',
-        narrative: "Without position stamps, a Transformer treats a sentence like an unordered bag of words (\"dog bit man\" == \"man bit dog\"). RoPE acts like a clock face: fast-spinning inner hands track adjacent tokens while slow outer hands track sections thousands of words apart. In DeepSeek-V4-Pro’s CSA/HCA attention, RoPE is applied to a separate 64-dim slice of each query and compressed KV entry (`theta = 160,000`), so position survives compression.",
+        doing: 'Rotates each token’s Query and Key vectors by an angle tied to its index in the prompt to give attention an explicit signal about relative token positions.',
+        narrative: "RoPE supplies an explicit relative-position signal; the causal mask separately restricts which positions are visible. RoPE acts like a clock face: fast-spinning inner hands track adjacent tokens while slow outer hands track sections thousands of words apart. In DeepSeek-V4-Pro’s CSA/HCA attention, RoPE is applied to a separate 64-dim slice of each query and compressed KV entry (`theta = 160,000`), so position survives compression.",
         equation: 'Q_pos = rotate(Q, index * freq);  K_pos = rotate(K, index * freq)  // score depends on (i - j)',
         subs: ['Encodes Array Index Order', 'Relative Distance Math', 'Scales to Long Prompts']
       },
@@ -1402,29 +1402,29 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-5.4, 3.0, 8.2],
         labelY: 2.4,
         assembly: 'Crossbar Switch Grid + Causal Wall + KV Cache Rack',
-        keyFact: "GB200 HBM3e bandwidth: 8.0 TB/s per GPU (576 TB/s NVL72 rack; reading KV cache is memory-bound)",
+        keyFact: "GB200 HBM3e peak bandwidth: 8.0 TB/s per GPU (576 TB/s NVL72 rack; example hardware)",
         keyFactSource: "NVIDIA GB200 NVL72 spec",
         what: 'A crossbar switching matrix with sliding brass contacts, a red-trimmed causal wall blocking future columns, and a side rack holding cached past Key/Value cartridges.',
-        doing: "Multi-head: heads attend independently with learnable attention sinks (letting heads abstain when nothing in a 1M context is relevant), scoring how relevant every earlier token is and blending their Value payloads while strictly blocking future tokens. The head outputs are then concatenated. Inference: earlier tokens’ Keys/Values are read from the KV cache instead of recomputed.",
+        doing: "Multi-head: heads attend independently with learnable attention sinks (letting heads abstain when nothing in a 1M context is relevant), scoring selected compressed blocks and a recent uncompressed window while blocking future information, then blending their Value payloads. Real-entry attention weights can sum to less than one because the sink receives the remaining mass. The head outputs are then concatenated. Inference: earlier tokens’ Keys/Values are read from the KV cache instead of recomputed.",
         narrative: "Think of Attention as a fuzzy in-memory database join. When the model sees the word \"it\", its Query scans the Keys of earlier tokens, scores high on \"server\", and pulls \"server\"’s Value payload so the current token inherits that context. The KV cache exists only during inference. In training, the core processes all positions in parallel (teacher forcing) under a causal mask, with no KV cache, and stores activations for the backward pass. Some models mix in sliding-window or hybrid local/global attention layers to cut long-context cost.",
-        equation: "per head h: scores = causal_mask( (Q_h @ K_h.T) / sqrt(d) );  out_h = softmax(scores) @ V_h\nattn_out = concat(out_1 .. out_H)   // inference: past K_h, V_h come from kv_cache",
+        equation: "per head h: scores = causal_mask( (Q_h @ K_h.T) / sqrt(d_head) );  out_h = softmax_with_sink(scores) @ V_h\nattn_out = concat(out_1 .. out_H)   // inference: past K_h, V_h come from kv_cache",
         subs: ["Fuzzy Context Lookup", "Independent Heads, Concatenated", "Blocks Future Tokens (Causal)", "Inference: Reads/Writes KV Cache", "Tiled GPU Math (FlashAttention)", "Sliding-Window / Hybrid Variants"]
       },
       {
         id: 'MD-2e', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
         shortLabel: 'Core 2e · Merge Bus 1',
-        title: 'Output Projection & Main Bus Merge (Residual Add 1)',
+        title: 'Output Projection & mHC Stream Merge',
         pos: [0.0, 9.5, 0.0],
         camOffset: [-6.0, 2.8, 7.2],
         labelY: 1.0,
         assembly: 'Angled Collector Pipe + Spine Collar',
         keyFact: "Manifold-Constrained Hyper-Connections (mHC): hc_mult: 4 (4 × 7,168 stream width)",
         keyFactSource: "DeepSeek-V4-Pro config",
-        what: 'An angled pipe manifold that combines the parallel attention heads and adds their result straight back onto the central data bus.',
+        what: 'An angled pipe manifold that combines attention-head outputs and updates the four-stream residual bus through learned mHC connections.',
         doing: "Packages attention outputs back into 7,168 floats (via 16-group low-rank output projection) and mixes them across the 4 × 7,168 Manifold-Constrained Hyper-Connections (mHC) residual streams via learned pre-map (H_pre), doubly-stochastic residual mixing (H_res), and post-map (H_post).",
         narrative: "The central spine is a 4-stream mHC residual bus (4 × 7,168). Instead of a single stream update, each sublayer reads a learned pre-map H_pre · streams, mixes the four streams through a doubly-stochastic matrix H_res, and adds H_post · sublayer_out—enriching representation capacity while keeping training gradients stable.",
         equation: 'streams = H_res · streams + H_post · sublayer(H_pre · streams)   // 4 × 7,168 mHC residual bus',
-        subs: ['Combines Attention Heads', 'Additive State Update (x += dx)', 'Preserves Clean Gradient Path']
+        subs: ['Combines Attention Heads', 'Learned Stream Mix + Branch Update', 'Constrained Residual Mapping']
       },
       {
         id: 'MD-2f', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
@@ -1453,9 +1453,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "6 of 384 routed experts per token (+1 shared expert) · 49B of 1.6T active",
         keyFactSource: "DeepSeek-V4-Pro config",
         what: "The dial has 384 routed positions. Six raised brass slots mark the experts selected for this token. The shared expert runs on every token.",
-        doing: "Scores each routed expert with sqrt(softplus) affinity and activates the top 6 of 384 for this token (plus 1 shared expert). An auxiliary-loss-free load bias plus a slight sequence-wise balance term keeps experts evenly utilized without distorting outputs.",
+        doing: "Scores each routed expert with sqrt(softplus) affinity and activates the top 6 of 384 for this token (plus 1 shared expert). An auxiliary-loss-free load bias plus a slight sequence-wise balance term encourages balanced utilization. The bias affects selection, while output gates use the selected original affinities and the routed scaling factor.",
         narrative: "Running a 1.6T-parameter model on every token would be impossibly slow. This router acts like a load-balancing gateway: each token activates 6 of 384 routed experts plus 1 shared expert (~49B active parameters). Routing tracks token- and syntax-level patterns rather than neat textbook topics.",
-        equation: "s = sqrt(softplus(u @ W_router));  top6 = top_k(s + load_bias, k=6);  gates = normalize(s[top6])",
+        equation: "s = sqrt(softplus(u @ W_router));  top6 = top_k(s + load_bias, k=6);  gates = 2.5 * normalize(s[top6])",
         subs: ["Smart Token Load Balancer", "Top-6 of 384 Routed Experts", "sqrt(softplus) Affinity", "Aux-Loss-Free Load Bias"]
       },
       {
@@ -1485,10 +1485,10 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "DeepSeek-V4-Pro: 61 layers (first 3 Hash-MoE, 58 learned MoE; HCA/CSA interleaved)",
         keyFactSource: "DeepSeek-V4-Pro config",
         what: "A weighted collector collar surrounded by stacked floor plates representing the N stacked Transformer blocks in the full model.",
-        doing: "Combine the full shared-expert output with the gate-weighted routed outputs, then add the result to the residual stream. Each of the 61 blocks has its own weights.",
+        doing: "Combine the full shared-expert output with the gate-weighted routed outputs, then update the four-stream residual bus through mHC. Each of the 61 blocks has its own weights.",
         narrative: "One Attention + Experts block only captures shallow patterns. Modern LLMs stack dozens of blocks, each with separate weights; layer i’s output feeds layer i+1. As a loose rule of thumb, earlier layers lean toward local syntax and later layers toward more abstract features, though the division is not clean.",
         equation: "for i in range(61):   // layers[i] has its own weights (HCA/CSA interleaved)\n    H = mHC_mix(H, attn(layers[i], rms_norm(H)))\n    H = mHC_mix(H, shared_out + sum(g_j * expert_j(u) for j in top6))   // layers[0:3]: Hash-MoE",
-        subs: ["Gate-Weighted Merge", "Additive Bus Update (x += dx)", "Stack of 61 Blocks, Distinct Weights"]
+        subs: ["Gate-Weighted Expert Merge", "mHC Stream Update", "Stack of 61 Blocks, Distinct Weights"]
       },
       {
         id: 'MD-3', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
@@ -1509,16 +1509,16 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
       {
         id: 'MD-4', realm: 'MODEL', role: 'CORE', realmTitle: 'Shared Core · 1 Forward Pass (Sub-Process)',
         shortLabel: 'Core 4 · Output Scores',
-        title: 'LM Head: Scoring Every Word in the Vocabulary',
+        title: 'LM Head: Scoring Every Token in the Vocabulary',
         pos: [0.0, 20.1, 0.0],
         camOffset: [-6.6, 3.2, 8.2],
         labelY: 3.1,
         assembly: '12-Piston Logit Organ-Pipe Array',
         keyFact: "7,168 → 129,280 logits (+1 MTP head for speculative drafting)",
         keyFactSource: "DeepSeek-V4-Pro config",
-        what: 'A crown of vertical pistons rising to represent raw confidence scores (logits) across candidate next tokens, with the highest-scoring token highlighted in brass.',
+        what: 'A crown of vertical pistons rising to represent unnormalized scores (logits) across candidate next tokens, with the highest-scoring token highlighted in brass.',
         doing: "Projects the final 7,168-float vector against all ~129k vocabulary entries to output a raw score for every possible next token.",
-        narrative: "This is the reverse of the bottom Embedding table. In Training, these raw scores are compared against the right answer (cross-entropy) to trigger Backpropagation; DeepSeek-V4-Pro also keeps a Multi-Token Prediction (MTP) head (`num_nextn_predict_layers: 1`) that predicts the token after next, which can be dropped or reused for speculative decoding at inference. In Inference, the scores are handed to the Sampler to pick the actual next word.",
+        narrative: "A separately learned vocabulary projection maps the final state to token scores; DeepSeek-V4-Pro does not tie these weights to its embedding table. During training, cross-entropy compares the output distribution with the target token. An additional Multi-Token Prediction (MTP) module predicts one token further ahead and can support speculative decoding. During inference, the sampler selects from the next-token scores.",
         equation: "logits[0..129279] = final_vec @ LM_HEAD.T   // raw unnormalized scores",
         subs: ["Scores All ~129k Vocab Tokens", "Training: Triggers Error Backprop", "Inference: Feeds Sampler"]
       },
@@ -1532,13 +1532,13 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.0, 5.0, 7.8],
         labelY: 3.4,
         assembly: 'Pneumatic Glass & Steel Intake Receiver',
-        keyFact: "Chat APIs are stateless: the client re-sends the whole conversation each turn",
-        keyFactSource: "illustrative",
+        keyFact: "This stateless Messages endpoint receives conversation history on each turn",
+        keyFactSource: "DeepSeek Messages API docs",
         what: 'The front door of the LLM API—a glass pneumatic intake tube receiving incoming client prompt capsules.',
-        doing: 'Accepts a user’s HTTPS/gRPC API payload containing messages, optional images/files, tool definitions, and generation settings (like temperature and max tokens).',
+        doing: 'Accepts an HTTPS Messages request containing conversation content, optional tool definitions and generation settings. Supported media depend on the selected model; the DeepSeek-V4-Pro reference is text-only.',
         narrative: 'This is the black-box API call you already know as a developer: a JSON request arrives over TLS expecting a streamed response, kicking off the production serving pipeline.',
-        equation: "POST /v1/messages { model, messages, tools, reasoning_effort: \"high\", max_tokens, stream: true }",
-        subs: ['HTTPS / gRPC API Entry', 'Prompt & Media Payload', 'Generation Config Parameters']
+        equation: "POST https://api.deepseek.com/anthropic/v1/messages { model: \"deepseek-v4-pro\", messages, tools, thinking: { type: \"enabled\" }, output_config: { effort: \"high\" }, max_tokens: 4096, stream: true }",
+        subs: ['HTTPS Messages API Entry', 'Conversation & Tool Payload', 'Generation Config Parameters']
       },
       {
         id: 'IN-2', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
@@ -1548,12 +1548,12 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.2, 5.2, 8.0],
         labelY: 2.8,
         assembly: 'Security Baffle + Rate-Limit Piston + Reject Bin',
-        keyFact: "Prompt injection mostly arrives later via tool results/documents, not at the gateway",
+        keyFact: "Tool definitions, documents and tool results can carry indirect prompt injection",
         keyFactSource: "illustrative",
         what: 'An edge API Gateway with a token-bucket rate-limit piston, twin security shutters, and a red-trimmed reject bin for blocked calls.',
-        doing: "Checks API keys and rate limits, runs abuse/safety classifiers (blocking clearly disallowed requests into the side reject bin), and routes clean requests to a GPU replica that already has the system prompt cached.",
-        narrative: "Just like NGINX or Envoy at the edge of any web service—plus abuse/safety screening and cache-aware routing so requests hit warm GPU prefix caches instead of recomputing from scratch. Note that prompt injection cannot be reliably detected at the gateway: it mostly arrives later, inside tool results and retrieved documents.",
-        equation: "verify_key(req);  check_rate_limit();  if (abuse_classifier(req) == BLOCK) return 4xx;  route_to_warm_replica();",
+        doing: "Checks API keys and rate limits. A deployment may add abuse/safety classifiers and cache-aware routing; the shutters and warm replica shown are illustrative choices, not documented DeepSeek gateway internals.",
+        narrative: "Like NGINX or Envoy at the edge of a web service, a gateway authenticates and routes requests. Optional screening can reduce abuse, while cache-aware routing can improve reuse. Untrusted user text, tool definitions, retrieved documents and tool results can all carry prompt injection; gateway checks do not eliminate that risk.",
+        equation: "verify_key(req);  check_rate_limit();  route_request();  // optional screening and cache-aware routing",
         subs: ["API Auth & Quotas", "Token-Bucket Rate Limit", "Abuse / Safety Classifier", "Cache-Aware Load Balancing"]
       },
       {
@@ -1602,7 +1602,7 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         doing: "Packs multiple users into every single GPU step (continuous batching), slices huge prompts into chunks (e.g., 512 tokens, configurable) so they don’t freeze other users, and checks if enough KV cache RAM is free.",
         narrative: 'Think of this like an OS thread scheduler or async event loop. Instead of making 100 users wait for the longest response to finish, it swaps finished requests out and slots new chunks in on every single token tick.',
         equation: "gpu_batch = active_decode_users + next_prefill_chunk   // only if free_kv_blocks >= needed_new_blocks (0 when fitting an owned partial tail, ceil(tokens / block_size) when cold)",
-        subs: ['Continuous Iteration Batching', 'Chunked Prefill (No Stalls)', 'VRAM Cache Admission']
+        subs: ['Continuous Iteration Batching', 'Chunked Prefill (Limits Interference)', 'VRAM Cache Admission']
       },
       {
         id: 'IN-6', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
@@ -1612,13 +1612,13 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.6, 5.8, 8.6],
         labelY: 2.7,
         assembly: '6-Lane Parallel Stamping Press + KV Rack',
-        keyFact: "NVIDIA GB200 dense FP4: 10,000 TFLOPS per GPU (5,000 FP8; 720 PFLOPS NVL72 rack; prefill is compute-bound)",
+        keyFact: "NVIDIA GB200 dense FP4 peak: 10,000 TFLOPS per GPU (5,000 FP8; 720 PFLOPS NVL72 rack; hardware ceiling, not measured V4 speed)",
         keyFactSource: "NVIDIA GB200 NVL72 spec",
         what: 'A wide 6-lane press that stamps an entire row of prompt tokens in parallel and slides populated KV cache blocks out to the side.',
-        doing: "Calls the center Model Core once across all prompt tokens in parallel (weights read-only), writes every token’s Keys/Values into the KV cache (skipping any prefix already cached from an earlier request), and produces the logits for the first output token.",
-        narrative: 'Prefill is why long prompts have a slight pause before the first word appears (Time-To-First-Token). Because the entire prompt is already known, GPUs crunch all prompt tokens in parallel—maximizing compute utilization and filling the KV cache for the Decode loop.',
-        equation: "kv_cache, first_logits = model_core_parallel(prompt_ids[cached_len:], kv=cached_prefix)   // sets TTFT",
-        subs: ['Processes Entire Prompt in Parallel', 'Populates Initial KV Cache', 'Determines Time-to-First-Token']
+        doing: "Processes known prompt positions in parallel within each layer, possibly over several chunks. It reuses eligible cached prefix state, computes the unmatched suffix and any required state-reconstruction tail, and produces first-token logits with frozen serving weights.",
+        narrative: 'Prefill builds attention state from the known prompt and often has higher arithmetic intensity than small-batch decode. Queueing, chunking, cache availability, hardware and network delays also affect time to first token. Thinking tokens can further delay the first visible answer text.',
+        equation: "kv_cache, first_logits = model_core_parallel(prompt_ids[cached_len:], kv=cached_prefix)   // contributes to TTFT",
+        subs: ['Parallel Positions, Optional Chunks', 'Populates Initial KV Cache', 'Contributes to Time-to-First-Token']
       },
       {
         id: 'IN-7', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
@@ -1628,18 +1628,18 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.6, 5.4, 8.4],
         labelY: 3.4,
         assembly: 'Clockwork Escapement Wheel + KV Stack',
-        keyFact: "Decode is memory-bound: GB200 HBM3e is 8.0 TB/s per GPU (576 TB/s NVL72 rack)",
+        keyFact: "Small-batch decode is often memory-bound; GB200 HBM3e peak: 8.0 TB/s per GPU (576 TB/s NVL72 rack)",
         keyFactSource: "NVIDIA GB200 NVL72 spec",
         what: 'A single-tooth clockwork escapement wheel that ticks one step at a time, appending one new KV cache slice on every tick.',
-        doing: "Runs a `while` loop generating one token per iteration: feeds the latest token into the center Model Core, reads all prior KV cache blocks from RAM, appends the new slice, and passes raw logits to the Sampler. Reasoning modes (Non-think, Think High, Think Max) generate `<think>...</think>` reasoning tokens in this same decode loop before the visible answer.",
-        narrative: "You can’t predict word #5 until you know word #4. That forces Decode into a sequential loop—one tick per token—where the bottleneck isn’t math speed anymore, it’s how fast GPU memory can stream model weights and the KV cache on every single tick. Reasoning (test-time compute) works by spending extra decode ticks on hidden thinking tokens: better answers on hard problems, paid for in latency and billed tokens.",
+        doing: "Ordinary decoding advances one token per sequence per model step, reading the attention state needed by each layer and updating its cache. Speculative decoding can accept several verified tokens at once. DeepSeek thinking modes use extra generated reasoning before the answer; thinking can also be disabled, and effort can be low, high or max.",
+        narrative: "Autoregressive generation conditions each token on those already accepted. At small batch sizes it is often limited by memory bandwidth; larger batches, long-context attention and communication can change the bottleneck. Speculative drafting can increase accepted tokens per target-model pass. Reasoning uses additional generated tokens and can improve some hard tasks, with extra latency and token cost.",
         equation: "while (!stop) { logits, kv_new = model_core_step(last_tok, kv_cache); kv_cache.append(kv_new); last_tok = sample(logits); }   // reasoning tokens first, then the answer",
-        subs: ["Sequential 1-Token Loop", "Reuses & Appends KV Cache", "Hidden Reasoning Tokens (Test-Time Compute)", "Sets Streaming Speed (tok/s)"]
+        subs: ["Ordinary Decode: 1 Token per Step", "Reuses & Appends KV Cache", "Hidden Reasoning Tokens (Test-Time Compute)", "Sets Streaming Speed (tok/s)"]
       },
       {
         id: 'IN-8', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
         shortLabel: '2.8 Sampler',
-        title: 'Sampler: Filtering Tail Junk & Picking the Winner',
+        title: 'Sampler: Shaping a Distribution & Selecting a Token',
         pos: [27.0, 0.4, 14.0],
         camOffset: [-6.4, 5.4, 8.2],
         labelY: 3.1,
@@ -1648,9 +1648,9 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFactSource: "DeepSeek-V4-Pro model card",
         what: 'A 4-tier mechanical sorter with a temperature tilt plate, a Top-p/k sieve that shunts low-probability words into a red discard bin, a JSON grammar stencil, and a stop-latch.',
         doing: 'For the illustrated p = 0.95, probabilities of 64%, 18%, 9% and 4% form the nucleus. Renormalize those four and draw one token.',
-        narrative: "The model outputs 129,280 candidate scores (DeepSeek-V4-Pro’s vocabulary)—most are junk. The Sampler chops off the long tail (Top-p / Top-k), applies a finite-state-machine mask if you requested strict JSON, picks one winning token, and checks whether to stop or emit a tool call.",
+        narrative: "The model outputs 129,280 vocabulary scores. Temperature and optional top-p/top-k filtering shape the sampling distribution. Supported constrained-decoding modes can restrict valid next tokens to satisfy a JSON schema. Ordinary tool calls still need validation. DeepSeek’s hosted API and local serving engines can support different controls.",
         equation: "probs = softmax( apply_json_mask(logits / temp) );  candidates = keep_top_p(probs, p)   // p = 0.95 is a typical setting\nnext_id = random_pick(candidates)",
-        subs: ['Temperature (Creativity Dial)', 'Drops Low-Prob Tail (Top-p/k)', 'Enforces JSON / Tool Syntax', 'Checks Stop & Tool Triggers']
+        subs: ['Temperature (Probability Sharpness)', 'Drops Low-Prob Tail (Top-p/k)', 'Supported JSON Constraints; Validate Tools', 'Checks Stop & Tool Triggers']
       },
       {
         id: 'IN-9', realm: 'INFERENCE', role: 'PIPELINE', realmTitle: 'Phase 2 · Inference Serving',
@@ -1663,8 +1663,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "Byte-level BPE: one character can span several tokens",
         keyFactSource: "illustrative",
         what: "A dual-spool ribbon printer with a side stripper arm that catches hidden control tags like <|end|> while printing readable text into a holding buffer.",
-        doing: "Looks up the winning token ID to get its UTF-8 bytes, strips non-printable control tags into a side tray, holds back partial multi-byte characters until they are complete, and hands the buffered text to the output guardrail (IN-10). Nothing is sent to the client yet.",
-        narrative: "By this step, sampling is done—only the winning token ID arrives here. Detokenize reverses the lexer and buffers the text. The safety check (IN-10) comes next, and only then are chunks flushed to your UI as Server-Sent Events (SSE).",
+        doing: "Looks up the winning token ID to get its UTF-8 bytes, strips non-printable control tags into a side tray, holds back partial multi-byte characters until they are complete, and hands buffered text to the pictured output middleware (IN-10). This example checks chunks before sending them.",
+        narrative: "By this step, sampling is done—only the winning token ID arrives here. Detokenize reverses the lexer and buffers the text. In the pictured deployment, an optional output check (IN-10) runs before chunks are flushed to your UI as Server-Sent Events (SSE).",
         equation: "text_delta = strip_control_tags( VOCAB[winning_id] );  buffer.append(text_delta);  // -> IN-10 check, then sse_stream.flush()",
         subs: ["Reverse ID-to-Text Lookup", "Strips Hidden Control Tags", "Buffers Multi-Byte UTF-8", "Hands Text to Guardrail (IN-10)"]
       },
@@ -1676,11 +1676,11 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         camOffset: [-6.2, 5.2, 8.2],
         labelY: 2.5,
         assembly: 'Optical Safety Prism + Dual-Reel Audit Recorder',
-        keyFact: "Output checks run on buffered chunks and can cut the stream off",
+        keyFact: "Illustrative deployment: buffered output checks can stop a stream",
         keyFactSource: "illustrative",
         what: "The final outbound middleware—a frosted inspection prism with a side PII redaction tray, a flush valve to the client, and a dual-reel audit recorder.",
-        doing: "Runs the streaming output check on the buffered text (policy violations, leaked PII/secrets). Clean text is then flushed to the client over SSE; a flagged chunk can be redacted, or the whole stream can be cut off. Also logs latency and billing token counts.",
-        narrative: "Just like response middleware in any enterprise API: chunks are checked first, then streamed to the user. If a check fails mid-stream, the server can stop the stream (text already sent cannot be recalled, so checks run on a small look-ahead buffer). Token usage plus TTFT/TPOT latency are recorded for billing and observability.",
+        doing: "This illustrative middleware checks buffered text for configured policy violations or sensitive content before SSE delivery. It can redact or stop a flagged chunk and record latency and token counts. These safeguards are deployment choices and cannot guarantee detection of every violation.",
+        narrative: "An application or provider may add output checks before streaming. A small look-ahead buffer can reduce exposure, but increases latency; text already sent cannot be recalled. The pictured audit recorder represents optional telemetry, not a claim about DeepSeek’s internal logging or PII-redaction pipeline.",
         equation: "verdict = output_check(buffer);  if (verdict.ok) sse_stream.flush(buffer); else cut_stream();\nlog_metrics({ ttft, tpot, input_tok, output_tok });",
         subs: ["Streaming Output Check", "Flush to SSE / Cut Stream", "PII / Secret Redaction", "Latency & Billing Logs"]
       },
@@ -1695,10 +1695,10 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
         keyFact: "Stop reason tool_use: client app / MCP server runs the tool (or provider runs hosted tools)",
         keyFactSource: "2026 frontier APIs & MCP",
         what: "A detached side workbench connected to the Sampler and Decode loop by an orbital rail—representing the client application’s tool runner: code sandboxes, SQL queries, or REST APIs.",
-        doing: "When the model emits a tool call, generation STOPS (stop reason tool_use) and the response returns to your client application. Your app runs the tool and sends a NEW request containing the result. The server hits its prefix cache on the earlier context, prefills only the new tool-result tokens, then decodes again. Variant: with server-side hosted tools (code execution, web search), the provider runs the tool for you.",
-        narrative: "Models can’t query live databases or run code natively. Tool calling is a two-request round trip, not a paused function call: the model writes the call and stops; your backend executes it; the next request carries the result. Thanks to prefix caching, only the new tool-result tokens are prefilled. Results are never appended straight into the KV cache without a prefill pass.",
-        equation: "resp = POST(messages)   // stop_reason == \"tool_use\"\nresult = run_tool(resp.tool_call)   // client side\nresp2 = POST(messages + [tool_call, result])   // prefix-cache hit, prefill only the new tokens",
-        subs: ["Emits Tool Call, Generation Stops", "Client App Runs the Tool", "New Request Carries the Result", "Prefix-Cache Hit, Prefill New Tokens", "Hosted Tools: Provider Runs It"]
+        doing: "For a client tool in the Messages API, a tool-use block and stop_reason: tool_use return control to the application. Your app invokes the tool, possibly through an MCP server, and sends a new request with the complete assistant content and matching tool results. The service can reuse eligible cached prefix state. Provider-hosted tools may execute server-side.",
+        narrative: "For this stateless client-tool flow, the model proposes a call; your backend executes it; a new Messages request carries the result and conversation history. Reuse requires an available matching cache prefix. DeepSeek-V4 may recompute incomplete compression tails or sliding-window state even on a hit. Newly added tool-result tokens still need model processing.",
+        equation: "resp = messages_api(messages)   // stop_reason == \"tool_use\"\nresult = run_tool(resp.tool_use)   // client side\nresp2 = messages_api(history_with_tool_use_and_tool_result)   // cache reuse when eligible",
+        subs: ["Emits Tool Call, Generation Stops", "Client App Runs the Tool", "New Request Carries the Result", "Eligible Prefix Reuse + Suffix Prefill", "Hosted Tools: Provider Runs It"]
       },
       {
         id: 'IN-12', realm: 'INFERENCE', role: 'SUPPORT', realmTitle: 'Phase 2 Support · Speed & Memory Engine',
@@ -1814,20 +1814,20 @@ let gantryShell=null;
         badge: 'PHASE 1 · TRAINING',
         badgeClass: 'copper',
         steps: [
-          'ETL & Lexing: Raw books, text, and images are scrubbed of duplicates/PII in TR-1; in TR-2 text is sliced into integer BPE token IDs and images go through a vision encoder.',
+          'ETL & Lexing: The illustrative pipeline filters and deduplicates text in TR-1, then converts it to BPE IDs in TR-2. The optional image branch represents vision-language models; DeepSeek-V4-Pro is text-only.',
           'Learning Loop: TR-3 runs tokens through the center Model Core to guess the next word; the cross-entropy error flows backward as copper waves so the optimizer tweaks billions of float weights.',
           'Scaling & Alignment: The GB200 NVL72 example cluster (TR-7) shards compute with Muon and AdamW while Mid-Training (TR-4) stretches context to 1M tokens and Post-Training (TR-5) trains GRPO specialists then unifies them via On-Policy Distillation.',
-          'CI/CD Release Gate: TR-6 runs coding benchmarks and safety red-teaming (evals also run during training); a candidate that clears the thresholds and gets human sign-off is frozen (read-only) and shipped to Production Serving.'
+          'CI/CD Release Gate: The illustrative TR-6 gate runs benchmarks and safety checks; deployments may require thresholds and human approval before shipping frozen serving weights. This gate is not a documented DeepSeek release checklist.'
         ]
       },
       FORWARD: {
         badge: 'PHASE 2 · INFERENCE',
         badgeClass: 'teal',
         steps: [
-          'API Request & Lexing: Your prompt passes gateway auth and abuse checks (IN-2); your app’s history/RAG/tools are rendered through the provider’s chat template (IN-3); the text is split into token IDs (IN-4).',
-          'Batch & Prefill: The Scheduler (IN-5) and Serving Opts (IN-12) pack requests; Prefill (IN-6) runs the entire prompt in parallel through the read-only center Core (MD-1 → MD-4) to warm up the KV cache.',
+          'API Request & Lexing: Your prompt passes gateway authentication and optional abuse checks (IN-2); your app’s history/RAG/tools are rendered through the provider’s chat template (IN-3); the text is split into token IDs (IN-4).',
+          'Batch & Prefill: The Scheduler (IN-5) and Serving Opts (IN-12) pack requests; Prefill (IN-6) processes known positions in parallel through each layer of the read-only Core (MD-1 → MD-4), possibly in chunks, to populate attention state.',
           'Autoregressive Decode: Logits return to Decode (IN-7); the Sampler (IN-8) filters tail tokens, picks one winner, and loops it back through Decode into the Core (MD-1) for the next tick.',
-          'Buffer, Check & Stream: Detokenize (IN-9) turns the chosen token ID back into UTF-8 text and buffers it; the output guardrail (IN-10) checks it, and only then is it flushed to your app over SSE.'
+          'Buffer, Check & Stream: Detokenize (IN-9) turns the chosen token ID back into UTF-8 text and buffers it; the pictured optional output guardrail (IN-10) checks it before SSE delivery.'
         ]
       },
       RLVR: {
@@ -1846,7 +1846,7 @@ let gantryShell=null;
         steps: [
           'Tool Call Emitted: The Sampler (IN-8) emits a tool call and the stop reason is tool_use, so Decode (IN-7) STOPS and the response goes back to your client application.',
           'Client Runs the Tool: Your app (the Sandbox Workbench, IN-11) executes real code, SQL, or REST APIs and stamps out a structured JSON result. With hosted tools, the provider runs this step instead.',
-          'New Request: That emerald JSON result glides back along the return rail inside a NEW request; the server hits its prefix cache on the earlier context and prefills only the new tool-result tokens.',
+          'New Request: That emerald JSON result glides back along the return rail inside a NEW request; the server reuses an available matching prefix and processes the unmatched suffix plus any required state-reconstruction tail.',
           'Resume Generation: With the result prefilled, the Decode clockwork (IN-7) ticks tokens out again, through the Detokenizer (IN-9) and the output guardrail (IN-10).'
         ]
       }
@@ -4628,7 +4628,7 @@ let gantryShell=null;
         [21.2,  -8.4, 'IN-4',  'FAST BPE LEXER',    'right'],
         [21.2,  -2.8, 'IN-5',  'CONT. SCHEDULER',   'right'],
         [21.2,   2.8, 'IN-6',  'PARALLEL PREFILL',  'right'],
-        [21.2,   8.4, 'IN-7',  'DECODE (1 TOK/S)',  'right'],
+        [21.2,   8.4, 'IN-7',  'DECODE (1 TOK/STEP)',  'right'],
         [21.2,  14.0, 'IN-8',  'TOP-P / GRAMMAR',   'right'],
         [21.2,  19.6, 'IN-9',  'DETOK & BUFFER',    'right'],
         [21.2,  25.2, 'IN-10', 'GUARDRAIL & SSE',   'right'],

@@ -572,7 +572,7 @@ const TAGS = {
   grad: ['gradients', () => V3(State.tower.x + 2.1, 4.4, 0)], ctx: ['ctx', () => Cluster.bracketLeft().add(V3(0, 1.1, 0))],
   verifier: ['verifier', () => V3(X_POST + 7.2, 6.6, -4.1)], ref: ['reference model', () => V3(X_POST - 6, TOWER_TOP + .4, -3.6)], cons: ['constitution', () => V3(X_POST + 3.8, 2.95, -5.6)],
   evals: ['pre-deployment evals', () => V3(X_REL + .3, 16.3, 0)],
-  screen: ['your app', () => V3(X_SCREEN + 2.7, 4.2, 0)], backtrack: ['every request carries everything', () => V3(X_INTAKE + 14, .2, Z_BACK)],
+  screen: ['your app', () => V3(X_SCREEN + 2.7, 4.2, 0)], backtrack: ['app resends conversation context', () => V3(X_INTAKE + 14, .2, Z_BACK)],
   intake: ['template · classifiers · tokenizer', () => V3(X_INTAKE + .6, 1.45, 0)],
   cache: ['cached prefix', () => V3(X_INTAKE + 3.6, 1.0, .9)], others: ['other users’ requests', () => V3(X_INTAKE + 6, .95, 1.55)],
   embed: ['one row of the embedding table', () => V3(X_TOWER - 1.4, 1.5, 3.2)], rod: ['residual stream', () => V3(X_TOWER + .05, clamp(State.bead.pos.y - 1.6, 2, 11), .05)],
@@ -580,7 +580,7 @@ const TAGS = {
   blocks: ['compressed blocks', () => Callouts.anchors.blocks()], window: ['window · 128', () => Callouts.anchors.window()], indexer: ['indexer picks top-k', () => Callouts.anchors.indexer()],
   router: ['router', () => Callouts.anchors.router()], shared: ['shared expert', () => Callouts.anchors.shared()], experts: ['6 of 384 routed experts', () => Callouts.anchors.experts()],
   layers: ['61 layers', () => V3(X_TOWER - 1.65, 9, 1.65)], lmhead: ['LM head · 129,280 scores', () => V3(X_TOWER, HEAD_Y + 2.3, .2)], mtp: ['MTP draft head', () => V3(X_TOWER + .1, HEAD_Y + .9, -1.05)],
-  kv: ['KV cache', () => V3(X_TOWER + 4.4, 1.8, 2.7)], thinking: ['thinking', () => V3(X_TOWER + 7.5, 1, -1.8)], notret: ['not returned', () => V3(X_STREAM - 2.6, 1.1, -1.8)],
+  kv: ['KV cache', () => V3(X_TOWER + 4.4, 1.8, 2.7)], thinking: ['illustrative thinking', () => V3(X_TOWER + 7.5, 1, -1.8)], notret: ['raw reasoning encrypted', () => V3(X_STREAM - 2.6, 1.1, -1.8)],
   sampler: ['sampler', () => V3(X_SAMPLE, 2.05, 0)], outcls: ['output classifiers', () => V3(X_STREAM, 1.35, 0)],
   bench: ['get_weather · your code', () => V3(X_BENCH, 1.45, Z_BACK - 2.6)], compact: ['compacted history', () => V3(X_INTAKE + 3.2, .9, 0)],
 };
@@ -767,8 +767,28 @@ function update(state, aspect, viewportWidth) {
     offset.setLength(distance * .48);
     offset.y = distance * .88;
   } else if (!state.opening && state.present && aspect < 0.9) {
-    offset.multiplyScalar(Math.min(1.62, Math.sqrt(1.28 / Math.max(0.5, aspect))));
-    target.x = lerp(target.x, S.tower.x, 0.22);
+    // Frame the tracked token together with this beat's explanatory anchors.
+    // A landscape shot's fixed target can put the token beyond a portrait edge.
+    const points = [];
+    if (bead.visible) {
+      const half = V3(TOKW * scale / 2, .34 * scale / 2, .34 * scale / 2);
+      for (let corner = 0; corner < 8; corner++) points.push(S.bead.pos.clone().add(V3(
+        corner & 1 ? half.x : -half.x, corner & 2 ? half.y : -half.y, corner & 4 ? half.z : -half.z)));
+    }
+    for (const tag of b.tags || []) if (TAGS[tag]) points.push(TAGS[tag][1]());
+    if (!points.length) points.push(target.clone());
+    target.copy(new THREE.Box3().setFromPoints(points).getCenter(V3(0, 0, 0)));
+    const back = offset.clone().normalize();
+    const right = V3(0, 1, 0).cross(back).normalize();
+    const up = back.clone().cross(right);
+    const tanV = Math.tan(THREE.MathUtils.degToRad(b.fov || 30) / 2);
+    let distance = offset.length();
+    for (const point of points) {
+      const relative = point.clone().sub(target);
+      distance = Math.max(distance, relative.dot(back) + Math.abs(relative.dot(right)) / (tanV * aspect * .82),
+        relative.dot(back) + Math.abs(relative.dot(up)) / (tanV * .72));
+    }
+    offset.setLength(distance);
   } else if (!state.opening && (state.camera === 'close' || compact)) {
     offset.multiplyScalar(compact ? .79 : .69);
   }
@@ -776,6 +796,9 @@ function update(state, aspect, viewportWidth) {
   if (b.A && !state.opening && !state.recap && !compact) {
     offset.multiplyScalar(Math.max(1, Math.sqrt(b.A / aspect)));
   }
+  // Fitting always starts from the same projection, including after resize or
+  // leaving the corpus close-up. Do not measure through the previous fit.
+  camera.zoom = 1;
   camera.fov = state.opening ? 34 : (b.fov || 30);
   camera.aspect = aspect;
   camera.position.copy(target).add(offset);

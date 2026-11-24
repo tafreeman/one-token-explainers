@@ -19,6 +19,30 @@ test('BPE consumes every byte once, preserves unknown scripts and reuses stable 
   assert.ok(sample.merges.every(m => m.count === 2));
 });
 
+test('teaching BPE agrees with an independent lowest-rank pair search', () => {
+  const pieceId = new Map(lab.pieces.map((bytes, id) => [bytes.join(','), id]));
+  const rank = new Map(lab.pieces.slice(256).map((bytes, i) => {
+    const left = pieceId.get(bytes.slice(0, -1).join(','));
+    return [left + ',' + bytes.at(-1), 256 + i];
+  }));
+  function reference(text) {
+    const ids = [...new TextEncoder().encode(text)];
+    for (;;) {
+      let at = -1, best = Infinity;
+      for (let i = 0; i < ids.length - 1; i++) {
+        const candidate = rank.get(ids[i] + ',' + ids[i + 1]);
+        if (candidate < best) {best = candidate; at = i;}
+      }
+      if (at < 0) return ids;
+      ids.splice(at, 2, best);
+    }
+  }
+  const samples = [' The', 'The', ' café!', ' café', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'x', '  '];
+  for (const a of samples) for (const b of samples) {
+    assert.deepEqual(lab.tokenize(a + b).ids, reference(a + b), a + b);
+  }
+});
+
 test('every SSE split preserves UTF-8 and only a complete blank line dispatches text', () => {
   const text = ' The café 🚀\n你好 "data:"';
   const total = lab.streamPrefix(text, 0).length;
@@ -116,6 +140,25 @@ test('MoE capacity factor preserves routed+dropped conservation and drops tokens
   assert.ok(collapsed.dropped > 0);
 });
 
+test('capacity counts actual expert assignments across the 384-expert batch', () => {
+  for (const k of [1, 3, 6, 8]) for (const bias of [0, .3, .44, .45, .5, 1]) {
+    const s = lab.moeCapacity(k, bias);
+    const expected = Array(384).fill(0);
+    for (let token = 0; token < 24; token++) {
+      for (const {id} of lab.routeExperts(k, bias, token)) expected[id]++;
+    }
+    assert.equal(s.capPerExpert, Math.ceil(1.25 * 24 * k / 384));
+    assert.deepEqual(s.loads, expected);
+    assert.equal(s.total, expected.reduce((a, b) => a + b, 0));
+    assert.equal(s.dropped, expected.reduce((n, load) => n + Math.max(0, load - s.capPerExpert), 0));
+    assert.equal(s.routed + s.dropped, s.total);
+  }
+  assert.equal(lab.moeCapacity(6, 0).dropped, 138);
+  assert.equal(lab.moeCapacity(6, 1).dropped, 0);
+  const empty = lab.moeCapacity(6, 1, 1.25, 0);
+  assert.equal(empty.total, 0); assert.equal(empty.hotShare, 0);
+});
+
 test('Prefix cache hit rate collapses on token 1 edit and is monotonic across edit position', () => {
   const warm = lab.prefixCache(null);
   const bust = lab.prefixCache(0);
@@ -132,6 +175,12 @@ test('PD-disaggregation off models 64K prefill stall spiking decode ITL', () => 
   assert.equal(sep.stallMs, 0);
   assert.equal(sep.peakItlMs, sep.baseItlMs);
   assert.ok(coloc.stallMs > 200 && coloc.peakItlMs > coloc.baseItlMs * 10);
+  for (const s of [sep, coloc]) {
+    const gaps = s.decodeTimesMs.slice(1).map((t, i) => t - s.decodeTimesMs[i]);
+    assert.equal(Math.max(...gaps), s.peakItlMs);
+    assert.equal(s.prefillStartMs, 36);
+    assert.ok(s.decodeTimesMs.every(t => t >= 0 && t <= 450));
+  }
 });
 
 test('3-bound roofline adds NVLink EP All-to-All ceiling without altering dense single-GPU ridge', () => {
@@ -142,6 +191,33 @@ test('3-bound roofline adds NVLink EP All-to-All ceiling without altering dense 
   assert.ok(ep64.nvlinkCeiling > 0 && ep64.nvlinkCeiling < 10);
   assert.equal(ep64.prefill.bound, 'NVLink EP All-to-All');
   assert.ok(ep64.prefill.pflops <= ep64.nvlinkCeiling + 1e-9);
+});
+
+test('EP roofline compares FLOPs and bytes for the same top-six SwiGLU workload per GPU', () => {
+  const d = 7168, m = 3072, k = 6;
+  const r = lab.roofline(4096, 1, 64);
+  const s = r.prefill;
+  assert.equal(r.peakPflops, 5);
+  assert.equal(r.ridge, 625);
+  assert.equal(s.flops, 6 * k * d * m * 4096);
+  assert.equal(s.nvBytes, 4 * k * d * 4096 * (63 / 64));
+  assert.equal(s.hbmBytes, .5 * 3 * d * m * 6 + 4 * k * d * 4096);
+  close(s.intensity, s.flops / s.hbmBytes);
+  close(r.nvlinkCeiling, (s.flops / s.nvBytes) * 900e9 / 1e15);
+  const dense = lab.roofline(4096, 1);
+  assert.equal(dense.peakPflops, 10);
+  assert.equal(dense.prefill.flops, 2 * d * d * 4096);
+  assert.equal(dense.prefill.hbmBytes, .5 * d * d + 4 * d * 4096);
+  assert.equal(dense.prefill.nvBytes, 0);
+});
+
+test('Muon singular-value polynomial is scale-invariant and preserves zero updates', () => {
+  const {muonSpectrum} = require('../journey-story/component-math.js');
+  const input = [1.45, .82, .48, .27, .14];
+  const result = muonSpectrum(input);
+  assert.ok(result.every(x => Math.abs(x - 1) < .001));
+  muonSpectrum(input.map(x => x * 1e100)).forEach((x, i) => close(x, result[i]));
+  assert.deepEqual(muonSpectrum([0, 0]), [0, 0]);
 });
 
 test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline stage sync', () => {
@@ -195,10 +271,10 @@ test('scene focus messages trust only the parent window and its paired origin', 
   }
 });
 
-test('lab code and offline bridge stay below 40 KB together; Swiss stays independent', () => {
+test('lab and bridge stay below 41 KB with workload and timing explanations; Swiss stays independent', () => {
   const size = ['micro-labs.js', 'obs-file-bridge.js'].reduce((sum, f) =>
     sum + statSync(path.join(root, 'shared', f)).size, 0);
-  assert.ok(size < 40000, size);
+  assert.ok(size < 41000, size);
   assert.doesNotMatch(readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8'), /micro-labs/);
 });
 

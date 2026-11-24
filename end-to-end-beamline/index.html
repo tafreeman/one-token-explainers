@@ -245,7 +245,7 @@ html.watch-mode .cam-bar{display:inline-flex}
     <div class="lede">
       <h1 id="h1">One token, end to end.</h1>
       <p>How a frontier LLM is made and served, drawn as one line of stations. The subject is Claude Fable 5.2. Follow the token <span class="tokref">“ Paris”</span> from a training document to a streamed reply.</p>
-      <p class="facts"><span>1M-token context</span><span>128K output</span><span>thinking always on</span><span>tools</span><span>prompt caching</span><i class="src">Anthropic</i></p>
+      <p class="facts"><span>1M-token context</span><span>128K output</span><span>adaptive thinking enabled</span><span>tools</span><span>prompt caching</span><i class="src">Anthropic</i></p>
       <div class="actions">
         <a class="btn" href="#part-1" data-jump="p1">Follow the token
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v11M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
@@ -259,7 +259,7 @@ html.watch-mode .cam-bar{display:inline-flex}
   <section class="part" id="part-1" aria-labelledby="p1-h">
     <div class="opener beat" data-beat="p1" data-layout="aside">
       <h2 id="p1-h">Make the data.</h2>
-      <p>Months before your request. Trillions of tokens of text, code and images are gathered, cleaned and cut into pieces from a fixed vocabulary.</p>
+      <p>Months before your request, text and code are gathered, cleaned and encoded using a fixed vocabulary. Image inputs follow their own visual preprocessing path.</p>
       <p class="where"><i></i>Stations 1–2 · corpus and tokenizer</p>
     </div>
 
@@ -271,21 +271,21 @@ html.watch-mode .cam-bar{display:inline-flex}
 
     <article class="step beat" data-beat="1b">
       <h3>Copies out, junk out</h3>
-      <p>Near-duplicate documents are hashed and dropped, so nothing is memorised from a thousand copies. Classifiers remove low-quality, unsafe and private text, then the mix is reweighted so no single source dominates. In this drawing, a share of the stream falls into the tray at the gate.</p>
+      <p>Common data pipelines find and remove near-duplicates, reducing repeated exposure and the risk of memorised output. Filters aim to reduce low-quality, unsafe and private text, then the source mix is adjusted. These methods are imperfect, and Claude’s exact pipeline is not published. In this drawing, rejected documents fall into the tray.</p>
       <code class="eq">docs = reweight( filter( dedupe(raw) ) )</code>
       <table class="spec"><tr><td>Share dropped</td><td>shown, not measured</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="1c">
       <h3>Cut into tokens</h3>
-      <p>A byte-level BPE tokenizer cuts text into pieces from a fixed vocabulary. Frequent words become one piece, and the leading space travels with the word, so our token is <span class="tokref">“ Paris”</span>, space included. Rare words split into several pieces, which is why the tiles have different lengths. Each piece becomes one integer ID.</p>
+      <p>A byte-level BPE tokenizer learns merge rules while its vocabulary is built, then applies those rules to new text. Common words can be single pieces, sometimes including a leading space. This illustration treats <span class="tokref">“ Paris”</span> as one piece and one integer ID; its segmentation and ID are example values.</p>
       <code class="eq">ids = tokenizer.encode(" Paris")    # one token, one ID</code>
       <table class="spec"><tr><td>Vocabulary</td><td>129,280</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 tokenizer</td><td>introduced with Opus 4.7</td><td><i class="src">Anthropic</i></td></tr><tr><td>ID of “ Paris”</td><td>12842</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="1d">
       <h3>Images take a different road</h3>
-      <p>Claude also reads images. A vision encoder cuts each image into square patches and turns every patch into a vector, so an image enters the model as embeddings, not token IDs.</p>
+      <p>Claude processes image inputs as visual patches. This drawing represents patch encodings as vectors alongside text; its encoder layout is illustrative, because Anthropic does not publish the full vision architecture.</p>
       <table class="spec"><tr><td>Inputs</td><td>text, images, documents</td><td><i class="src">Anthropic</i></td></tr><tr><td>Vision encoder design</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
   </section>
@@ -303,12 +303,12 @@ html.watch-mode .cam-bar{display:inline-flex}
       <h3>Guess the next token</h3>
       <p>At every position in every sequence, the tower is asked what comes next. A causal mask lets each position see only earlier tokens, so a whole sequence trains in one parallel pass. After “…the Eiffel Tower is in”, the right answer is <span class="tokref">“ Paris”</span>. The bars on top are the model’s scores for every vocabulary entry.</p>
       <code class="eq">loss = −log p(" Paris" | "…the Eiffel Tower is in")</code>
-      <table class="spec"><tr><td>Training sequence</td><td>65,536 tokens</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Layers</td><td>61</td><td><i class="src rep">DeepSeek‑V4</i></td></tr></table>
+      <table class="spec"><tr><td>Training sequence stages</td><td>4K → 16K → 64K → 1M</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Layers</td><td>61</td><td><i class="src rep">DeepSeek‑V4</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="2b">
       <h3>Gradients run back down</h3>
-      <p>The loss flows back down the same layers as gradients, drawn as copper rings, and every weight takes a small step. This is where the training copy of <span class="tokref">“ Paris”</span> ends. It survives only as tiny changes spread across the weights. A multi-token-prediction layer adds a second loss for the token after next.</p>
+      <p>The loss is differentiated through the active computation, producing gradients, drawn as copper rings; the optimizer updates trainable weights. This is where the training copy of <span class="tokref">“ Paris”</span> ends. It survives only as tiny changes spread across the weights. A multi-token-prediction layer adds a second loss for the token after next.</p>
       <code class="eq">W ← W − η · Muon(∇W)    # AdamW for embeddings, head and norms</code>
       <table class="spec"><tr><td>Optimizer</td><td>Muon + AdamW</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Multi-token prediction</td><td>1 extra layer</td><td><i class="src rep">DeepSeek‑V4</i></td></tr></table>
     </article>
@@ -321,7 +321,7 @@ html.watch-mode .cam-bar{display:inline-flex}
 
     <article class="step beat" data-beat="2d">
       <h3>Then, a longer memory</h3>
-      <p>Late in training, the context window is stretched. Rescaling the rotary position encoding (YaRN) lets a model trained on 64K-token sequences address a million positions. The bracket on the line is the window.</p>
+      <p>The representative model trains at progressively longer sequence lengths: 4K, 16K, 64K, then 1M tokens. Its YaRN configuration rescales a 65,536-position base window by 16 to address 1,048,576 positions; that configuration is not the complete training schedule. Long-context training teaches the model to use the extended range.</p>
       <code class="eq">rope_scaling = { type: "yarn", factor: 16 }    # 65,536 → 1,048,576</code>
       <table class="spec"><tr><td>Fable 5.2 context</td><td>1M tokens</td><td><i class="src">Anthropic</i></td></tr><tr><td>Fable 5.2 max output</td><td>128K tokens</td><td><i class="src">Anthropic</i></td></tr><tr><td>Positions</td><td>1,048,576</td><td><i class="src rep">DeepSeek‑V4</i></td></tr></table>
     </article>
@@ -333,7 +333,7 @@ html.watch-mode .cam-bar{display:inline-flex}
       <h2 id="p3-h">Tune it, test it, ship it.</h2>
       <p>Post-training teaches the base model to follow instructions, reason and decline harm. Then evaluations decide whether it leaves the training floor.</p>
       <p class="where"><i></i>Stations 4–5 · post-training and release</p>
-      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>thinking always on, effort levels</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>the SFT → GRPO → distillation recipe</i></span></p>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>adaptive thinking enabled, effort levels</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>the SFT → GRPO → distillation recipe</i></span></p>
     </div>
 
     <article class="step beat" data-beat="3a">
@@ -345,13 +345,13 @@ html.watch-mode .cam-bar{display:inline-flex}
     <article class="step beat" data-beat="3b">
       <h3>Then, many tries</h3>
       <p>For a prompt with a checkable answer, the model samples a group of attempts and verifiers grade them: the tests pass, the final answer matches. Each score is compared with the group mean. Above-average attempts (solid) are reinforced, and below-average ones (dashed) are discouraged, so no separate value model is needed.</p>
-      <code class="eq">A_i = (r_i − mean(r)) / std(r)</code>
+      <code class="eq">A_i = (r_i − mean(r)) / (std(r) + ε_std)</code>
       <div class="study-note">
         <p class="k">Study · the full GRPO objective</p>
         <code class="eq">J(θ) = E[ 1/G · Σ_i 1/|o_i| · Σ_t ( min( ρ_i,t · A_i ,  clip(ρ_i,t, 1 − ε, 1 + ε) · A_i )  −  β · KL(π_θ ‖ π_ref) ) ]
 ρ_i,t = π_θ(o_i,t | q, o_i,&lt;t) / π_old(o_i,t | q, o_i,&lt;t)
-A_i   = (r_i − mean(r)) / std(r)      # one advantage for every token of attempt i</code>
-        <p>The ratio ρ compares the policy being trained with the one that sampled the group. Clipping it to 1 ± ε caps how far one batch can push any token, and the KL term is the leash in the next step.</p>
+A_i   = (r_i − mean(r)) / (std(r) + ε_std)      # equal rewards give A_i = 0; ε_std &gt; 0</code>
+        <p>The ratio ρ compares the policy being trained with the one that sampled the group. Clipping limits the surrogate incentive to change sampled-token probabilities; it is not a hard bound on the policy update. The KL term is the additional penalty in the next step.</p>
         <table class="spec"><tr><td>Objective</td><td>PPO-clipped, group baseline</td><td><i class="src">DeepSeekMath ’24</i></td></tr></table>
       </div>
       <table class="spec"><tr><td>Method</td><td>GRPO</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Group size</td><td>8</td><td><i class="src ill">Illustrative</i></td></tr></table>
@@ -359,15 +359,15 @@ A_i   = (r_i − mean(r)) / std(r)      # one advantage for every token of attem
 
     <article class="step beat" data-beat="3c">
       <h3>Principles, and a leash</h3>
-      <p>For behaviour no test can check, Anthropic trains against a written constitution. The model’s own judgements against those principles become the reward: reinforcement learning from AI feedback. A KL penalty ties the policy to the frozen reference model, the outline at left, so it improves without drifting.</p>
+      <p>Anthropic’s published Constitutional AI approach uses written principles for behaviour that is difficult to grade automatically. AI comparisons help train a preference model used as a reward signal alongside human feedback. A KL penalty discourages divergence from a frozen reference model, the outline at left; it does not guarantee that reward hacking is prevented.</p>
       <code class="eq">maximise  E[r] − β · KL(π ‖ π_ref)</code>
       <table class="spec"><tr><td>Constitutional AI</td><td>Bai et al., 2022</td><td><i class="src">Anthropic</i></td></tr><tr><td>Claude’s constitution</td><td>published</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="3d">
       <h3>Thinking is trained too</h3>
-      <p>Reasoning is learned the same way: long chains of thought that end in verified answers earn the reward. That trained habit is why Fable 5.2 thinks before every answer, and why its effort setting can trade time for depth.</p>
-      <table class="spec"><tr><td>Thinking</td><td>always on</td><td><i class="src">Anthropic</i></td></tr><tr><td>Effort</td><td>low · medium · high · xhigh · max</td><td><i class="src">Anthropic</i></td></tr></table>
+      <p>In the representative training approach, verified answers provide rewards that can improve reasoning. This is not a published account of Fable 5.2’s training recipe. Its API keeps adaptive thinking enabled, and effort guides whether and how deeply the model reasons on a turn.</p>
+      <table class="spec"><tr><td>Adaptive thinking</td><td>enabled; reasoning varies by turn</td><td><i class="src">Anthropic</i></td></tr><tr><td>Effort</td><td>low · medium · high · xhigh · max</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="3e">
@@ -393,8 +393,8 @@ A_i   = (r_i − mean(r)) / std(r)      # one advantage for every token of attem
 
     <article class="step beat" data-beat="4a">
       <h3>One HTTP request</h3>
-      <p>You type “What’s the weather in Paris right now?”. Your app sends the conversation, the tools it offers and a system prompt to the Messages API. The API keeps no state between calls, so every request carries everything. Nothing in it changes the weights: it builds only temporary state, activations and a KV cache that end with the request, apart from any prefix the prompt cache keeps for reuse.</p>
-      <code class="eq">POST /v1/messages { model: "claude-fable-5-2", tools, system, messages }</code>
+      <p>You type “What’s the weather in Paris right now?”. Your app sends the conversation, the tools it offers and a system prompt to the Messages API. In this Messages API example, your app supplies the conversation context on each call. Nothing in it changes the weights: it builds only temporary state, activations and a KV cache that end with the request, apart from any prefix the prompt cache keeps for reuse.</p>
+      <code class="eq">POST /v1/messages { model: "claude-fable-5-2", cache_control: { type: "ephemeral" }, tools, system, messages }    # abridged; cache prefix ≥512 tokens</code>
       <table class="spec"><tr><td>Model ID</td><td>claude-fable-5-2</td><td><i class="src">Anthropic</i></td></tr><tr><td>Price per M tokens</td><td>$8 in · $40 out</td><td><i class="src">Anthropic</i></td></tr><tr><td>get_weather tool</td><td>defined by your app</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
@@ -406,14 +406,14 @@ A_i   = (r_i − mean(r)) / std(r)      # one advantage for every token of attem
 
     <article class="step beat" data-beat="4c">
       <h3>Check the prompt cache</h3>
-      <p>If an earlier request began with exactly the same bytes, its keys and values may still be cached. The longest matching prefix is reused (the doubled track) and only the rest is computed. Tools and system prompts rarely change, so they usually hit.</p>
+      <p>With prompt caching enabled, a matching prefix of at least 512 tokens can be reused at a cache boundary while its entry remains available. The doubled track assumes an eligible hit. The first eligible request writes the cache; later hits reuse it. Stable tools and system prompts can help preserve the prefix.</p>
       <code class="eq">hit = longest_cached_prefix(tools + system + messages)</code>
-      <table class="spec"><tr><td>Cache read</td><td>$0.20 per M</td><td><i class="src">Anthropic</i></td></tr><tr><td>Fresh input</td><td>$8 per M</td><td><i class="src">Anthropic</i></td></tr></table>
+      <table class="spec"><tr><td>Cache read</td><td>$0.20 per M</td><td><i class="src">Anthropic</i></td></tr><tr><td>5-minute cache write</td><td>$10 per M</td><td><i class="src">Anthropic</i></td></tr><tr><td>Uncached input</td><td>$8 per M</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="4d">
       <h3>Batched with strangers</h3>
-      <p>A scheduler admits requests while there is free KV-cache memory and re-forms the batch at every step, so new prompts join while other users are mid-reply. Your sequence shares the tower with theirs.</p>
+      <p>In the common serving design illustrated here, a scheduler re-forms batches at each iteration and admits work as memory and compute allow. New requests can join while others are mid-reply. Claude’s scheduler and cache layout are not published.</p>
       <code class="eq">batch = running_decodes ∪ next_prefill_chunk</code>
       <table class="spec"><tr><td>Scheduling</td><td>continuous batching</td><td><i class="src">Orca ’22</i></td></tr><tr><td>KV memory</td><td>paged blocks</td><td><i class="src">vLLM ’23</i></td></tr></table>
     </article>
@@ -457,7 +457,7 @@ H_res = SinkhornKnopp(·)    # doubly stochastic: rows and columns sum to 1</cod
 
     <article class="step beat" data-beat="5d">
       <h3>At a million tokens, look selectively</h3>
-      <p>Scoring a million keys for every new token is too slow. So older keys are compressed into blocks, a small lightning indexer picks the blocks that matter, and a sliding window keeps the most recent 128 tokens exact. The KV cache stores the compressed entries.</p>
+      <p>DeepSeek‑V4 reduces long-context attention work with two compressed branches. Compressed sparse attention (CSA) uses a lightning indexer to select entries; heavily compressed attention (HCA) reads more compressed summaries without that selection step. Both also read a recent window of 128 tokens.</p>
       <code class="eq">keys = window(128) ∪ top_k( indexer(q), k = 1,024 )</code>
       <table class="spec"><tr><td>Indexer top-k</td><td>1,024</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Sliding window</td><td>128 tokens</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>KV cache at 1M, sparse + heavily compressed layers, vs V3.2</td><td>10%</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Fable 5.2 attention</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
@@ -465,7 +465,9 @@ H_res = SinkhornKnopp(·)    # doubly stochastic: rows and columns sum to 1</cod
     <article class="step beat" data-beat="5e">
       <h3>Six experts out of 384</h3>
       <p>The feed-forward half of each layer is a mixture of experts. A router scores 384 routed experts, sends <span class="tokref">“ Paris”</span> to the top six, and mixes their outputs by its weights, while one shared expert always runs. That is why only 49B of 1.6T parameters work on any one token. The first few layers route by a fixed hash instead.</p>
-      <code class="eq">y = shared(x) + Σ_{i ∈ top6} g_i · expert_i(x)</code>
+      <code class="eq">y = shared(x) + Σ_{i ∈ selected} g_i · expert_i(x)
+g_i = 2.5 · s_i / Σ_{j ∈ selected} s_j
+# s_i = sqrt(softplus(router_i(x))); load-balance bias selects experts only</code>
       <table class="spec"><tr><td>Routed experts</td><td>384</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Active per token</td><td>6 + 1 shared</td><td><i class="src rep">DeepSeek‑V4</i></td></tr><tr><td>Parameters used</td><td>49B of 1.6T</td><td><i class="src rep">DeepSeek‑V4</i></td></tr></table>
     </article>
 
@@ -492,30 +494,30 @@ H_res = SinkhornKnopp(·)    # doubly stochastic: rows and columns sum to 1</cod
     </div>
 
     <article class="step beat" data-beat="6a">
-      <h3>Prefill: the whole prompt at once</h3>
-      <p>Every prompt token goes up the tower in one parallel pass. Prefill is compute-bound, and it writes each token’s keys and values into the KV cache, the yellow rack, including the entry for <span class="tokref">“ Paris”</span>. The prompt’s length sets the time to first token.</p>
+      <h3>Prefill: process known prompt positions</h3>
+      <p>Prefill processes prompt positions in parallel, often in chunks, while layers remain sequential. It is often compute-bound and builds attention state in the KV cache, the yellow rack. DeepSeek‑V4 stores compressed history alongside recent-token state. Prompt length, caching and serving load all affect time to first token.</p>
       <code class="eq">KV[0 … n] = prefill(prompt)</code>
-      <table class="spec"><tr><td>Prefill</td><td>compute-bound</td><td><i class="src">Pope ’22</i></td></tr><tr><td>KV cache in training</td><td>none</td><td><i class="src">Pope ’22</i></td></tr></table>
+      <table class="spec"><tr><td>Prefill</td><td>often compute-bound</td><td><i class="src">Pope ’22</i></td></tr><tr><td>KV cache in training</td><td>none</td><td><i class="src">Pope ’22</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="6b">
       <h3>Think before answering</h3>
-      <p>Fable 5.2 always thinks first. It generates reasoning tokens exactly like answer tokens, up the same tower, one at a time, and the effort setting decides how long it goes on. The raw chain of thought never leaves the server: the API returns a summary or nothing, which is why the hollow tiles stop short of your app.</p>
+      <p>Fable 5.2 keeps adaptive thinking enabled; the model decides whether and how much to reason on a turn. Reasoning tokens use the decode loop, and effort guides token use. Raw reasoning is never returned as readable text: thinking blocks carry an encrypted signature, with readable text omitted by default or summarized on request. Preserve those blocks unchanged during tool loops.</p>
       <code class="eq">thinking: { type: "adaptive", display: "summarized" }
 output_config: { effort: "high" }</code>
-      <table class="spec"><tr><td>Thinking</td><td>always on</td><td><i class="src">Anthropic</i></td></tr><tr><td>Default display</td><td>omitted</td><td><i class="src">Anthropic</i></td></tr><tr><td>Raw chain of thought</td><td>never returned</td><td><i class="src">Anthropic</i></td></tr></table>
+      <table class="spec"><tr><td>Adaptive thinking</td><td>enabled; reasoning varies by turn</td><td><i class="src">Anthropic</i></td></tr><tr><td>Default display</td><td>omitted</td><td><i class="src">Anthropic</i></td></tr><tr><td>Raw chain of thought</td><td>not readable; encrypted signature returned</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="6c">
       <h3>Decode: one token per step</h3>
-      <p>After the prompt, each new token needs its own pass up the tower, re-reading the weights and the whole KV cache, so decoding is memory-bound. The cache grows by one slice per token, so earlier tokens are never recomputed. With speculative decoding, a cheap draft, here the MTP head, proposes the next token and the full pass checks it.</p>
-      <code class="eq">x_t = forward(token_{t−1}, KV);    KV.append(k_t, v_t)</code>
+      <p>In basic autoregressive decode, each next token needs a forward pass that reads active weights and the cached history selected by attention. Decode is often memory-bound; its bottleneck depends on the workload. The cache is updated, while compressed history and local windows need not add one permanent entry per token. Speculative decoding can verify several draft tokens in one target pass.</p>
+      <code class="eq">logits_t, KV = forward_and_update_cache(token_{t−1}, KV)    # cache format depends on attention</code>
       <table class="spec"><tr><td>Speculative decoding</td><td>draft, then verify</td><td><i class="src">Leviathan ’23</i></td></tr><tr><td>Fable 5.2 decoding</td><td>not published</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="6d">
       <h3>Pick the next token</h3>
-      <p>The sampler turns the model’s probability distribution into a choice for the next token. Once thinking is done, the model writes a tool call. To fill in the city, it attends straight back to <span class="tokref">“ Paris”</span> in your prompt and writes <span class="tokref">Paris</span>, with no leading space after the quote mark, which makes it a different token ID.</p>
+      <p>The sampler turns the model’s probability distribution into a choice for the next token. Once thinking is done, the model writes a tool call. The prompt supplies the city name for the illustrated tool call. In this example’s segmentation, <span class="tokref">Paris</span> after the JSON quote has no leading space and has a different ID from <span class="tokref">“ Paris”</span>.</p>
       <code class="eq">{"type":"tool_use","name":"get_weather","input":{"city":"Paris"}}</code>
     </article>
 
@@ -531,7 +533,7 @@ output_config: { effort: "high" }</code>
   <section class="part" id="part-7" aria-labelledby="p7-h">
     <div class="opener beat" data-beat="p7" data-layout="aside">
       <h2 id="p7-h">Loop with tools.</h2>
-      <p>The reply was a tool call. Your app runs it, sends everything back, and the cache makes the second pass cheap.</p>
+      <p>The reply was a tool call. Your app runs it and sends the updated conversation back. An eligible cache hit can reduce repeated prefill work.</p>
       <p class="where"><i></i>Stations 10–11 · tool loop and reply</p>
     </div>
 
@@ -544,27 +546,27 @@ output_config: { effort: "high" }</code>
 
     <article class="step beat" data-beat="7b">
       <h3>Send it all again</h3>
-      <p>Because the API is stateless, your app sends the entire conversation back: the original prompt, the model’s tool call and the tool result, the green tile. The whole sequence rides the return track to the intake.</p>
-      <code class="eq">messages += [ assistant(tool_use), user(tool_result) ]</code>
-      <table class="spec"><tr><td>Server-side state</td><td>none between calls</td><td><i class="src">Anthropic</i></td></tr></table>
+      <p>In this Messages API example, your app sends the conversation again: the original prompt, the complete assistant response unchanged, including thinking signatures, and the tool result, the green tile. The sequence rides the return track to the intake.</p>
+      <code class="eq">messages += [ assistant(response.content), user(tool_result) ]</code>
+      <table class="spec"><tr><td>Conversation context here</td><td>supplied by your app</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="7c">
       <h3>Cache hit: compute only what’s new</h3>
-      <p>Everything up to the tool result matches the previous request byte for byte, so its KV entries are reused, shown by the doubled track. The old <span class="tokref">“ Paris”</span> doesn’t go up the tower again. Only the tool result is prefilled, and decoding carries on.</p>
+      <p>If an eligible matching prefix is still cached, it is reused, shown by the doubled track. New assistant and tool-result content forms the uncached suffix unless it was already cached. Reuse avoids repeating the matched prefix’s prefill; decoding then continues.</p>
       <table class="spec"><tr><td>Cached tokens</td><td>$0.20 per M</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="7d">
       <h3>The answer</h3>
-      <p>With the weather in context, the model thinks briefly and writes the reply. When it writes <span class="tokref">“ Paris”</span> this time, it is the same ID as the one in the prompt, space included. The loop ends when a reply stops with <span class="num">end_turn</span> rather than <span class="num">tool_use</span>.</p>
+      <p>With the weather in context, the model thinks briefly and writes the reply. In this illustrative segmentation, <span class="tokref">“ Paris”</span> has the same ID as in the prompt, space included. The loop ends when a reply stops with <span class="num">end_turn</span> rather than <span class="num">tool_use</span>.</p>
       <code class="eq">"It’s 18 °C and clear in Paris."    stop_reason: "end_turn"</code>
       <table class="spec"><tr><td>Reply text</td><td>example</td><td><i class="src ill">Illustrative</i></td></tr></table>
     </article>
 
     <article class="step beat" data-beat="7e">
       <h3>Long runs compact</h3>
-      <p>Agents can loop for hours. When a conversation nears its limit, server-side compaction, in beta, summarises earlier turns into one block so the run can continue inside the 1M-token window.</p>
+      <p>Agents can loop for hours. When enabled, server-side compaction (beta) summarizes earlier turns at a configurable threshold, 150K tokens by default, so the run can continue within the context window.</p>
       <table class="spec"><tr><td>Compaction</td><td>beta, server-side</td><td><i class="src">Anthropic</i></td></tr><tr><td>Window it protects</td><td>1M tokens</td><td><i class="src">Anthropic</i></td></tr></table>
     </article>
   </section>
@@ -585,7 +587,7 @@ output_config: { effort: "high" }</code>
       <thead><tr><th>Part</th><th>Claude Fable 5.2 · Anthropic</th><th>Drawn as · representative</th></tr></thead>
       <tbody>
         <tr><td>Context and output</td><td><span class="num">1M</span> tokens in, up to <span class="num">128K</span> out</td><td><span class="num">1,048,576</span> positions via YaRN ×16</td></tr>
-        <tr><td>Thinking</td><td>Always on; effort low to max; raw chain never returned</td><td>Trained with verifiable-reward RL</td></tr>
+        <tr><td>Thinking</td><td>Adaptive mode always enabled; effort low to max; readable reasoning summarized</td><td>Trained with verifiable-reward RL</td></tr>
         <tr><td>Layers and size</td><td>Not published</td><td><span class="num">61</span> layers, <span class="num">1.6T</span> parameters, <span class="num">49B</span> active</td></tr>
         <tr><td>Experts</td><td>Not published</td><td><span class="num">384</span> routed + <span class="num">1</span> shared, <span class="num">6</span> active</td></tr>
         <tr><td>Attention</td><td>Not published</td><td>Compressed sparse attention, top-k <span class="num">1,024</span>, window <span class="num">128</span>, plus heavily compressed layers</td></tr>
@@ -596,13 +598,14 @@ output_config: { effort: "high" }</code>
       </tbody>
     </table>
     <ul class="sources">
-      <li><b>Claude API documentation</b><span>Models, adaptive thinking and effort, tool use, prompt caching, streaming, stop reasons. Model table as of 2026-11-22. </span><a href="https://platform.claude.com/docs">platform.claude.com/docs</a></li>
-      <li><b>Anthropic system cards</b><span>Training-data description, pre-deployment evaluations.</span></li>
+      <li><b>Claude API documentation</b><span>Models, adaptive thinking and effort, tool use, prompt caching, streaming, stop reasons. Model table as of 2026-11-23. </span><a href="https://platform.claude.com/docs">platform.claude.com/docs</a></li>
+      <li><b>Anthropic system cards</b><span>Training-data description, pre-deployment evaluations. </span><a href="https://www.anthropic.com/system-cards">anthropic.com/system-cards</a></li>
       <li><b>Responsible Scaling Policy</b><span>Anthropic. </span><a href="https://www.anthropic.com/responsible-scaling-policy">anthropic.com/responsible-scaling-policy</a></li>
       <li><b>Constitutional AI: Harmlessness from AI Feedback</b><span>Bai et al., 2022. </span><a href="https://arxiv.org/abs/2212.08073">arXiv:2212.08073</a></li>
       <li><b>DeepSeek‑V4‑Pro config</b><span>Layers, hidden size, experts, attention, vocabulary, precision. </span><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro">huggingface.co/deepseek-ai/DeepSeek-V4-Pro</a></li>
       <li><b>DeepSeek‑V4 technical report</b><span>Parameters, CSA and HCA attention, mHC, Muon, 33T tokens, post-training. </span><a href="https://arxiv.org/abs/2606.19348">arXiv:2606.19348</a></li>
       <li><b>DeepSeekMath (GRPO)</b><span>Shao et al., 2024. </span><a href="https://arxiv.org/abs/2402.03300">arXiv:2402.03300</a></li>
+      <li><b>Byte-level BPE</b><span>Radford et al., GPT-2, 2019, §2.2. </span><a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">OpenAI technical report</a></li>
       <li><b>YaRN</b><span>Peng et al., 2023. </span><a href="https://arxiv.org/abs/2309.00071">arXiv:2309.00071</a></li>
       <li><b>Orca: continuous batching</b><span>Yu et al., OSDI 2022. </span><a href="https://www.usenix.org/conference/osdi22/presentation/yu">usenix.org</a></li>
       <li><b>PagedAttention (vLLM)</b><span>Kwon et al., 2023. </span><a href="https://arxiv.org/abs/2309.06180">arXiv:2309.06180</a></li>
@@ -1222,7 +1225,7 @@ const TAGS = {
   grad: ['gradients', () => V3(State.tower.x + 2.1, 4.4, 0)], ctx: ['ctx', () => Cluster.bracketLeft().add(V3(0, 1.1, 0))],
   verifier: ['verifier', () => V3(X_POST + 7.2, 6.6, -4.1)], ref: ['reference model', () => V3(X_POST - 6, TOWER_TOP + .4, -3.6)], cons: ['constitution', () => V3(X_POST + 3.8, 2.95, -5.6)],
   evals: ['pre-deployment evals', () => V3(X_REL + .3, 16.3, 0)],
-  screen: ['your app', () => V3(X_SCREEN + 2.7, 4.2, 0)], backtrack: ['every request carries everything', () => V3(X_INTAKE + 14, .2, Z_BACK)],
+  screen: ['your app', () => V3(X_SCREEN + 2.7, 4.2, 0)], backtrack: ['app resends conversation context', () => V3(X_INTAKE + 14, .2, Z_BACK)],
   intake: ['template · classifiers · tokenizer', () => V3(X_INTAKE + .6, 1.45, 0)],
   cache: ['cached prefix', () => V3(X_INTAKE + 3.6, 1.0, .9)], others: ['other users’ requests', () => V3(X_INTAKE + 6, .95, 1.55)],
   embed: ['one row of the embedding table', () => V3(X_TOWER - 1.4, 1.5, 3.2)], rod: ['residual stream', () => V3(X_TOWER + .05, clamp(State.bead.pos.y - 1.6, 2, 11), .05)],
@@ -1230,7 +1233,7 @@ const TAGS = {
   blocks: ['compressed blocks', () => Callouts.anchors.blocks()], window: ['window · 128', () => Callouts.anchors.window()], indexer: ['indexer picks top-k', () => Callouts.anchors.indexer()],
   router: ['router', () => Callouts.anchors.router()], shared: ['shared expert', () => Callouts.anchors.shared()], experts: ['6 of 384 routed experts', () => Callouts.anchors.experts()],
   layers: ['61 layers', () => V3(X_TOWER - 1.65, 9, 1.65)], lmhead: ['LM head · 129,280 scores', () => V3(X_TOWER, HEAD_Y + 2.3, .2)], mtp: ['MTP draft head', () => V3(X_TOWER + .1, HEAD_Y + .9, -1.05)],
-  kv: ['KV cache', () => V3(X_TOWER + 4.4, 1.8, 2.7)], thinking: ['thinking', () => V3(X_TOWER + 7.5, 1, -1.8)], notret: ['not returned', () => V3(X_STREAM - 2.6, 1.1, -1.8)],
+  kv: ['KV cache', () => V3(X_TOWER + 4.4, 1.8, 2.7)], thinking: ['thinking', () => V3(X_TOWER + 7.5, 1, -1.8)], notret: ['not readable', () => V3(X_STREAM - 2.6, 1.1, -1.8)],
   sampler: ['sampler', () => V3(X_SAMPLE, 2.05, 0)], outcls: ['output classifiers', () => V3(X_STREAM, 1.35, 0)],
   bench: ['get_weather · your code', () => V3(X_BENCH, 1.45, Z_BACK - 2.6)], compact: ['compacted history', () => V3(X_INTAKE + 3.2, .9, 0)],
 };
