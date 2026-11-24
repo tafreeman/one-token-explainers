@@ -108,7 +108,8 @@
   }
   function syncScroll() {
     raf = 0;
-    if (anchorPending || state.present || state.recap || playback.playing || inspector.isOpen) return;
+    if (anchorPending || state.present || state.recap || inspector.isOpen) return;
+    const narrating = playback.playing;
     // A step the reader just picked (Next, a stage tab, a link) stays put until they scroll on.
     if (performance.now() < holdSync) { lastScrollY = window.scrollY; return; }
     const y = readingLine();
@@ -125,12 +126,13 @@
     const lineTop = get('line')?.getBoundingClientRect().top ?? Infinity;
     const overview = !opening && lineTop <= y;
     if (state.index !== index || state.opening !== opening) {
-      playback.selectPosition(stops[index].id, opening);
+      if (narrating) playback.seekPosition(stops[index].id, opening, opening ? 0 : clamp((y - rect.top) / Math.max(1, rect.height), 0, .999));
+      else playback.selectPosition(stops[index].id, opening);
       if (location.hash.startsWith('#step-') && lastScrollY !== window.scrollY) recordHash('#step-' + stops[index].id);
     }
     lastScrollY = window.scrollY;
     Object.assign(state, {index, opening, overview, localT: opening ? 0 : clamp((y - rect.top) / Math.max(1, rect.height), 0, .999)});
-    sceneBeat = null;
+    if (!narrating) sceneBeat = null;
     draw();
   }
   function scheduleScroll() { if (!raf) raf = requestAnimationFrame(syncScroll); }

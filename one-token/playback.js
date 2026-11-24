@@ -206,6 +206,11 @@ window.ReaderPlayback = (() => {
       loaded = null;
       paint();
     }
+    function seekPosition(id, opening, localT = 0) {
+      const resume = playing;
+      selectPosition(id, opening, localT);
+      if (resume) start();
+    }
     select.addEventListener('change', () => {
       const resume = playing;
       const current = getPosition?.() || selection;
@@ -243,7 +248,7 @@ window.ReaderPlayback = (() => {
       if (playing) advance();
     });
     renderChapters();
-    return {pause, selectPosition, seekStage, get playing() { return playing; }};
+    return {pause, selectPosition, seekPosition, seekStage, get playing() { return playing; }};
   }
   return {create};
 })();

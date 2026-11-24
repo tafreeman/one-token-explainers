@@ -68,6 +68,19 @@ test('media ended advances even when actual duration is shorter than route metad
   assert.match(get('play-audio').textContent, /Pause narration/);
 });
 
+test('scroll-driven seeks preserve playback and the selected within-step position', () => {
+  const {get, audio, positions, player} = fixture();
+  player.selectPosition('7.1', false, .2);
+  get('play-audio').listeners.click();
+  player.seekPosition('7.3', false, .4);
+  assert.equal(player.playing, true);
+  assert.equal(audio.src, sourceClip('full', '5e').src);
+  assert.equal(positions.at(-1)[0], '7.3');
+  close(positions.at(-1)[1], .4);
+  close(audio.currentTime, segmentTime(directSegment('full', '7.3'), .4));
+  assert.match(get('play-audio').textContent, /Pause narration/);
+});
+
 test('a pending metadata seek keeps captions and the scene on the selected quick substep', () => {
   const {get, audio, positions, player, setPosition} = fixture({deferSeek: true});
   get('track').value = 'quick';
