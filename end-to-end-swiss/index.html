@@ -573,7 +573,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">3.4</span>Stretch the context</h3>
-        <p>Most training runs at a shorter context. Then the rotary position frequencies are rescaled (YaRN, ×16) and training continues on long documents, so attention can reach a million positions.</p>
+        <p>Most training runs at a shorter context before staged long-context extension. In the representative config, rotary position frequencies are rescaled from a 65,536 base window (YaRN, ×16) so attention can reach 1,048,576 positions.</p>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 3.4</span></summary>
           <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
@@ -626,7 +626,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">4.4</span>Stay near the anchor</h3>
-        <p>A KL penalty to the frozen starting model keeps the policy from drifting into reward hacks. DeepSeek‑V4 trains separate domain experts this way, then distils them into one model on-policy.</p>
+        <p>A KL penalty discourages divergence from the frozen starting model; it does not guarantee that reward hacking is prevented. DeepSeek‑V4 trains separate domain experts this way, then distills them into one model on-policy.</p>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 4.4</span></summary>
           <dl class="spec">
@@ -718,14 +718,15 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">6.4</span>Check the prefix cache</h3>
-        <p>If an identical prefix was processed recently, its keys and values are reused and only the rest is computed. On a first call nothing is cached.</p>
+        <p>With prompt caching enabled, a matching prefix of at least 512 tokens can be reused at a cache boundary while its entry remains available. This drawing assumes those conditions. The first eligible request writes the cache; later hits read it. The default minimum lifetime is 5 minutes, refreshed on use.</p>
         <fieldset class="effort">
-          <legend>Prefix cache mode, as drawn</legend>
+          <legend>Prefix cache state, as drawn · rates per MTok, as of 21 November 2026</legend>
           <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
-            <label><input type="radio" name="cacheMode6" data-sync="cache" value="hit" checked><span>Cache Hit · $0.20</span></label>
-            <label><input type="radio" name="cacheMode6" data-sync="cache" value="miss"><span>Cache Miss · $8.00</span></label>
+            <label><input type="radio" name="cacheMode6" data-sync="cache" value="hit" checked><span>Hit · $0.20 read</span></label>
+            <label><input type="radio" name="cacheMode6" data-sync="cache" value="miss"><span>Miss · $10 write</span></label>
           </div>
-          <output class="effort-out" data-out="cache">Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix</output>
+          <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
+          <p class="why"><b>Why it matters here:</b> A hit reuses the shared start of the prompt at 1/40 of the normal input price and skips most of the prefill work, so the first token arrives sooner.</p>
         </fieldset>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 6.4</span></summary>
@@ -846,7 +847,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">8.2</span>Fill the KV cache</h3>
-        <p>Each layer stores keys and values for every position so they never have to be recomputed. With compressed attention, a block of tokens shares one entry; DeepSeek‑V4 keeps the positional dimensions in BF16 and the rest in FP8.</p>
+        <p>Each layer caches attention state to avoid repeating earlier computation. DeepSeek‑V4 combines compressed entries with a recent-token window; its cache does not retain one permanent entry per token. It stores the positional dimensions in BF16 and the rest in FP8.</p>
         <fieldset class="effort">
           <legend>Attention &amp; KV mode, as drawn</legend>
           <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
@@ -896,7 +897,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
             <label><input type="radio" name="effort" value="xhigh"><span>xhigh</span></label>
             <label><input type="radio" name="effort" value="max"><span>max</span></label>
           </div>
-          <output class="effort-out" id="effortOut">16 thinking tokens in the drawing (illustrative; real runs use far more)</output>
+          <output class="effort-out" id="effortOut">16 thinking tokens in the drawing (illustrative; actual use varies by request)</output>
         </fieldset>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 9.1</span></summary>
@@ -907,7 +908,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">9.2</span>Never returned raw</h3>
-        <p>The raw chain of thought never leaves the server. The response carries thinking blocks that are empty by default (<code>display: "omitted"</code>) or hold a summary (<code>"summarized"</code>). Thinking is billed the same either way.</p>
+        <p>Raw reasoning is never returned as readable text. Thinking blocks include an encrypted signature and, by default, an empty readable field (<code>display: "omitted"</code>); <code>"summarized"</code> returns a summary. Pass complete thinking blocks back unchanged during tool loops. Thinking is billed the same in either display mode.</p>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 9.2</span></summary>
           <pre class="eq"><code>thinking: { type: "adaptive", display: "summarized" }</code></pre>
@@ -924,7 +925,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
     <!-- 10 DECODE -->
     <section class="station" id="s-10" data-i="9" aria-labelledby="h-10">
       <div class="st-title"><span class="st-num" aria-hidden="true">10</span><h2 id="h-10">One token per step.</h2></div>
-      <p class="lead">After prefill, generation is a loop: one pass up the tower for each new token, every pass reading the whole KV cache.</p>
+      <p class="lead">After prefill, basic autoregressive generation repeats a forward pass for each next token. Attention reads the cached history selected by its mechanism; sparse attention does not read every stored entry.</p>
       <details class="stage-detail" id="depth-10">
         <summary><span class="when-closed">How it works</span><span class="when-open">Hide details</span><span class="vh"> for stage 10</span></summary>
         <div class="depth-sheet">
@@ -934,11 +935,11 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.2</span>Sample</h3>
-        <p>The sampler turns probabilities into one token. On Fable 5.2 its settings belong to the provider: on API version 2026-10-21, a request that sends <code>temperature</code>, <code>top_p</code> or <code>top_k</code> at any value is rejected. Earlier versions reject only non-default values.</p>
+        <p>The model produces a probability distribution over possible next tokens. Sampling selects one token from that distribution, which becomes the next step in the generated reasoning, tool call or answer. The exact sampling policy for Fable 5.2 is controlled by the model provider.</p>
       </article>
       <article class="step">
         <h3><span class="sn">10.3</span>Draft, then verify</h3>
-        <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. An accepted draft gives two tokens for one pass. Anthropic doesn’t publish how Claude is served.</p>
+        <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. When a draft is accepted, one target pass verifies two tokens; the net speedup depends on draft cost and acceptance rate. Anthropic doesn’t publish how Claude is served.</p>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 10.3</span></summary>
           <dl class="spec">
@@ -948,7 +949,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       </article>
       <article class="step">
         <h3><span class="sn">10.4</span>“Paris”, again</h3>
-        <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. Inside JSON the word has no leading space, so it’s a different token ID from “&nbsp;Paris”; attention copies it from the prompt anyway. The cache grows by one entry per token.</p>
+        <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. In this illustrative segmentation, the word after the JSON quote has no leading space, so its ID differs from “&nbsp;Paris”. The prompt provides the city name, while the model predicts the tool-call text. Cached state is updated as generation continues; the compressed cache need not grow by one entry per token.</p>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 10.4</span></summary>
           <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
@@ -1013,14 +1014,15 @@ data: {"delta": {"type": "input_json_delta",
       </article>
       <article class="step">
         <h3><span class="sn">12.2</span>A new request, a warm prefix</h3>
-        <p>Because the API is stateless, the whole conversation is sent again. The unchanged prefix hits the prompt cache, so only the tool result has to be prefilled.</p>
+        <p>In this Messages API example, the app resends the conversation, including the complete assistant response and the tool result. If caching is enabled and an eligible matching prefix is still available, that prefix is reused. New assistant and tool-result content belongs to the uncached suffix unless it was already cached.</p>
         <fieldset class="effort">
-          <legend>Prefix cache mode, as drawn</legend>
+          <legend>Prefix cache state, as drawn · rates per MTok, as of 21 November 2026</legend>
           <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
-            <label><input type="radio" name="cacheMode12" data-sync="cache" value="hit" checked><span>Cache Hit · $0.20</span></label>
-            <label><input type="radio" name="cacheMode12" data-sync="cache" value="miss"><span>Cache Miss · $8.00</span></label>
+            <label><input type="radio" name="cacheMode12" data-sync="cache" value="hit" checked><span>Hit · $0.20 read</span></label>
+            <label><input type="radio" name="cacheMode12" data-sync="cache" value="miss"><span>Miss · $10 write</span></label>
           </div>
-          <output class="effort-out" data-out="cache">Warm prefix cache hit ($0.20 / MTok): tools + system reused (doubled line); prefill fast-forwards to uncached suffix</output>
+          <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
+          <p class="why"><b>Why it matters here:</b> A hit reuses the shared start of the prompt at 1/40 of the normal input price and skips most of the prefill work, so the first token arrives sooner.</p>
         </fieldset>
         <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=12.2#concept=mcp-loop">Inspect Tool Loop &amp; Prefix Cache in 3D →</a></p>
       </article>
@@ -1030,7 +1032,7 @@ data: {"delta": {"type": "input_json_delta",
       </article>
       <article class="step">
         <h3><span class="sn">12.4</span>Long sessions</h3>
-        <p>When a long agent session nears the context limit, server-side compaction (beta) summarizes earlier turns so the loop can keep going.</p>
+        <p>When a long agent session nears the context limit, opt-in server-side compaction (beta, configurable threshold) summarizes earlier turns so the loop can keep going.</p>
         <details class="technical-detail">
           <summary>Technical detail<span class="vh"> for step 12.4</span></summary>
           <dl class="spec">
