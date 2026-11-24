@@ -105,7 +105,7 @@ window.ReaderPlayback = (() => {
     play.addEventListener('click', () => playing ? pause() : start());
     narrStory?.addEventListener('click', () => {
       if (playing) { pause(); return; }
-      selectPosition(stops[0].id, false);
+      selectPosition(stops[0].id, true);
       start();
     });
     get('captions').addEventListener('change', paint);

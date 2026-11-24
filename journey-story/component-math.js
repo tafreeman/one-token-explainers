@@ -6,6 +6,7 @@ const JourneyMath = (() => {
   // iteration reduces to a scalar polynomial. Show the direction before RMS rescaling.
   function muonSpectrum(input) {
     const norm = Math.hypot(...input);
+    if (!norm) return input.map(() => 0);
     return input.map(value => {
       let s = value / norm;
       for (let i = 0; i < 10; i++) {
@@ -140,6 +141,7 @@ const JourneyMath = (() => {
     drawer.className = 'component-math vector-drawer';
     drawer.innerHTML = `
       <summary>Inside the 7,168-Dim Streams</summary>
+      <p>Generic interpretability schematics. No DeepSeek-V4-Pro activations or circuits are measured here.</p>
       <div class="vector-sections">
         <section>
           <h4>Linear representation &amp; superposition</h4>
@@ -317,7 +319,7 @@ const JourneyMath = (() => {
     return drawer;
   }
 
-  const api = {optimizer, vectorDrawer, activationSlice, steerCircuit};
+  const api = {optimizer, vectorDrawer, activationSlice, steerCircuit, muonSpectrum};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
 })();

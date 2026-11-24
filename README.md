@@ -13,6 +13,10 @@ and an inline **Component Inspector** with interactive micro-labs and lazy 3D Ob
 cutaways. The classic and deep-dive formats remain available under **Other views**.
 The factual, API, keyboard and focus corrections from PR #7 remain in place.
 
+The November 23 [content and math review](docs/content-and-math-review-2026-11-23.md)
+updates the written lessons and simulations. Original narration voices are retained;
+some spoken descriptions still need matching updates in those voices.
+
 ## What is here
 
 Root `index.html` hosts the unified Continuous Reader (with its scripts, styles, fonts,
@@ -89,7 +93,7 @@ The [3D Observatory](shared/obs-core.html?rm=1) also opens on its own.
 
 ## Fact sources
 
-Every displayed claim was checked against:
+The lessons cite primary references including:
 
 - The DeepSeek-V4 paper, [arXiv 2606.19348](https://arxiv.org/abs/2606.19348), and the [DeepSeek-V4-Pro Hugging Face model card and config](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro).
 - [Anthropic's Claude API docs](https://platform.claude.com/docs). The check dates are 21 November 2026 for the Swiss and journey pages, and 22 November 2026 for Beamline.

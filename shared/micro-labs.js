@@ -69,11 +69,13 @@
     return sel.map(e => ({id: e.id, weight: e.affinity / sum, hot: e.load === 1}));
   }
   function moeCapacity(k = 6, bias = 1, cf = 1.25, batchTokens = 24) {
-    const entries = routeExperts(k, bias), hotShare = entries.filter(e => e.hot).length / entries.length;
-    const total = batchTokens * entries.length, capPerExpert = Math.max(1, Math.ceil((total / 12) * cf));
-    const hotCap = Math.max(1, Math.round(6 * capPerExpert * (1 - .52 * hotShare * (1 - bias))));
-    const dropped = bias >= .45 ? 0 : Math.max(0, Math.round(total * hotShare) - hotCap);
-    return {total, routed: total - dropped, dropped, hotShare, capPerExpert};
+    const loads = Array(384).fill(0); let total = 0, hot = 0;
+    for (let t = 0; t < batchTokens; t++) for (const e of routeExperts(k, bias, t)) {
+      loads[e.id]++; total++; if (e.hot) hot++;
+    }
+    const capPerExpert = Math.max(1, Math.ceil(total * cf / loads.length));
+    const dropped = loads.reduce((n, load) => n + Math.max(0, load - capPerExpert), 0);
+    return {total, routed: total - dropped, dropped, hotShare: total ? hot / total : 0, capPerExpert, loads};
   }
   const PREFIX_TOKENS = ['[SYS]', 'You', 'are', 'a', 'precise', 'assistant', 'with', 'weather', 'tools', 'and',
     'strict', 'JSON', 'schemas', 'for', 'live', 'city', 'queries', '·', 'tool_call', '→'];
@@ -84,21 +86,28 @@
     return {total, matched, prefilled: total - matched, hitRate, ttftMs: Math.round(180 + (1 - hitRate) * 1740), editIndex};
   }
   function pdSchedule(disaggregated = true, chunkK = 64) {
-    const baseItlMs = 18, prefillChunkMs = Math.round(chunkK * 5);
-    return {disaggregated, chunkK, baseItlMs, prefillChunkMs, peakItlMs: disaggregated ? baseItlMs : baseItlMs + prefillChunkMs, stallMs: disaggregated ? 0 : prefillChunkMs};
+    const baseItlMs = 18, prefillChunkMs = Math.round(chunkK * 5), prefillStartMs = 36;
+    const stallMs = disaggregated ? 0 : prefillChunkMs;
+    const decodeTimesMs = Array.from({length: 26}, (_, i) => i * baseItlMs + (i >= 2 ? stallMs : 0)).filter(t => t <= 450);
+    return {disaggregated, chunkK, baseItlMs, prefillChunkMs, prefillStartMs, decodeTimesMs, peakItlMs: baseItlMs + stallMs, stallMs};
   }
   function roofline(prompt, batch, ep = 1) {
-    const d = 7168, peak = 10e15, bw = 8e12, ridge = peak / bw, nvUni = 900e9;
+    const d = 7168, m = 3072, k = 6, bw = 8e12, nvUni = 900e9;
     const epGroup = Math.max(1, Math.round(ep)), remote = epGroup > 1 ? (epGroup - 1) / epGroup : 0;
+    if (384 % epGroup) throw new RangeError('EP group must divide 384');
+    // EP: balanced per-GPU top-6 SwiGLU work; dense: one square GEMM.
+    const peak = remote ? 5e15 : 10e15, ridge = peak / bw;
     function pt(rows) {
-      const flops = 2 * d * d * rows, intensity = flops / (.5 * d * d + 4 * d * rows), hbmCap = bw * intensity;
-      const epB = epGroup > 1 ? rows * 6 * d * 4 * remote : 0, nvCap = epB > 0 ? (flops / epB) * nvUni : Infinity;
+      const flops = remote ? 6 * k * d * m * rows : 2 * d * d * rows;
+      const weights = remote ? 3 * d * m * Math.min(384 / epGroup, rows * k) : d * d;
+      const hbmBytes = .5 * weights + 4 * d * rows * (remote ? k : 1), intensity = flops / hbmBytes, hbmCap = bw * intensity;
+      const nvBytes = rows * k * d * 4 * remote, nvCap = nvBytes ? flops / nvBytes * nvUni : Infinity;
       const att = Math.min(peak, hbmCap, nvCap);
       const bound = att === nvCap && nvCap < Math.min(peak, hbmCap) ? 'NVLink EP All-to-All' : intensity >= ridge ? 'compute' : 'HBM bandwidth';
-      return {intensity, pflops: att / 1e15, nvlinkPflops: epB > 0 ? Math.min(peak, nvCap) / 1e15 : null, bound};
+      return {flops, hbmBytes, nvBytes, intensity, pflops: att / 1e15, bound};
     }
-    const nvlinkCeiling = epGroup > 1 ? Math.min(peak, (2 * d * d / (6 * d * 4 * remote)) * nvUni) / 1e15 : null;
-    return {ridge, ep: epGroup, nvlinkCeiling, prefill: pt(prompt * batch), decode: pt(batch)};
+    const nvlinkCeiling = remote ? Math.min(peak, 1.5 * m / remote * nvUni) / 1e15 : null;
+    return {ridge, ep: epGroup, peakPflops: peak / 1e15, nvlinkCeiling, prefill: pt(prompt * batch), decode: pt(batch)};
   }
   const stopLabs = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
     16: ['mix'], 17: ['moe'], 23: ['pd'], 24: ['roof'], 25: ['roof'], 26: ['stream'], 30: ['cache']};
@@ -239,13 +248,13 @@
     const ctl = slider(box, 'Context length', 12, 20, 16, update, n => fmt(2 ** n) + ' tokens');
     const table = el('table'), body = el('tbody'), info = el('div', '', 'ml-readout');
     table.append(body); box.append(table, info);
-    note(box, 'Illustrative average layer, MiB per sequence. MHA/GQA use 128/8 KV heads, width 128, BF16. MLA uses 768 B/token. The hybrid estimate keeps 128 local tokens and fits its compressed slope to the published 1M ratio.');
+    note(box, 'Illustrative average layer, MiB/sequence. MHA/GQA: 128/8 KV heads, width 128, BF16. MLA toy baseline: 768 B/token, excluding metadata. The hybrid curve keeps 128 local tokens and fits the reported 1M ratio; it is not a V4 memory simulator.');
     function update() {
       const v = kvFootprints(2 ** ctl.value);
-      body.replaceChildren(...[['Full MHA', v.mha], ['GQA', v.gqa], ['V3.2 MLA', v.mla], ['V4 CSA + HCA', v.v4]].map(([name, bytes]) => {
+      body.replaceChildren(...[['Full MHA', v.mha], ['GQA', v.gqa], ['MLA toy baseline', v.mla], ['V4 fitted estimate', v.v4]].map(([name, bytes]) => {
         const tr = el('tr'); tr.append(el('th', name), el('td', fmt(+(bytes / 1048576).toFixed(2)) + ' MiB')); return tr;
       }));
-      info.textContent = v.flopRatio ? 'Published at 1M · 10% KV cache · 27% single-token inference FLOPs vs V3.2' :
+      info.textContent = v.flopRatio ? 'Reported at 1M · 10% KV cache · 27% single-token FP8-equivalent FLOPs vs V3.2' :
         'Estimated V4 cache · ' + (100 * v.v4 / v.mla).toFixed(1) + '% of MLA. Move to 1M for the published FLOP comparison.';
     }
     update();
@@ -264,8 +273,8 @@
     const capDrop = svg('rect', {x: 276, y: 126, width: 0, height: 7, rx: 2, class: 'ml-drop'}, fig);
     const weights = el('div', '', 'ml-weights'), info = el('div', '', 'ml-readout');
     box.append(weights, info);
-    eq(box, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'gⱼ', 'Normalized top-K shares sum to 1.00 (DeepSeek-V4-Pro applies a 2.5× routed scaling factor).'], ' · expertⱼ']);
-    note(box, 'Illustrative affinities: normalized top-6 shares sum to 1.00 (DeepSeek-V4-Pro applies a 2.5× routed scaling factor alongside the separate always-on shared expert). When λ = 0 collapses routing onto hot experts under capacity factor C = 1.25, overflow tokens drop.');
+    eq(box, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'aⱼ', 'Normalized shares sum to 1; V4-Pro uses gates gⱼ = 2.5 aⱼ.'], ' · expertⱼ']);
+    note(box, 'Generic capped teaching router, not V4’s execution policy. A 24-token batch varies affinities; capacity = ceil(1.25 × 24 × K / 384) assignments/expert. Overflow drops expert assignments, not whole tokens. Bars show one token’s normalized shares; V4 scales their sum by 2.5 and adds its always-on shared expert.');
     const setTrace = id => {
       box.classList.toggle('has-focus', id != null);
       cells.forEach((c, idx) => c.classList.toggle('is-traced', id === idx));
@@ -289,8 +298,8 @@
       }
       const okW = (cap.routed / cap.total) * 274;
       setA(capOk, {width: okW.toFixed(1)}); setA(capDrop, {x: (2 + okW).toFixed(1), width: (274 - okW).toFixed(1)});
-      info.textContent = 'Σ gⱼ = ' + entries.reduce((s, e) => s + e.weight, 0).toFixed(2) + ' (×2.5 routed scale in V4-Pro + 1 shared) · busy experts ' + entries.filter(e => e.hot).length + '/' + entries.length +
-        (cap.dropped ? '\nCapacity C=1.25 overflow · ' + cap.dropped + '/' + cap.total + ' token slots dropped (illustrative)' : ' · 0/' + cap.total + ' dropped');
+      info.textContent = 'Σ aⱼ = ' + entries.reduce((s, e) => s + e.weight, 0).toFixed(2) + ' · busy experts ' + entries.filter(e => e.hot).length + '/' + entries.length +
+        '\nCapacity ' + cap.capPerExpert + '/expert · ' + cap.dropped + '/' + cap.total + ' expert assignments dropped (toy batch)';
       setTrace(null);
     }
     function change() {
@@ -315,7 +324,7 @@
     const ttftBar = svg('rect', {x: 78, y: 36, width: 15, height: 12, rx: 2, class: 'ml-active'}, fig);
     const ttftLbl = svg('text', {x: 242, y: 46}, fig), info = el('div', '', 'ml-readout');
     box.append(bustBtn, strip, fig, info);
-    note(box, 'Click any token to edit it. KV reuse stops at the first changed token (illustrative 16K-token prompt TTFT).');
+    note(box, 'Assume an eligible warm cache. Tiles stand for blocks of a 16K-token prompt. Edit a tile: reuse ends at its first changed token. TTFT is illustrative.');
     function paint() {
       const s = prefixCache(edited), wHit = Math.round(158 * s.hitRate);
       bustBtn.setAttribute('aria-pressed', String(edited != null));
@@ -340,8 +349,9 @@
     let disagg = true;
     const toggle = btn('Break: PD-Disaggregation Off', 'ml-break', false);
     const fig = graphic(box, '0 0 296 106', 'Prefill and decode inter-token latency timeline'), info = el('div', '', 'ml-readout');
+    const tx = ms => 68 + ms * 220 / 450;
     box.append(toggle, fig, info);
-    note(box, 'Illustrative timeline: isolated Prefill and Decode pools keep decode ITL steady (~18 ms) when a 64K prefill chunk arrives.');
+    note(box, 'Idealized schedule: 18 ms decode, a 320 ms prefill chunk, no queue or KV-transfer overhead. Dedicated pools avoid this modeled prefill stall; real ITL also depends on transfer and scheduling.');
     function paint() {
       const s = pdSchedule(disagg, 64);
       toggle.setAttribute('aria-pressed', String(!disagg));
@@ -350,19 +360,17 @@
       svg('line', {x1: 68, y1: 88, x2: 288, y2: 88, class: 'ml-outline'}, fig);
       svg('text', {x: 68, y: 101}, fig, '0 ms'); svg('text', {x: 162, y: 101}, fig, 'time →'); svg('text', {x: 252, y: 101}, fig, '450 ms');
       if (disagg) {
-        svg('text', {x: 2, y: 26}, fig, 'Prefill'); svg('rect', {x: 84, y: 12, width: 136, height: 18, rx: 2, class: 'ml-masked', opacity: '.35'}, fig);
-        svg('text', {x: 152, y: 24, 'text-anchor': 'middle'}, fig, '64K chunk (320 ms)');
+        svg('text', {x: 2, y: 26}, fig, 'Prefill'); svg('rect', {x: tx(s.prefillStartMs), y: 12, width: tx(s.prefillChunkMs) - tx(0), height: 18, rx: 2, class: 'ml-masked', opacity: '.35'}, fig);
+        svg('text', {x: tx(s.prefillStartMs + s.prefillChunkMs / 2), y: 24, 'text-anchor': 'middle'}, fig, '64K chunk (320 ms)');
         svg('text', {x: 2, y: 64}, fig, 'Decode');
-        for (let i = 0; i < 12; i++) svg('rect', {x: 72 + i * 17, y: 50, width: 7, height: 18, rx: 1.5, class: 'ml-active'}, fig);
       } else {
         svg('text', {x: 2, y: 45}, fig, 'Shared GPU');
-        for (let i = 0; i < 2; i++) svg('rect', {x: 72 + i * 16, y: 31, width: 7, height: 18, rx: 1.5, class: 'ml-active'}, fig);
         svg('text', {x: 174, y: 20, 'text-anchor': 'middle'}, fig, '64K prefill chunk (320 ms)');
-        svg('rect', {x: 106, y: 27, width: 136, height: 26, rx: 2, class: 'ml-drop'}, fig);
-        for (let i = 0; i < 2; i++) svg('rect', {x: 248 + i * 16, y: 31, width: 7, height: 18, rx: 1.5, class: 'ml-active'}, fig);
-        svg('path', {d: 'M106 58 V63 H248 V58', class: 'ml-nvlink'}, fig);
+        svg('rect', {x: tx(s.prefillStartMs), y: 27, width: tx(s.prefillChunkMs) - tx(0), height: 26, rx: 2, class: 'ml-drop'}, fig);
+        svg('path', {d: 'M' + tx(s.decodeTimesMs[1]) + ' 58 V63 H' + tx(s.decodeTimesMs[2]) + ' V58', class: 'ml-nvlink'}, fig);
         svg('text', {x: 177, y: 78, 'text-anchor': 'middle'}, fig, 'ITL spike: ' + s.peakItlMs + ' ms');
       }
+      for (const t of s.decodeTimesMs) svg('rect', {x: tx(t), y: disagg ? 50 : 31, width: 4, height: 18, rx: 1.5, class: 'ml-active'}, fig);
       info.textContent = disagg ? 'Isolated pools · decode ITL steady at ' + s.baseItlMs + ' ms while 64K prefill runs in parallel (illustrative)' :
         'Colocated GPU · 64K prefill chunk stalls concurrent decode ITL from ' + s.baseItlMs + ' ms → ' + s.peakItlMs + ' ms (illustrative)';
       options.onPDDisagg?.(disagg);
@@ -372,24 +380,29 @@
 
   function roofLab(box) {
     const length = slider(box, 'Prompt length', 10, 17, 12, update, n => fmt(2 ** n) + ' tokens');
-    const batch = slider(box, 'Batch size', 0, 10, 0, update, n => fmt(2 ** n));
+    const batch = slider(box, 'Batch size per GPU', 0, 10, 0, update, n => fmt(2 ** n));
     const epExp = slider(box, 'EP All-to-All group', 0, 6, 0, update, n => n === 0 ? '1 GPU (dense)' : fmt(2 ** n) + ' GPUs');
     const fig = graphic(box, '0 0 306 150', '3-bound Blackwell roofline: compute, HBM3e bandwidth, and NVLink EP All-to-All');
     const x = i => Math.max(40, Math.min(276, 40 + Math.log2(Math.max(1, i)) * 18.5));
     const y = pf => Math.max(12, Math.min(110, 108 - (Math.log2(Math.max(.008, pf)) + 7) * 7.8));
-    const ridge = roofline(4096, 1).ridge;
     for (const pf of [.1, 1, 10]) svg('line', {x1: 40, x2: 278, y1: y(pf), y2: y(pf), class: 'ml-outline', opacity: '.16'}, fig);
     svg('path', {d: 'M40 12V111H278', class: 'ml-outline'}, fig);
-    svg('path', {d: 'M40 ' + y(.008) + ' L' + x(ridge) + ' ' + y(10) + ' H278', class: 'ml-curve'}, fig);
-    svg('line', {x1: x(ridge), x2: x(ridge), y1: y(10), y2: 111, class: 'ml-guide'}, fig);
+    const curve = svg('path', {class: 'ml-curve'}, fig), ridgeLine = svg('line', {y2: 111, class: 'ml-guide'}, fig);
+    const ridgeLabel = svg('text', {y: 124}, fig);
     const nvLine = svg('line', {x1: 40, x2: 278, y1: y(10), y2: y(10), class: 'ml-nvlink', opacity: '0'}, fig);
     const nvLbl = svg('text', {x: 276, y: y(10) - 4, 'text-anchor': 'end', opacity: '0'}, fig);
-    for (const [tx, ty, l] of [[2, 15, 'PF/s'], [44, 140, '1'], [138, 140, 'FLOP/byte →'], [245, 140, '4096'], [2, y(10) + 3, '10'], [1, y(.01) + 3, '.01'], [x(ridge) - 30, 124, '1,250']]) svg('text', {x: tx, y: ty}, fig, l);
+    for (const [tx, ty, l] of [[2, 15, 'PF/s'], [44, 140, '1'], [138, 140, 'FLOP/byte →'], [245, 140, '4096'], [2, y(10) + 3, '10'], [1, y(.01) + 3, '.01']]) svg('text', {x: tx, y: ty}, fig, l);
     const prefill = svg('circle', {r: 5, class: 'ml-active'}, fig), decode = svg('rect', {width: 8, height: 8, class: 'ml-key'}, fig), info = el('div', '', 'ml-readout');
     box.append(info);
-    note(box, 'Single GB200 GPU per GPU: dense FP4 10 PFLOP/s, HBM3e 8 TB/s, NVLink 5 900 GB/s unidirectional (1.8 TB/s bidirectional) per GPU. EP All-to-All ceiling is an illustrative top-6 BF16 dispatch/combine model.');
+    note(box, 'GB200: dense NVFP4 10 PFLOP/s, HBM3e 8 TB/s, NVLink 5 900 GB/s unidirectional (1.8 TB/s bidirectional) per GPU. EP All-to-All ceiling is an illustrative top-6 BF16 dispatch/combine model.');
+    note(box, '1 GPU models a 7,168² GEMM. EP models top-6 SwiGLU experts (width 3,072), balanced work per GPU and 384/EP resident experts; each active expert’s FP4 weights are read once. BF16 inputs/outputs cross HBM; NVLink bytes count one direction across dispatch and combine. Ideal bounds omit metadata, intermediate traffic, imbalance and overlap.');
+    const source = el('a', 'DeepSeek-V4 report'); source.href = 'https://arxiv.org/html/2606.19348v1#S1';
+    const assumption = el('p', 'EP assumes a 5 PF/s FP4×FP8 compute ceiling from the report’s FP8-throughput equivalence; this is not measured performance. ', 'ml-note'); assumption.append(source); box.append(assumption);
     function update() {
       const r = roofline(2 ** length.value, 2 ** batch.value, 2 ** epExp.value);
+      setA(curve, {d: 'M40 ' + y(.008) + ' L' + x(r.ridge) + ' ' + y(r.peakPflops) + ' H278'});
+      setA(ridgeLine, {x1: x(r.ridge), x2: x(r.ridge), y1: y(r.peakPflops)});
+      setA(ridgeLabel, {x: x(r.ridge) - 25}); ridgeLabel.textContent = fmt(r.ridge);
       setA(prefill, {cx: x(r.prefill.intensity), cy: y(r.prefill.pflops)});
       setA(decode, {x: x(r.decode.intensity) - 4, y: y(r.decode.pflops) - 4});
       if (r.nvlinkCeiling != null) {
@@ -397,7 +410,7 @@
         setA(nvLine, {y1: ny, y2: ny, opacity: '1'}); setA(nvLbl, {y: Math.max(22, ny - 4), opacity: '1'});
         nvLbl.textContent = 'NVLink EP ' + r.nvlinkCeiling.toFixed(1) + ' PF/s';
       } else { setA(nvLine, {opacity: '0'}); setA(nvLbl, {opacity: '0'}); }
-      info.textContent = '● Prefill ' + r.prefill.intensity.toFixed(1) + ' FLOP/B · ' + r.prefill.pflops.toFixed(2) + ' PF/s · ' + r.prefill.bound +
+      info.textContent = (r.ep === 1 ? 'Dense GEMM' : 'EP SwiGLU · assumed 5 PF/s compute') + ' · per GPU\n● Prefill ' + r.prefill.intensity.toFixed(1) + ' FLOP/B · ' + r.prefill.pflops.toFixed(2) + ' PF/s · ' + r.prefill.bound +
         '\n□ Decode ' + r.decode.intensity.toFixed(1) + ' FLOP/B · ' + r.decode.pflops.toFixed(2) + ' PF/s · ' + r.decode.bound;
     }
     update();

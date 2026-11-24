@@ -262,7 +262,9 @@ async function narration(browser, url) {
     assert.ok(quickClip, 'the Quick track requested a clip from its manifest');
     assert.equal(quickClip.id, '07-forward-pass');
     await step(page, quickClip.stepId);
-    await page.waitForFunction(() => document.querySelector('#audio-time').textContent.includes('4:38'));
+    const duration = tracks.quick.reduce((sum, clip) => sum + clip.dur, 0);
+    const expectedTime = Math.floor(duration / 60) + ':' + String(Math.floor(duration % 60)).padStart(2, '0');
+    await page.waitForFunction(expected => document.querySelector('#audio-time').textContent.endsWith('/ ' + expected), expectedTime);
     if (!await page.locator('#audio-panel').isVisible()) await clickVisible(page, '#narrate');
     await page.locator('#captions').uncheck();
     await page.locator('#spoken-caption').waitFor({state: 'hidden'});
