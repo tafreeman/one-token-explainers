@@ -85,7 +85,8 @@
     updateExplanation();
     const overallT = sceneBeat === 'f1' ? state.localT : (state.index + state.localT) / stops.length;
     const camera = state.view === 'spatial' ? state.camera : 'director';
-    host?.update({...state, camera, settings, stepId: stop.id, stage: stop.stage, diagramPose: pose, spatialBeat: sceneBeat || stop.spatialBeat, overallT});
+    host?.update({...state, camera, settings, stepId: stop.id, stage: stop.stage, diagramPose: pose,
+      spatialBeat: sceneBeat || stop.spatialBeat, narrated: Boolean(sceneBeat), overallT});
   }
 
   function anchorY() {

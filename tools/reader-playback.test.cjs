@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const {stops, tracks} = require('../one-token/stops-manifest.js');
+const {stops, tracks, stages} = require('../one-token/stops-manifest.js');
 
 function fixture({deferSeek = false} = {}) {
   const nodes = new Map();
@@ -14,6 +14,7 @@ function fixture({deferSeek = false} = {}) {
     return nodes.get(id);
   };
   let audio;
+  const media = {srcSets: 0, playCalls: 0};
   const context = vm.createContext({window: {innerWidth: 1440}, document: {getElementById: get},
     Audio: function () {
       audio = this; this.time = 0; this.readyState = deferSeek ? 0 : 1; this.listeners = {};
@@ -22,19 +23,27 @@ function fixture({deferSeek = false} = {}) {
         if (!this.readyState) throw new Error('metadata not ready');
         this.time = value;
       }});
-      Object.defineProperty(this, 'src', {get() { return this.source; }, set(value) { this.source = value; this.time = 0; }});
-      this.pause = () => {}; this.play = async () => {};
+      Object.defineProperty(this, 'src', {get() { return this.source; }, set(value) {
+        this.source = value; this.time = 0; media.srcSets++;
+      }});
+      this.pause = () => {}; this.play = async () => { media.playCalls++; };
     }});
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../one-token/playback.js'), 'utf8'), context);
   const positions = [];
   let readerPosition;
-  const player = context.window.ReaderPlayback.create({tracks, stops, asset: p => p,
+  const player = context.window.ReaderPlayback.create({tracks, stops, stages, asset: p => p,
     getPosition: () => readerPosition,
     onStart() {}, onPosition: (...args) => positions.push(args)});
-  return {get, audio, positions, player, setPosition(value) { readerPosition = value; }};
+  return {get, audio, media, positions, player, setPosition(value) { readerPosition = value; }};
 }
 
-test('Narrated run starts at the introduction and plays the complete selected recording', () => {
+const directSegment = (track, id) => tracks.routes[track].find(item => item.stepId === id && item.selectable);
+const sourceClip = (track, id) => tracks[track].find(clip => clip.id === id);
+const segmentTime = (item, localT) => item.start + localT * (item.end - item.start);
+const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6,
+  message || `${actual} should equal ${expected}`);
+
+test('Narrated run starts at the introduction and plays the complete selected route', () => {
   const {get, audio, positions, player} = fixture();
   get('narrStory').listeners.click();
   assert.equal(audio.src, tracks.full[0].src);
@@ -60,8 +69,9 @@ test('a pending metadata seek keeps captions and the scene on the selected quick
   audio.readyState = 1;
   audio.listeners.loadedmetadata();
   assert.equal(positions.at(-1)[0], '7.4');
-  assert.ok(Math.abs(audio.currentTime - tracks.quick[7].dur * 3.25 / 5) < 1e-6);
-  audio.currentTime += 1;
+  const expected = directSegment('quick', '7.4');
+  close(audio.currentTime, segmentTime(expected, .25));
+  audio.currentTime += .5;
   audio.listeners.timeupdate();
   const at = audio.currentTime;
   player.pause();
@@ -78,10 +88,10 @@ test('quick narration resumes the selected substep in either navigation directio
     setPosition({id: stop.id, opening: false, localT: .35});
     player.selectPosition(stop.id, false);
     get('play-audio').listeners.click();
+    const expected = directSegment('quick', stop.id);
     assert.equal(positions.at(-1)[0], stop.id, 'Play must retain step ' + stop.id);
-    assert.ok(Math.abs(positions.at(-1)[1] - .35) < 1e-6, 'Play must retain progress within ' + stop.id);
-    const expectedTime = (stage.indexOf(stop) + .35) / stage.length * tracks.quick[7].dur;
-    assert.ok(Math.abs(audio.currentTime - expectedTime) < 1e-6);
+    close(positions.at(-1)[1], .35, 'Play must retain progress within ' + stop.id);
+    close(audio.currentTime, segmentTime(expected, .35));
     player.pause();
   }
 });
@@ -92,101 +102,135 @@ test('switching narration tracks retains selected mechanism and within-step prog
   player.selectPosition('7.3', false);
   get('play-audio').listeners.click();
   assert.equal(positions.at(-1)[0], '7.3');
-  assert.ok(Math.abs(positions.at(-1)[1] - .4) < 1e-6);
+  close(positions.at(-1)[1], .4);
   get('track').value = 'quick';
   get('track').listeners.change();
   assert.equal(positions.at(-1)[0], '7.3');
-  assert.ok(Math.abs(positions.at(-1)[1] - .4) < 1e-6);
+  close(positions.at(-1)[1], .4);
   get('track').value = 'full';
   get('track').listeners.change();
   assert.equal(positions.at(-1)[0], '7.3');
-  assert.ok(Math.abs(positions.at(-1)[1] - .4) < 1e-6);
+  close(positions.at(-1)[1], .4);
   const pausedAt = audio.currentTime;
   player.pause();
   get('play-audio').listeners.click();
   assert.equal(audio.currentTime, pausedAt, 'Pause and resume must not seek again');
 });
 
-const fullClip = id => tracks.full.find(clip => clip.id === id);
-const sharedBeats = [...new Set(stops.map(stop => stop.spatialBeat))]
-  .filter(beat => fullClip(beat) && stops.filter(stop => stop.spatialBeat === beat).length > 1);
-
-test('full recording maps every step of a shared clip to its own span of audio, forward and backward', () => {
-  assert.ok(sharedBeats.length > 0, 'the manifest has clips that narrate several steps');
-  for (const beat of sharedBeats) {
-    const steps = stops.filter(stop => stop.spatialBeat === beat);
-    const clip = fullClip(beat);
-    const {get, audio, positions, player, setPosition} = fixture();
-    for (const stop of [...steps, ...steps.toReversed()]) {
-      setPosition({id: stop.id, opening: false, localT: .5});
-      player.selectPosition(stop.id, false);
-      get('play-audio').listeners.click();
-      const slot = steps.indexOf(stop);
-      assert.equal(audio.src, clip.src, stop.id + ' plays the clip that narrates it');
-      assert.ok(Math.abs(audio.currentTime - (slot + .5) / steps.length * clip.dur) < 1e-6,
-        'Play from ' + stop.id + ' must start inside its own span, not at the clip start');
-      assert.equal(positions.at(-1)[0], stop.id, 'Play must keep ' + stop.id);
-      assert.ok(Math.abs(positions.at(-1)[1] - .5) < 1e-6);
-      player.pause();
-    }
-  }
-});
-
-test('narration advances through the steps of a shared clip in order and rewinds in reverse', () => {
-  const beat = sharedBeats.find(id => stops.filter(stop => stop.spatialBeat === id).length === 3) || sharedBeats[0];
-  const steps = stops.filter(stop => stop.spatialBeat === beat);
-  const clip = fullClip(beat);
-  const {get, audio, positions, player, setPosition} = fixture();
-  setPosition({id: steps[0].id, opening: false, localT: 0});
-  player.selectPosition(steps[0].id, false);
-  get('play-audio').listeners.click();
-  const seen = [];
-  for (const at of [.05, .55, .95].map(share => share * clip.dur)) {
-    audio.currentTime = at; audio.listeners.timeupdate();
-    seen.push(positions.at(-1)[0]);
-  }
-  const expected = t => steps[Math.floor(t / clip.dur * steps.length)].id;
-  assert.deepEqual(seen, [.05, .55, .95].map(share => expected(share * clip.dur)));
-  // Going back (a rewind or a rail click) lands on the same step the same audio time maps to.
-  for (const at of [.9, .4, .02].map(share => share * clip.dur)) {
-    audio.currentTime = at; audio.listeners.timeupdate();
-    assert.equal(positions.at(-1)[0], expected(at));
-  }
-});
-
-test('switching between full and quick recordings from a later step keeps that step and progress', () => {
-  for (const id of ['1.3', '4.4', '7.4', '10.4', '12.3']) {
-    const {get, positions, player, setPosition} = fixture();
-    setPosition({id, opening: false, localT: .6});
-    player.selectPosition(id, false);
-    get('play-audio').listeners.click();
-    for (const track of ['quick', 'full', 'quick']) {
-      get('track').value = track;
-      get('track').listeners.change();
-      assert.equal(positions.at(-1)[0], id, id + ' kept after switching to ' + track);
-      assert.ok(Math.abs(positions.at(-1)[1] - .6) < 1e-6, id + ' progress kept after switching to ' + track);
-    }
-    player.pause();
-  }
-});
-
-test('paused navigation, then resuming, reconstructs the same state in both directions', () => {
+test('direct selection chooses the first written route segment and reconstructs it in reverse', () => {
   for (const track of ['full', 'quick']) {
     const {get, audio, positions, player, setPosition} = fixture();
     get('track').value = track;
     get('track').listeners.change();
-    const order = stops.filter(stop => stop.stage >= 6 && stop.stage <= 8);
-    const sequence = [...order, ...order.toReversed(), ...order.filter((_, i) => i % 3 === 0).toReversed()];
     const first = new Map();
-    for (const stop of sequence) {
+    for (const stop of [...stops, ...stops.toReversed()]) {
       setPosition({id: stop.id, opening: false, localT: .25});
       player.selectPosition(stop.id, false);
       get('play-audio').listeners.click();
-      const state = [positions.at(-1)[0], +positions.at(-1)[1].toFixed(6), +audio.currentTime.toFixed(6)];
+      const expected = directSegment(track, stop.id);
+      const state = [positions.at(-1)[0], positions.at(-1)[1], audio.currentTime, audio.src];
       assert.equal(state[0], stop.id, track + ' Play retains ' + stop.id);
-      if (first.has(stop.id)) assert.deepEqual(state, first.get(stop.id), track + ' ' + stop.id + ' resumes identically after going back');
+      close(state[1], .25);
+      close(state[2], segmentTime(expected, .25), track + ' ' + stop.id + ' uses its explicit cue range');
+      assert.equal(state[3], sourceClip(track, expected.clip).src);
+      if (first.has(stop.id)) assert.deepEqual(state, first.get(stop.id), track + ' ' + stop.id + ' reverses identically');
       else first.set(stop.id, state);
       player.pause();
     }
   }
+});
+
+test('a segment boundary advances immediately without reloading the same MP3', () => {
+  const {get, audio, media, positions, player} = fixture();
+  get('track').value = 'quick';
+  get('track').listeners.change();
+  player.selectPosition('9.1', false, 0);
+  get('play-audio').listeners.click();
+  const srcSets = media.srcSets;
+  audio.currentTime = 12.55;
+  audio.listeners.timeupdate();
+  assert.equal(positions.at(-1)[0], '9.1');
+  audio.currentTime = 12.56;
+  audio.listeners.timeupdate();
+  assert.equal(positions.at(-1)[0], '9.2');
+  close(positions.at(-1)[1], 0);
+  assert.equal(media.srcSets, srcSets, 'the next range keeps the loaded recording');
+  assert.equal(audio.currentTime, 12.56, 'advancement does not wait for the 20.459 second clip to end');
+  assert.equal(player.playing, true);
+  audio.currentTime = 15.6;
+  audio.listeners.timeupdate();
+  assert.equal(positions.at(-1)[0], '9.3');
+  assert.equal(media.srcSets, srcSets);
+});
+
+test('segment ends alternate clips and revisit noncontiguous ranges in written order', () => {
+  const {get, audio, positions, player} = fixture();
+  player.selectPosition('10.1', false, 0);
+  get('play-audio').listeners.click();
+  const transitions = [
+    [14.712, '10.2', '6d', 0],
+    [3.68, '10.3', '6c', 9.147],
+    [14.712, '10.4', '6d', 3.68],
+    [10.219, '11.1', '6e', 0],
+  ];
+  for (const [at, id, clip, seek] of transitions) {
+    audio.currentTime = at;
+    audio.listeners.timeupdate();
+    assert.equal(positions.at(-1)[0], id);
+    assert.equal(audio.src, sourceClip('full', clip).src);
+    close(audio.currentTime, seek);
+    assert.equal(player.playing, true);
+  }
+});
+
+test('backward seeks across same-clip boundaries reconstruct their owning segments', () => {
+  const {get, audio, positions, player} = fixture();
+  get('track').value = 'quick';
+  get('track').listeners.change();
+  player.selectPosition('9.3', false, 0);
+  get('play-audio').listeners.click();
+  audio.currentTime = 16;
+  audio.listeners.timeupdate();
+  assert.equal(positions.at(-1)[0], '9.3');
+  audio.currentTime = 13;
+  audio.listeners.timeupdate();
+  assert.equal(positions.at(-1)[0], '9.2');
+  close(positions.at(-1)[1], (13 - 12.56) / (15.6 - 12.56));
+  audio.currentTime = 12;
+  audio.listeners.timeupdate();
+  assert.equal(positions.at(-1)[0], '9.1');
+  close(positions.at(-1)[1], 12 / 12.56);
+});
+
+test('chapters and elapsed time use narrative route offsets rather than source order', () => {
+  const {audio, positions, player, get} = fixture();
+  player.seekStage(8);
+  assert.equal(audio.src, sourceClip('full', 'p6').src);
+  assert.equal(positions.at(-1)[0], '8.1');
+  player.pause();
+  player.selectPosition('10.3', false, .5);
+  get('play-audio').listeners.click();
+  const route = tracks.routes.full;
+  const index = route.indexOf(directSegment('full', '10.3'));
+  const expected = route.slice(0, index).reduce((sum, item) => sum + item.end - item.start, 0)
+    + .5 * (directSegment('full', '10.3').end - directSegment('full', '10.3').start);
+  const format = value => Math.floor(value / 60) + ':' + String(Math.floor(value % 60)).padStart(2, '0');
+  assert.ok(get('audio-time').textContent.startsWith(format(expected) + ' / '));
+});
+
+test('the final route segment stops at its end and resets the next run', () => {
+  const {get, audio, player} = fixture();
+  get('track').value = 'quick';
+  get('track').listeners.change();
+  player.selectPosition('12.4', false, 0);
+  get('play-audio').listeners.click();
+  audio.currentTime = 18.709;
+  audio.listeners.timeupdate();
+  assert.equal(audio.src, sourceClip('quick', '13-outro').src);
+  audio.currentTime = 5.752;
+  audio.listeners.ended();
+  assert.equal(player.playing, false);
+  assert.ok(get('audio-time').textContent.startsWith('0:00 / '));
+  get('narrStory').listeners.click();
+  assert.equal(audio.src, sourceClip('quick', '00-intro').src);
 });
