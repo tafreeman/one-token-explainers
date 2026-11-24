@@ -9,6 +9,7 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+const damp = (c, t, r, dt) => lerp(c, t, 1 - Math.exp(-r * dt));
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const frac = x => x - Math.floor(x);
 const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
@@ -18,7 +19,7 @@ const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex()
 const HEX = {
   hall: mix(colors.ground, colors.hardwarePlinth, .78),       // floor
   haze: mix(colors.ground, colors.hardwarePlinth, .34),       // fog and sky, lighter than the floor
-  plinth: mix(colors.hardwarePlinth, colors.hardwareBody, .9), ink: colors.ink, ink2: colors.silhouette,
+  plinth: mix(colors.hardwareBody, colors.hardwareFrame, .3), ink: colors.ink, ink2: colors.silhouette,
   steel: mix(colors.hardwareFrame, colors.silhouette, .3), steelL: mix(colors.hardwareBody, colors.hardwareFrame, .5),
   pale: mix(colors.hardwareBody, colors.hardwareFrame, .2),
   graphite: mix(colors.hardwareFrame, colors.silhouette, .3), token: colors.token, train: colors.fault,

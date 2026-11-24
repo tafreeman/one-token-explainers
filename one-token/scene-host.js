@@ -25,7 +25,13 @@
     let lastFrame = null;
     let lost = false, suspended = false, failed = false;
 
+    const PIN_STAY = 22, PIN_GLIDE_MS = 260, PIN_FADE_MS = 160;
+    let pinSide = -1, pinShown = null, pinFrom = null, pinStart = 0, pinLabel = '';
+
+    function forgetPin() { pinSide = -1; pinShown = null; pinFrom = null; }
+
     function hidePin() {
+      forgetPin();
       if (pin) pin.hidden = true;
       if (mobilePin) mobilePin.textContent = '';
       if (leader) leader.style.visibility = 'hidden';
@@ -36,6 +42,7 @@
         mobilePin.textContent = label && label !== '“ Paris”' ? '· ' + label : '';
       }
       if (!pin || !leader || !label) {
+        forgetPin();
         if (pin) pin.hidden = true;
         if (leader) leader.style.visibility = 'hidden';
         return;
@@ -44,6 +51,7 @@
       const x = (point.x + 1) * w / 2;
       const y = (1 - point.y) * h / 2;
       if (point.z < -1 || point.z > 1 || x < 1 || x > w - 1 || y < 1 || y > h - 1) {
+        forgetPin();
         pin.hidden = true;
         leader.style.visibility = 'hidden';
         return;
@@ -51,6 +59,11 @@
       pin.hidden = false;
       const text = pin.querySelector('[data-pin-text]') || pin;
       if (text.textContent !== label) text.textContent = label;
+      if (pinLabel !== label) {
+        // New label: a short fade says "this is a different callout" without moving anything.
+        if (pinLabel && !reduced.matches && pin.animate) pin.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PIN_FADE_MS, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+        pinLabel = label;
+      }
       pin.style.maxWidth = Math.max(24, Math.min(240, w - 24)) + 'px';
       const pw = pin.offsetWidth;
       const ph = pin.offsetHeight;
@@ -69,8 +82,8 @@
         [x + gap, y + gap],
         [x - gap - pw, y + gap]
       ];
-      let best = candidates[0], bestScore = -1e9;
-      for (const [rawL, rawT] of candidates) {
+      let best = candidates[0], bestScore = -1e9, bestIndex = 0;
+      for (const [index, [rawL, rawT]] of candidates.entries()) {
         const cl = Math.max(pad, Math.min(w - pw - pad, rawL));
         const ct = Math.max(pad, Math.min(h - ph - pad, rawT));
         const clampPenalty = Math.abs(cl - rawL) + Math.abs(ct - rawT);
@@ -78,13 +91,26 @@
         const distFromCenter = Math.hypot((bx - cx) / Math.max(1, w), (by - cy) / Math.max(1, h)) * 120;
         const overlapsAnchor = (x >= cl - 8 && x <= cl + pw + 8 && y >= ct - 8 && y <= ct + ph + 8) ? 500 : 0;
         const topBias = rawT < y ? 14 : 0;
-        const score = distFromCenter + topBias - clampPenalty * 2.4 - overlapsAnchor;
+        // Hysteresis: the current side wins near-ties, so the label stops hopping across the anchor.
+        const score = distFromCenter + topBias - clampPenalty * 2.4 - overlapsAnchor + (index === pinSide ? PIN_STAY : 0);
         if (score > bestScore) {
           bestScore = score;
           best = [cl, ct];
+          bestIndex = index;
         }
       }
-      const [left, top] = best;
+      // A forced side change glides to its new corner instead of teleporting.
+      const now = performance.now();
+      if (pinShown && bestIndex !== pinSide && !reduced.matches) { pinFrom = pinShown; pinStart = now; }
+      pinSide = bestIndex;
+      let [left, top] = best, gliding = false;
+      if (pinFrom) {
+        const k = Math.min(1, (now - pinStart) / PIN_GLIDE_MS), e = k * k * (3 - 2 * k);
+        left = pinFrom[0] + (left - pinFrom[0]) * e;
+        top = pinFrom[1] + (top - pinFrom[1]) * e;
+        if (k >= 1) pinFrom = null; else gliding = true;
+      }
+      pinShown = [left, top];
       pin.style.left = Math.round(left) + 'px';
       pin.style.top = Math.round(top) + 'px';
       leader.style.visibility = 'visible';
@@ -92,6 +118,7 @@
       leader.setAttribute('y1', y.toFixed(1));
       leader.setAttribute('x2', Math.max(left, Math.min(left + pw, x)).toFixed(1));
       leader.setAttribute('y2', Math.max(top, Math.min(top + ph, y)).toFixed(1));
+      return gliding;
     }
 
     function cancel() {
@@ -156,7 +183,7 @@
         calls = renderer.info.render.calls;
         viewport.dataset.render = 'ready';
         lastFrame = pinState.frame || null;
-        placePin(pinState, current.camera, width, height);
+        if (placePin(pinState, current.camera, width, height)) schedule();
       } catch (error) {
         fallback(error);
         return;
