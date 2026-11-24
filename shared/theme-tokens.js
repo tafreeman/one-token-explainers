@@ -17,9 +17,9 @@
     line: color(css.line), grid: color(css.grid), ink: color(css.ink), muted: color(css.muted),
     mark: color(css.mark), token: color(css.token), attention: 0x2455D6,
     cache: 0xC9973B, tool: 0x2C8C68, fault: 0xB85233, silhouette: color(css.silhouette),
-    hardwarePale: color(css['hardware-pale']), hardwareDeck: color(css['hardware-deck']),
-    hardwarePlinth: color(css['hardware-plinth']), hardwareBody: color(css['hardware-body']),
-    hardwareFrame: color(css['hardware-frame'])
+    // Spatial PBR uses a darker calibrated mineral/pewter ramp; the pale CSS values remain page surfaces.
+    hardwarePale: 0x8C877E, hardwareDeck: 0x746F68, hardwarePlinth: 0x65625C,
+    hardwareBody: 0x575751, hardwareFrame: 0x484B4E, hardwareGraphite: 0x303438
   });
 
   for (const [name, value] of Object.entries(css)) {
@@ -29,8 +29,8 @@
   function makeScene(THREE) {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(colors.ground);
-    scene.add(new THREE.HemisphereLight(0xFFFFFF, colors.hardwareBody, 1.45));
-    const sun = new THREE.DirectionalLight(0xFFFFFF, 1.25);
+    scene.add(new THREE.HemisphereLight(0xFFFFFF, colors.hardwareBody, .75));
+    const sun = new THREE.DirectionalLight(0xFFFFFF, .7);
     sun.position.set(-30, 70, 45);
     scene.add(sun);
     return { colors, scene };
