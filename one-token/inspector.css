@@ -8,8 +8,9 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   color: var(--ink, #16181a);
-  background: var(--ground, #f6f5f2);
-  border-inline-end: 1px solid var(--line, #d6d3cb);
+  background: var(--vellum, #fbfaf7);
+  border-inline-end: 1px solid var(--grid, #b8b4aa);
+  box-shadow: 6px 0 24px rgba(22, 24, 26, .08);
   padding: clamp(1rem, 3vw, 2.75rem);
   overflow-wrap: anywhere;
 }
@@ -59,18 +60,19 @@
 #inspector .steer-svg :is([data-edge], .math-guide) { stroke: var(--muted, #52575d); }
 #inspector .steer-svg [data-edge][data-active="true"] { stroke: var(--attention, #1e4ec8); }
 #inspector .steer-node rect { fill: var(--plate, #fff); stroke: var(--muted, #52575d); }
-#inspector .steer-node:is([data-state="on"], [data-state="boost"], [data-state="clamp"]) rect { fill: var(--inset, #eceae3); stroke: var(--attention, #1e4ec8); }
+#inspector .steer-node:is([data-state="on"], [data-state="boost"], [data-state="clamp"]) rect { fill: #eef3fd; stroke: var(--attention, #1e4ec8); }
 #inspector .math-controls { display: flex; flex-wrap: wrap; gap: .45rem; margin-block: .5rem 1rem; }
 #inspector .math-controls button {
   min-height: 44px;
   border: 1px solid var(--grid, #b8b4aa);
+  border-radius: 4px;
   background: var(--plate, #fff);
   color: inherit;
   padding: 8px 12px;
   font: inherit;
   cursor: pointer;
 }
-#inspector .math-controls button[aria-pressed="true"] { border-color: var(--attention, #1e4ec8); background: var(--inset, #eceae3); }
+#inspector .math-controls button[aria-pressed="true"] { border-color: var(--attention, #1e4ec8); background: #eef3fd; color: #163a96; font-weight: 600; }
 #inspector .lens-probability { display: grid; grid-template-columns: 5rem minmax(0,1fr) 3rem; align-items: center; gap: .375rem; font-variant-numeric: tabular-nums; }
 #inspector .lens-track { display: block; background: var(--inset, #eceae3); height: .5rem; }
 #inspector .lens-track i { display: block; height: 100%; background: var(--attention, #1e4ec8); }
@@ -96,11 +98,12 @@
   position: sticky; top: calc(-1 * clamp(1rem, 3vw, 2.75rem)); z-index: 2;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem;
   margin: calc(-1 * clamp(1rem, 3vw, 2.75rem)) calc(-1 * clamp(1rem, 3vw, 2.75rem)) 0;
-  padding: .25rem clamp(1rem, 3vw, 2.75rem); background: var(--ground, #f6f5f2); border-block-end: 1px solid var(--line, #d6d3cb);
+  padding: .25rem clamp(1rem, 3vw, 2.75rem); background: var(--plate, #fff); border-block-end: 1px solid var(--line, #d6d3cb);
 }
 #inspector .inspect-back { border: 1.5px solid var(--ink, #16181a); border-radius: 4px; padding: 0 .9rem; font-weight: 640; background: var(--plate, #fff); }
 #inspector .inspect-back:hover { background: var(--ink, #16181a); color: var(--plate, #fff); }
-#inspector .inspect-expand { min-height: 44px; border: 1.5px solid var(--mark, #b8320d); border-radius: 4px; padding: 0 .9rem; font: inherit; font-weight: 640; background: var(--plate, #fff); color: var(--mark, #b8320d); cursor: pointer; }
+#inspector .inspect-expand { min-height: 44px; border: 1.5px solid var(--mark, #b8320d); border-radius: 4px; padding: 0 .9rem; font: inherit; font-weight: 640; background: var(--mark-soft, #fff1ec); color: var(--mark, #b8320d); cursor: pointer; }
+#inspector .inspect-expand:hover { background: var(--mark, #b8320d); color: var(--plate, #fff); }
 #inspector .inspect-expand[hidden] { display: none; }
 #inspector .inspect-lesson { margin: 0 0 .5rem; font-family: var(--mono, monospace); font-size: .8rem; color: var(--muted, #52575d); }
 /* Expanded: the cutaway fills the figure stage while the labs stay in the panel. */

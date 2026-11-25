@@ -159,8 +159,9 @@
       const h = viewport.clientHeight;
       if (!w || !h) return;
       // Sharp on HiDPI without paying for it everywhere: the cap and pixel budget are lower on weak
-      // devices, and `quality` steps down further if the spatial view proves slow.
-      const cap = lowPower ? 1.25 : 2, budget = lowPower ? 900000 : 2600000;
+      // devices or CPU fallback rasterizers, and `quality` steps down further if spatial proves slow.
+      const cap = (lowPower || cpuDriver) ? 1 : (software ? 1.25 : 2);
+      const budget = (lowPower || cpuDriver) ? 900000 : (software ? 1200000 : 2600000);
       const scale = Math.max(.6, Math.min(devicePixelRatio || 1, cap, Math.sqrt(budget / (w * h))) * quality);
       const resized = w !== width || h !== height || scale !== pixelRatio;
       if (resized) {
@@ -185,7 +186,11 @@
           // WebGL's default drawing buffer may have been discarded between frames.
           // Repaint the outgoing canonical pose before taking the transition snapshot.
           const previous = scenes[renderedView];
-          if (previous) renderer.render(previous.scene, previous.camera);
+          if (previous) {
+            renderer.toneMapping = renderedView === 'spatial' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+            renderer.toneMappingExposure = renderedView === 'spatial' ? (previous.exposure ?? 1) : 1;
+            renderer.render(previous.scene, previous.camera);
+          }
           fadeCanvas.width = canvas.width;
           fadeCanvas.height = canvas.height;
           fadeCtx.clearRect(0, 0, fadeCanvas.width, fadeCanvas.height);
@@ -201,7 +206,8 @@
         const started = performance.now();
         const snapCamera = view === 'spatial' && performance.now() >= settleUntil;
         const pinState = current.update({...state, reducedMotion: reduced.matches, snapCamera}, width / height, width);
-        renderer.toneMappingExposure = current.exposure ?? 1;
+        renderer.toneMapping = view === 'spatial' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+        renderer.toneMappingExposure = view === 'spatial' ? (current.exposure ?? 1) : 1;
         renderer.render(current.scene, current.camera);
         if (view === 'spatial') noteSpatialCost(performance.now() - started);
         frames++;
@@ -237,8 +243,10 @@
 
     // Spatial is the heavy view. Several slow draws in a row (a much lower bar on devices
     // that report little memory or few cores) tell the reader to fall back to the Diagram.
+    const qualityParam = new URLSearchParams(location.search).get('quality');
     const lowPower = navigator.connection?.saveData || navigator.deviceMemory <= 2 || navigator.hardwareConcurrency <= 2;
-    qualityTier = lowPower ? 'low' : 'high';
+    let software = false, cpuDriver = false;
+    qualityTier = qualityParam === 'high' ? 'high' : (qualityParam === 'low' || lowPower) ? 'low' : 'high';
     const SLOW_MS = lowPower ? 120 : 400, SLOW_RUN = 4;
     const SOFT_MS = lowPower ? 40 : 60, SOFT_RUN = 6, QUALITY_STEP = .2, QUALITY_MIN = .6;
     let slowDraws = 0, softDraws = 0;
@@ -296,7 +304,20 @@
       hidePin();
       THREE = await window.ensureJourneyThree('160');
       revision = THREE.REVISION;
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true, stencil: false, powerPreference: 'high-performance' });
+      try {
+        const probe = document.createElement('canvas');
+        const gl = probe.getContext?.('webgl2') || probe.getContext?.('webgl');
+        if (gl) {
+          const info = gl.getExtension('WEBGL_debug_renderer_info');
+          const label = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '');
+          software = /swiftshader|basic render|warp|llvmpipe|softpipe|software/i.test(label);
+          cpuDriver = /basic render|warp|llvmpipe|softpipe/i.test(label);
+          gl.getExtension('WEBGL_lose_context')?.loseContext();
+        }
+      } catch {}
+      if (cpuDriver && qualityParam !== 'high') qualityTier = 'low';
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: !software && !lowPower, stencil: false, powerPreference: 'high-performance' });
+      renderer.userData = { software, cpuDriver };
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1;

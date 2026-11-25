@@ -76,10 +76,10 @@ scene.fog = new THREE.Fog(HEX.haze, 80, 400);
 const camera = new THREE.PerspectiveCamera(30, 1, .3, 900);
 
 // Every solid uses PBR; Basic remains only for unlit text, signal paths and floor markings.
-const lam = c => new THREE.MeshStandardMaterial({ color: c, roughness: .58, metalness: .18, envMapIntensity: .55 });
+const lam = c => new THREE.MeshStandardMaterial({ color: c, roughness: .52, metalness: .14, envMapIntensity: .58 });
 const bas = c => new THREE.MeshBasicMaterial({ color: c });
 const M = { ink: lam(HEX.ink2), graphite: PM.graphite, steel: PM.darkPewter, steelL: PM.pewter, plinth: lam(HEX.plinth),
-  train: lam(HEX.train), serve: PM.brass, tool: PM.pine, white: lam(colors.plate), slab: lam(HEX.slab) };
+  train: PM.terracotta, serve: PM.brass, tool: PM.pine, white: lam(colors.plate), slab: PM.limestone };
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const CHAMFER = modelKit.chamferedBox(1, 1, 1, .055, 'medium');
 const dummy = new THREE.Object3D();
@@ -87,8 +87,8 @@ function box(w, h, d, mat, x, y, z, parent = scene) { const m = new THREE.Mesh(C
 function edgesBox(w, h, d, color = HEX.ink, parent = scene) {
   const g = new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d)); const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color })); parent.add(l); return l; }
 function texCanvas(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); draw(g, w, h);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; if (renderer) t.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy()); t.userData = { c, g, draw }; return t; }
-const SHADOW = texCanvas(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(18,20,23,.62)'); r.addColorStop(.55, 'rgba(18,20,23,.22)'); r.addColorStop(1, 'rgba(18,20,23,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; if (renderer) t.anisotropy = renderer.userData?.software ? 1 : Math.min(16, renderer.capabilities.getMaxAnisotropy()); t.userData = { c, g, draw }; return t; }
+const SHADOW = texCanvas(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(18,20,23,.52)'); r.addColorStop(.55, 'rgba(18,20,23,.18)'); r.addColorStop(1, 'rgba(18,20,23,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
 function shadow(x, z, sx, sz, op = .55, parent = scene) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: SHADOW, transparent: true, depthWrite: false, opacity: op }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, .015, z); m.scale.set(sx, sz, 1); m.renderOrder = 1; parent.add(m); return m; }
@@ -100,9 +100,9 @@ function tube(curve, r, mat, seg = 48) {
 
 /* floor */
 { const f = new THREE.Mesh(new THREE.PlaneGeometry(1400, 700), PM.floor); f.name = 'lit-terrazzo-floor'; f.rotation.x = -Math.PI / 2; f.position.set(50, 0, 0); scene.add(f);
-  // The generated map carries terrazzo and tile joints; a faint grid preserves hall scale.
-  const grid = new THREE.GridHelper(480, 120, mix(HEX.hall, colors.hardwareBody, .3), mix(HEX.hall, colors.hardwareBody, .3));
-  grid.material.transparent = true; grid.material.opacity = .24; grid.material.depthWrite = false; grid.position.set(60, .004, 0); scene.add(grid); }
+  // The generated map carries terrazzo and tile joints; a subtle architectural grid preserves hall scale.
+  const grid = new THREE.GridHelper(480, 120, mix(HEX.hall, colors.grid, .65), mix(HEX.hall, colors.line, .75));
+  grid.material.transparent = true; grid.material.opacity = .32; grid.material.depthWrite = false; grid.position.set(60, .004, 0); scene.add(grid); }
 
 /* ---------------- floor track: state by line pattern ---------------- */
 const Track = (() => {
@@ -189,11 +189,11 @@ const trainAnswer = makeTrain([' in', ' clear', ' and', ' °C', ' 18', '’s', '
 /* ---------------- station 1: corpus ---------------- */
 const Corpus = (() => {
   const g = new THREE.Group(); scene.add(g);
-  const rails = RAIL_Z.map(z => { const c = new THREE.CatmullRomCurve3(railPts(z).map(p => V3(...p)), false, 'centripetal'); const m = tube(c, .055, M.steel, 40); g.add(m); return c; });
-  RAIL_Z.forEach(z => { box(.5, .5, .5, M.slab, -15.2, 5.4, z, g); });
-  const funnel = new THREE.Mesh(new THREE.TorusGeometry(.72, .11, 12, 40), M.steelL); funnel.position.set(-3, Y0, 0); funnel.rotation.y = Math.PI / 2; g.add(funnel);
-  // Ordinary gate hardware stays neutral; only rejected material carries Terracotta.
-  box(.16, 2.3, .16, M.slab, X_GATE, 1.15, -1.05, g); box(.16, 2.3, .16, M.slab, X_GATE, 1.15, 1.05, g); box(.18, .18, 2.3, M.steelL, X_GATE, 2.3, 0, g);
+  const rails = RAIL_Z.map(z => { const c = new THREE.CatmullRomCurve3(railPts(z).map(p => V3(...p)), false, 'centripetal'); const m = tube(c, .055, M.steelL, 40); g.add(m); return c; });
+  RAIL_Z.forEach(z => { box(.5, .5, .5, M.train, -15.2, 5.4, z, g); });
+  const funnel = new THREE.Mesh(new THREE.TorusGeometry(.72, .11, 12, 40), M.train); funnel.position.set(-3, Y0, 0); funnel.rotation.y = Math.PI / 2; g.add(funnel);
+  // Limestone posts with a Terracotta training lintel mark the corpus filter gate.
+  box(.18, 2.3, .18, M.slab, X_GATE, 1.15, -1.05, g); box(.18, 2.3, .18, M.slab, X_GATE, 1.15, 1.05, g); box(.22, .22, 2.34, M.train, X_GATE, 2.3, 0, g);
   const comb = new THREE.InstancedMesh(BOX, M.steel, 7); for (let i = 0; i < 7; i++) { dummy.position.set(X_GATE, 1.25, -.78 + i * .26); dummy.rotation.set(0, 0, 0); dummy.scale.set(.035, 1.5, .035); dummy.updateMatrix(); comb.setMatrixAt(i, dummy.matrix); } g.add(comb);
   box(1.9, .16, 1.2, M.steelL, X_GATE + .9, .08, 2.35, g); shadow(X_GATE + .9, 2.35, 2.6, 1.8, .35, g); shadow(X_GATE, 0, 1.4, 3.2, .4, g);
   box(14.8, .06, .9, M.plinth, X_GATE + 2.4, .03, 0, g);
@@ -290,8 +290,8 @@ const Tower = (() => {
   const mtpH = Array.from({ length: NM }, (_, i) => .1 + .45 * Math.exp(-Math.pow((i - 6) / 3, 2)) * (.5 + .5 * Math.cos(i * 1.9) ** 2));
   // gradient rings
   const rings = [0, 1, 2].map((k) => { const r = new THREE.Mesh(new THREE.TorusGeometry(2.05, .075, 8, 56), M.train); r.name = 'backprop-gradient-' + k; r.rotation.x = Math.PI / 2; g.add(r); return r; });
-  const shad = shadow(0, 0, 8, 8, .6, g);
-  const pale = new THREE.Color(HEX.pale), graph = new THREE.Color(HEX.graphite), flashC = new THREE.Color(HEX.token), sweepC = new THREE.Color(HEX.ink2), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
+  const shad = shadow(0, 0, 8, 8, .5, g);
+  const pale = new THREE.Color(colors.hardwarePlinth), graph = new THREE.Color(0x525862), flashC = new THREE.Color(HEX.token), sweepC = new THREE.Color(0xF6EFE2), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
   const tokC = new THREE.Color(HEX.token), inkC = new THREE.Color(HEX.ink2);
   modelKit.mergeStatic(g, rings);
   modelKit.mergeStatic(embedding.g, [embedding.selectedRow, embedding.vector]);
@@ -337,12 +337,12 @@ const Tower = (() => {
 const Cluster = (() => {
   const g = new THREE.Group(); scene.add(g);
   const n = 24, racks = new THREE.InstancedMesh(BOX, lam(0xffffff), n);
-  for (let i = 0; i < n; i++) { dummy.position.set(X_TRAIN - 3.6 + (i % 8) * 1.03, .75, -6.4 - Math.floor(i / 8) * 1.15); dummy.rotation.set(0, 0, 0); dummy.scale.set(.82, 1.5, .78); dummy.updateMatrix(); racks.setMatrixAt(i, dummy.matrix); racks.setColorAt(i, new THREE.Color(HEX.graphite)); }
-  g.add(racks); shadow(X_TRAIN, -7.5, 11, 5, .45, g); box(9.6, .06, 4.1, M.plinth, X_TRAIN, .03, -7.55, g);
+  for (let i = 0; i < n; i++) { dummy.position.set(X_TRAIN - 3.6 + (i % 8) * 1.03, .75, -6.4 - Math.floor(i / 8) * 1.15); dummy.rotation.set(0, 0, 0); dummy.scale.set(.82, 1.5, .78); dummy.updateMatrix(); racks.setMatrixAt(i, dummy.matrix); racks.setColorAt(i, new THREE.Color(0x565C66)); }
+  g.add(racks); shadow(X_TRAIN, -7.5, 11, 5, .4, g); box(9.6, .06, 4.1, M.plinth, X_TRAIN, .03, -7.55, g);
   box(7, .06, 7, M.plinth, X_TRAIN, .03, 0, g); box(7, .06, 7, M.plinth, X_TOWER, .03, 0, g);
-  const lit = new THREE.Color(colors.hardwareBody), dark = new THREE.Color(HEX.graphite);
+  const lit = new THREE.Color(colors.cache), dark = new THREE.Color(0x565C66);
   const br = new THREE.Group(); scene.add(br);
-  const tabL = box(.08, .9, .55, M.steelL, 0, .45, 0, br), tabR = box(.08, .9, .55, M.steelL, 0, .45, 0, br), bar = box(1, .07, .07, M.steelL, 0, .9, 0, br);
+  const tabL = box(.08, .9, .55, M.train, 0, .45, 0, br), tabR = box(.08, .9, .55, M.train, 0, .45, 0, br), bar = box(1, .07, .07, M.train, 0, .9, 0, br);
   return { update(S) {
     const a = S.anim, on = S.v.cluster;
     for (let i = 0; i < n; i++) racks.setColorAt(i, on > .05 && Math.sin(a * 5.1 + i * 2.3) * Math.sin(a * 1.7 + i) > .35 ? lit : dark);
@@ -356,7 +356,7 @@ const Cluster = (() => {
 const Post = (() => {
   const g = new THREE.Group(); scene.add(g);
   const gx = X_POST + 7.2;
-  box(.18, 5.7, .18, M.slab, gx, 2.85, -4.1, g); box(.18, 5.7, .18, M.slab, gx, 2.85, 4.1, g); box(.26, .26, 8.6, M.steelL, gx, 5.7, 0, g);
+  box(.18, 5.7, .18, M.slab, gx, 2.85, -4.1, g); box(.18, 5.7, .18, M.slab, gx, 2.85, 4.1, g); box(.26, .26, 8.6, M.train, gx, 5.7, 0, g);
   shadow(gx, 0, 2, 9.5, .35, g);
   const Z = Array.from({ length: 8 }, (_, i) => -3.5 + i);
   const WIN = [1, 0, 1, 1, 0, 0, 1, 0];
@@ -380,7 +380,7 @@ const Post = (() => {
     g.add(m);
     return m;
   });
-  const marks = Z.map((z, i) => { const o = new THREE.Group(); o.position.set(gx, 6.1, z); g.add(o); if (WIN[i]) box(.3, .3, .3, M.ink, 0, 0, 0, o); else edgesBox(.3, .3, .3, HEX.ink, o); return o; });
+  const marks = Z.map((z, i) => { const o = new THREE.Group(); o.position.set(gx, 6.1, z); g.add(o); if (WIN[i]) box(.3, .3, .3, M.tool, 0, 0, 0, o); else edgesBox(.3, .3, .3, HEX.ink, o); return o; });
   // reference model + tether
   const ghost = new THREE.Group(); g.add(ghost); ghost.position.set(X_POST - 6, 0, -3.6);
   const ge = edgesBox(3.3, TOWER_TOP - .7, 3.3, HEX.ink2, ghost); ge.position.y = (TOWER_TOP + .7) / 2;
@@ -411,10 +411,10 @@ const Post = (() => {
 
 const Gate = (() => {
   const g = new THREE.Group(); scene.add(g);
-  box(.44, 15.8, .44, M.slab, X_REL, 7.9, -2.8, g); box(.44, 15.8, .44, M.slab, X_REL, 7.9, 2.8, g); box(.62, .62, 6.2, M.steelL, X_REL, 15.8, 0, g);
-  shadow(X_REL, -2.8, 1.6, 1.6, .5, g); shadow(X_REL, 2.8, 1.6, 1.6, .5, g); box(1.6, .06, 7.2, M.plinth, X_REL, .03, 0, g);
-  const scan = box(.32, .32, 5.4, M.ink, X_REL, 3, 0, g);
-  const lamps = Array.from({ length: 6 }, (_, i) => { const o = new THREE.Group(); o.position.set(X_REL + .42, 15.8, -2.2 + i * .88); g.add(o); edgesBox(.08, .62, .62, HEX.ink, o); const f = box(.08, .62, .62, M.ink, 0, 0, 0, o); return f; });
+  box(.44, 15.8, .44, M.slab, X_REL, 7.9, -2.8, g); box(.44, 15.8, .44, M.slab, X_REL, 7.9, 2.8, g); box(.62, .62, 6.2, M.train, X_REL, 15.8, 0, g);
+  shadow(X_REL, -2.8, 1.6, 1.6, .45, g); shadow(X_REL, 2.8, 1.6, 1.6, .45, g); box(1.6, .06, 7.2, M.plinth, X_REL, .03, 0, g);
+  const scan = box(.32, .32, 5.4, M.train, X_REL, 3, 0, g);
+  const lamps = Array.from({ length: 6 }, (_, i) => { const o = new THREE.Group(); o.position.set(X_REL + .42, 15.8, -2.2 + i * .88); g.add(o); edgesBox(.08, .62, .62, HEX.ink, o); const f = box(.08, .62, .62, M.tool, 0, 0, 0, o); return f; });
   modelKit.mergeStatic(g, [scan]);
   return { g, update(S) {
     const s = S.v.scan, a = S.anim;
@@ -426,17 +426,17 @@ const Gate = (() => {
 /* ---------------- serving floor ---------------- */
 const Serve = (() => {
   const g = new THREE.Group(); scene.add(g);
-  const intake = new THREE.Mesh(new THREE.TorusGeometry(.74, .11, 12, 40), M.steelL); intake.name = 'request-intake'; intake.position.set(X_INTAKE, Y0, 0); intake.rotation.y = Math.PI / 2; g.add(intake);
+  const intake = new THREE.Mesh(new THREE.TorusGeometry(.74, .11, 12, 40), M.serve); intake.name = 'request-intake'; intake.position.set(X_INTAKE, Y0, 0); intake.rotation.y = Math.PI / 2; g.add(intake);
   const hoop = new THREE.Mesh(new THREE.TorusGeometry(.6, .045, 8, 40), M.steel); hoop.position.set(X_INTAKE + 1.4, Y0, 0); hoop.rotation.y = Math.PI / 2; g.add(hoop);
   box(4.4, .06, 2.2, M.plinth, X_INTAKE + .6, .03, 0, g); shadow(X_INTAKE, 0, 2.4, 2.4, .35, g);
   const sampler = modelKit.makeSampler(PM); sampler.g.position.set(X_SAMPLE, 0, 0); g.add(sampler.g);
   shadow(X_SAMPLE, 0, 2.4, 2.4, .35, g);
   const detok = modelKit.makeDetokenizer(PM); detok.g.position.set(X_STREAM, 0, 0); detok.g.visible = false; g.add(detok.g);
-  const intakeGate = modelKit.makeTokenizer(PM); intakeGate.g.position.set(X_INTAKE + 2.1, 0, 0);
+  const intakeGate = modelKit.makeTokenizer(PM, PM.brass); intakeGate.g.position.set(X_INTAKE + 2.1, 0, 0);
   intakeGate.g.scale.setScalar(.55); intakeGate.g.visible = false; g.add(intakeGate.g);
   const template = new THREE.Group(); template.name = 'chat-template-order'; g.add(template);
   ['tools', 'system', 'messages'].forEach((name, i) => {
-    const slab = box(1.2 + i * .35, .16, .8, i === 2 ? M.slab : M.steelL,
+    const slab = box(1.2 + i * .35, .16, .8, i === 0 ? M.tool : i === 1 ? M.serve : M.slab,
       X_INTAKE - 1.4 + i * 1.45, .3 + i * .24, -1.6, template);
     slab.name = 'template-' + name; slab.rotation.y = -.15;
   });
@@ -446,7 +446,7 @@ const Serve = (() => {
   const parisAttention = tube(new THREE.QuadraticBezierCurve3(V3(X_SAMPLE, Y0, 0),
     V3((X_SAMPLE + X_INTAKE) / 2, 4.2, 2.1), V3(X_INTAKE + 2, Y0, 0)), .026, bas(colors.attention), 40);
   parisAttention.name = 'paris-prompt-attention'; parisAttention.visible = false; g.add(parisAttention);
-  const outHoop = new THREE.Mesh(new THREE.TorusGeometry(.64, .085, 10, 40), M.steelL); outHoop.position.set(X_STREAM + 1.15, Y0, 0); outHoop.rotation.y = Math.PI / 2; g.add(outHoop);
+  const outHoop = new THREE.Mesh(new THREE.TorusGeometry(.64, .085, 10, 40), M.serve); outHoop.position.set(X_STREAM + 1.15, Y0, 0); outHoop.rotation.y = Math.PI / 2; g.add(outHoop);
   // thinking lane barrier
   const barrier = box(.1, 1, 1, M.ink, X_STREAM - 2.6, .5, -1.8, g);
   const laneM = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: colors.grid })); laneM.scale.set(X_STREAM - 2.6 - (X_TOWER + 3.2), .012, .05); laneM.position.set((X_STREAM - 2.6 + X_TOWER + 3.2) / 2, .02, -1.8); g.add(laneM);
@@ -546,7 +546,7 @@ const Callouts = (() => {
   for (let i = 0; i < 12; i++) { dummy.position.set(AX + i * SP, AY, AZ); dummy.rotation.set(0, 0, 0); dummy.scale.set(.56, .3, .3); dummy.updateMatrix(); keys.setMatrixAt(i, dummy.matrix); }
   const q = box(TOKW, .34, .34, new THREE.MeshBasicMaterial({ color: HEX.token }), AX + 12 * SP, AY, AZ, att);
   const future = [0, 1, 2, 3].map(i => { const e = edgesBox(.56, .3, .3, colors.hardwareFrame, att); e.position.set(AX + (13 + i) * SP + .1, AY, AZ); return e; });
-  const mask = box(.06, 1.1, .9, M.steelL, AX + 12.55 * SP, AY + .2, AZ, att); mask.name = 'causal-mask';
+  const mask = box(.06, 1.1, .9, M.train, AX + 12.55 * SP, AY + .2, AZ, att); mask.name = 'causal-mask';
   const W = [.15, .1, .1, .12, .3, .1, .25, .9, .75, .2, .35, .5];
   const arcD = W.map((w, i) => { const c = new THREE.QuadraticBezierCurve3(V3(AX + 12 * SP, AY + .18, AZ), V3(AX + (i + 12) / 2 * SP, AY + 1.0 + (12 - i) * .16, AZ), V3(AX + i * SP, AY + .16, AZ)); const m = tube(c, .012 + .05 * w, bas(colors.attention), 36); m.name = 'attention-dense-' + i; att.add(m); return m; });
   const sp = new THREE.Group(); att.add(sp);
@@ -1149,6 +1149,8 @@ function simplifiedGeometry(geometry) {
 function setQuality(tier) {
   qualityTier = ['high', 'medium', 'low'].includes(tier) ? tier : 'medium';
   materialSystem.setQuality(scene, qualityTier);
+  lightRig.key.intensity = qualityTier === 'low' ? 3.15 : 2.65;
+  lightRig.fill.intensity = qualityTier === 'low' ? 1.8 : 1.45;
   scene.traverse(object => {
     if (!object.isMesh || object.name === 'token-core') return;
     if (qualityTier === 'low') {

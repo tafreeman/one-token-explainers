@@ -3,7 +3,7 @@
 'use strict';
 
 function create(THREE, theme) {
-  const { colors, scene } = theme.makeScene(THREE);
+  const { colors, scene } = theme.makeScene(THREE, 'diagram');
   const EFF = { low: 6, medium: 11, high: 16, xhigh: 21, max: 28 };
   let KV_MODE = 'sparse', CACHE_MODE = 'hit', EFFORT = 'high';
   let reducedMotion = false;
@@ -16,18 +16,17 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   const SP=24, LINE0=-14, LINE1=11*SP+14.5, D2R=Math.PI/180;
   const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
   const po={polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1};
-  const fill = color => new THREE.MeshPhongMaterial({ color, shininess: 18,
-    specular: new THREE.Color(colors.hardwarePale).multiplyScalar(.1), ...po });
+  const fill = color => new THREE.MeshLambertMaterial({ color, ...po });
   const MAT = {
-    paper: fill(colors.hardwarePale),
-    ink: fill(colors.hardwareFrame),
+    paper: fill(colors.plate),
+    ink: fill(colors.hardwareGraphite),
     inkB: new THREE.MeshBasicMaterial({ color: colors.fault }),
-    mid: fill(colors.hardwareBody),
-    token: fill(colors.token),
-    edge: new THREE.LineBasicMaterial({ color: colors.silhouette }),
+    mid: fill(colors.hardwareFrame),
+    token: new THREE.MeshBasicMaterial({ color: colors.token, ...po }),
+    edge: new THREE.LineBasicMaterial({ color: colors.ink }),
     ghost: new THREE.LineBasicMaterial({ color: colors.grid }),
     ghostTower: new THREE.LineBasicMaterial({ color: colors.grid, transparent: true, opacity: .34, depthWrite: false }),
-    dash: new THREE.LineDashedMaterial({ color: colors.silhouette, dashSize: 0.3, gapSize: 0.22 }),
+    dash: new THREE.LineDashedMaterial({ color: colors.ink, dashSize: 0.3, gapSize: 0.22 }),
     ghostDash: new THREE.LineDashedMaterial({ color: colors.hardwareFrame, dashSize: 0.13, gapSize: 0.11 }),
     tokEdge: new THREE.LineBasicMaterial({ color: colors.mark }),
     cache: fill(colors.cache),
@@ -717,14 +716,12 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
 
   const camera = new THREE.OrthographicCamera();
-  // The opening plate connects the first three assemblies as one scale model.
+  // Flat paper-thin architectural drafting grid across all 12 stations (no thick 3D plank).
   const foundation = new THREE.Group();
-  const plinth = fill(colors.hardwareDeck);
-  foundation.add(at(box(70, 0.42, 12.5, plinth, MAT.ghost), 22, -0.36, 0));
   const grid = [];
-  for (let x = -12; x <= 56; x += 2) grid.push(V(x, -0.146, -6.15), V(x, -0.146, 6.15));
-  for (let z = -6; z <= 6; z += 2) grid.push(V(-12.8, -0.146, z), V(56.8, -0.146, z));
-  foundation.add(segs(grid, new THREE.LineBasicMaterial({ color: colors.line, transparent: true, opacity: 0.46 })));
+  for (let x = Math.ceil(LINE0); x <= Math.floor(LINE1); x += 2) grid.push(V(x, -0.01, -6.5), V(x, -0.01, 6.5));
+  for (let z = -6; z <= 6; z += 2) grid.push(V(LINE0, -0.01, z), V(LINE1, -0.01, z));
+  foundation.add(segs(grid, new THREE.LineBasicMaterial({ color: colors.grid, transparent: true, opacity: 0.42 })));
   scene.add(foundation);
 
   const openingCam = cam(-13, -1, -6.3, 57, 13.8, 6.3, -61, 24);
@@ -749,7 +746,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < 0.85;
     const fullLine = Boolean(state.overview || (state.recap && state.camera === 'overhead'));
     setStations(g);
-    foundation.visible = !!state.opening && !compact;
+    foundation.visible = true;
     for (const station of ST) {
       station.G.visible = state.opening ? station.i < (compact ? 1 : 3)
         : fullLine || station.i === i

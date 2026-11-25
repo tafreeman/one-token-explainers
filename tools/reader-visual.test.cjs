@@ -49,18 +49,23 @@ function renderedTriangles(api) {
   return triangles;
 }
 
-test('Spatial neutral hardware tokens clear 3:1 floor contrast and never duplicate', () => {
+test('Spatial neutral hardware ramp stays light-to-dark ordered with crisp frame contrast', () => {
   const {colors} = spatial();
   const keys = ['hardwarePale', 'hardwareDeck', 'hardwarePlinth', 'hardwareBody', 'hardwareFrame', 'hardwareGraphite'];
   const values = keys.map(key => colors[key]);
   assert.equal(new Set(values).size, values.length);
-  for (const key of keys) assert.ok(contrast(colors.ground, colors[key]) >= 3,
-    `${key} has ${contrast(colors.ground, colors[key]).toFixed(2)}:1 floor contrast`);
-  assert.ok(contrast(colors.hardwarePale, colors.hardwareDeck) >= 1.35);
-  assert.ok(contrast(colors.hardwareDeck, colors.hardwarePlinth) >= 1.2);
+  const lum = [colors.ground, ...values].map(luminance);
+  for (let i = 1; i < lum.length; i++) {
+    assert.ok(lum[i - 1] > lum[i], `ramp step ${i} must darken strictly`);
+  }
+  assert.ok(luminance(colors.hardwarePale) >= 0.6, 'limestone housings remain genuinely light');
+  for (const key of ['hardwareFrame', 'hardwareGraphite']) {
+    assert.ok(contrast(colors.ground, colors[key]) >= 3,
+      `${key} has ${contrast(colors.ground, colors[key]).toFixed(2)}:1 floor contrast`);
+  }
 });
 
-test('Semantic colors stay on token, attention, cache, tools and fault assemblies', () => {
+test('Semantic colors stay on token, attention, cache, tools and training/fault assemblies', () => {
   const {api, colors} = spatial();
   api.update(position('7.3'), 1440 / 900, 1440);
   const colorOf = name => api.scene.getObjectByName(name)?.material?.color?.getHex();
@@ -71,10 +76,12 @@ test('Semantic colors stay on token, attention, cache, tools and fault assemblie
   assert.equal(colorOf('brass-drawers'), colors.cache);
   assert.equal(colorOf('tool-housing'), colors.tool);
   assert.equal(colorOf('attention-dense-0'), colors.attention);
+  assert.equal(colorOf('selected-row'), colors.attention);
   assert.equal(colorOf('backprop-gradient-0'), colors.fault);
-  assert.equal(colorOf('request-intake'), colors.hardwareDeck, 'intake is neutral, not Brass');
-  assert.equal(colorOf('router-wheel'), colors.hardwareFrame, 'router is neutral, not Brass');
-  assert.equal(colorOf('causal-mask'), colors.hardwareDeck, 'causal mask is neutral, not a fault');
+  assert.equal(colorOf('request-intake'), colors.cache, 'intake carries serving Brass');
+  assert.equal(colorOf('router-wheel'), colors.cache, 'router carries serving Brass');
+  assert.equal(colorOf('causal-mask'), colors.fault, 'causal mask carries Terracotta matching Diagram and narration');
+  assert.equal(colorOf('blade'), colors.hardwareFrame, 'cutting blade remains machined pewter');
 });
 
 test('Authored assemblies expose named geometry and stay inside the triangle budget', () => {

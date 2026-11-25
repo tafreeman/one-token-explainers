@@ -85,13 +85,13 @@
       return mesh(new THREE.TorusGeometry(radius, tube, 10, 48), material, name, x, y, z);
     }
 
-    function makeTokenizer(m) {
+    function makeTokenizer(m, crownMat = m.terracotta) {
       const g = new THREE.Group(); g.name = 'tokenizer-gate';
       for (const z of [-.72, .72]) {
         g.add(box(.3, 2.05, .3, m.limestone, 'gate-post', 0, 1.03, z));
         g.add(box(.46, .12, .46, m.pewter, 'gate-foot', 0, .06, z));
       }
-      g.add(box(.46, .3, 1.76, m.limestone, 'gate-crown', 0, 2.03, 0));
+      g.add(box(.46, .3, 1.76, crownMat || m.limestone, 'gate-crown', 0, 2.03, 0));
       for (const y of [.38, .64]) {
         const roller = mesh(new THREE.CylinderGeometry(.14, .14, 1.4, 24), m.pewter, 'feed-roller', 0, y, 0);
         roller.rotation.x = Math.PI / 2; g.add(roller);
@@ -118,7 +118,7 @@
         dummy.updateMatrix(); rows.setMatrixAt(i, dummy.matrix);
       }
       g.add(rows);
-      const selectedRow = box(4.02, .09, .3, m.darkPewter, 'selected-row', 0, .5, .3, .018);
+      const selectedRow = box(4.02, .09, .3, m.attention || m.darkPewter, 'selected-row', 0, .5, .3, .018);
       g.add(selectedRow);
       const vector = new THREE.InstancedMesh(new THREE.CapsuleGeometry(.027, .12, 3, 6), m.token, 16);
       vector.name = 'vector-values'; vector.position.set(0, .5, .5); g.add(vector);
@@ -133,7 +133,7 @@
       const g = new THREE.Group(); g.name = shared ? 'shared-expert' : 'routed-expert';
       const size = shared ? .72 : .3;
       g.add(box(size, size, shared ? .18 : .16, m.limestone, 'expert-housing', 0, 0, 0, .025));
-      const core = torus(size * .23, size * .055, m.token, 'expert-core', 0, 0, .15); g.add(core);
+      const core = torus(size * .23, size * .055, shared ? (m.brass || m.token) : m.token, 'expert-core', 0, 0, .15); g.add(core);
       for (const x of [-1, 1]) g.add(box(size * .1, size * .8, .12, m.darkPewter, 'expert-fin', x * size * .43, 0, .03, .012));
       mergeStatic(g, [core]);
       return {g, core};
@@ -143,7 +143,7 @@
       const g = new THREE.Group(); g.name = 'moe-router';
       const profile = [new THREE.Vector2(.12, -.1), new THREE.Vector2(.36, -.1),
         new THREE.Vector2(.43, -.04), new THREE.Vector2(.43, .04), new THREE.Vector2(.36, .1), new THREE.Vector2(.12, .1)];
-      const wheel = mesh(new THREE.LatheGeometry(profile, 48), m.darkPewter, 'router-wheel');
+      const wheel = mesh(new THREE.LatheGeometry(profile, 48), m.brass, 'router-wheel');
       wheel.rotation.x = Math.PI / 2; g.add(wheel);
       const rim = torus(.36, .025, m.token, 'router-active-rim', 0, 0, .12); g.add(rim);
       const pointer = box(.045, .3, .045, m.token, 'router-pointer', 0, .15, .15, .012); g.add(pointer);
@@ -188,7 +188,7 @@
       g.add(box(.16, .82, .18, m.pewter, 'sampler-stem', 0, .52, 0));
       const dial = mesh(new THREE.CylinderGeometry(.78, .78, .16, 48), m.limestone, 'sampler-dial', 0, 1.38, 0);
       dial.rotation.x = Math.PI / 2; g.add(dial);
-      g.add(torus(.69, .035, m.darkPewter, 'dial-rim', 0, 1.38, .1));
+      g.add(torus(.69, .035, m.brass, 'dial-rim', 0, 1.38, .1));
       const ticks = new THREE.InstancedMesh(chamferedBox(.025, .13, .025, .006), m.pewter, 25);
       ticks.name = 'probability-ticks';
       for (let i = 0; i < 25; i++) {
