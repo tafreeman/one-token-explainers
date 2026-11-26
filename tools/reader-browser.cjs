@@ -18,10 +18,12 @@ const ready = page => page.waitForFunction(() => document.querySelector('#viewpo
   && window.OneToken?.scene.stats().revision === '160', null, {timeout});
 // Text that shares the figure with the 3D callout; the callout must never cover any of it.
 const LABEL_OVERLAYS = '#spoken-caption, .figure-head, .figure-note, figcaption .camera, #explain, #fallback-status';
-const cameraSettled = (page, afterFrames = -1) => page.waitForFunction(frames => {
+// With a stepId, only a settled frame that actually drew that stop counts. A frame already in
+// flight when the page changed step is otherwise accepted, and records the previous shot.
+const cameraSettled = (page, afterFrames = -1, stepId = null) => page.waitForFunction(([frames, id]) => {
   const stats = window.OneToken.scene.stats();
-  return stats.frames > frames && stats.moving === false;
-}, afterFrames, {timeout});
+  return stats.frames > frames && stats.moving === false && (!id || stats.step === id);
+}, [afterFrames, stepId], {timeout});
 
 function collectErrors(page) {
   const errors = [];
@@ -64,7 +66,7 @@ async function settledStep(page, id) {
   const before = await stat(page);
   const current = await page.locator('body').getAttribute('data-step');
   await gotoStep(page, id);
-  await cameraSettled(page, current === id ? -1 : before.frames);
+  await cameraSettled(page, current === id ? -1 : before.frames, id);
   return (await stat(page)).cameraPose;
 }
 
@@ -632,7 +634,7 @@ async function cameraNavigation(browser, url) {
           await gotoStep(page, id);
           await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, before, {timeout});
         }
-        await cameraSettled(page);
+        await cameraSettled(page, -1, '7.2');
         assert.deepEqual((await stat(page)).cameraPose, canonical, label + ' rapid forward/reverse jumps reach canonical shot');
 
         const poses = new Map([['director', canonical]]);
