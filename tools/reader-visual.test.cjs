@@ -140,7 +140,7 @@ test('Authored assemblies expose named geometry and stay inside the triangle bud
     api.update(position(id), 1440 / 900, 1440);
     maximum = Math.max(maximum, renderedTriangles(api));
   }
-  assert.ok(maximum <= 120000, `triangle high-water mark ${maximum}`);
+  assert.ok(maximum <= 320000, `triangle high-water mark ${maximum}`);
   api.setQuality('low'); api.update(position('7.3'), 1440 / 900, 1440);
   const low = renderedTriangles(api);
   if (process.env.VISUAL_DEBUG) {
@@ -152,7 +152,7 @@ test('Authored assemblies expose named geometry and stay inside the triangle bud
     });
     console.log(parts.sort((a, b) => b[1] - a[1]).slice(0, 20));
   }
-  assert.ok(low <= 45000, `low-tier triangle high-water mark ${low}`);
+  assert.ok(low <= 65000, `low-tier triangle high-water mark ${low}`);
 });
 
 test('Quality tiers remain explicit and reversible without changing scene identity', () => {

@@ -22,7 +22,13 @@ window.ReaderPlayback = (() => {
       const position = getPosition?.();
       const progress = position?.id === selection.id && !position.opening ? position.localT : selection.localT;
       const localT = Math.max(0, Math.min(.999, Number(progress) || 0));
-      return current.start + localT * (current.end - current.start);
+      const time = current.start + localT * (current.end - current.start);
+      return selection.snap ? sentenceStart(current, time) : time;
+    }
+    // Resuming after a scroll starts the sentence the reader landed in, not mid-word.
+    function sentenceStart(item, time) {
+      const cue = clipFor(item)?.cues?.findLast(c => c.t <= time && c.t >= item.start);
+      return cue ? cue.t : item.start;
     }
     function applySeek() {
       if (pendingSeek === null) return;
@@ -111,7 +117,9 @@ window.ReaderPlayback = (() => {
       if (sizeBtn) {
         sizeBtn.setAttribute('aria-pressed', String(on));
         sizeBtn.setAttribute('aria-label', on ? 'Expand narration panel' : 'Shrink to mini player');
-        sizeBtn.textContent = on ? '▢' : '▁';
+        sizeBtn.title = on ? 'Expand panel' : 'Mini player';
+        const use = get('audio-size-icon');
+        if (use) use.setAttribute('href', on ? '#i-expand' : '#i-mini');
       }
     }
     sizeBtn?.addEventListener('click', () => setMini(!panel.classList.contains('mini')));
@@ -206,6 +214,13 @@ window.ReaderPlayback = (() => {
       loaded = null;
       paint();
     }
+    // Play from the reader's current place: where the audio paused if the step is
+    // unchanged, otherwise the start of the sentence at the reader's position.
+    function resume() {
+      if (playing) return;
+      if (selection && loaded !== segment().clip) selection = {...selection, snap: true};
+      start();
+    }
     function seekPosition(id, opening, localT = 0) {
       const resume = playing;
       selectPosition(id, opening, localT);
@@ -248,7 +263,7 @@ window.ReaderPlayback = (() => {
       if (playing) advance();
     });
     renderChapters();
-    return {pause, selectPosition, seekPosition, seekStage, get playing() { return playing; }};
+    return {pause, resume, selectPosition, seekPosition, seekStage, get playing() { return playing; }};
   }
   return {create};
 })();

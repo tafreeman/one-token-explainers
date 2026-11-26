@@ -5,6 +5,7 @@
 <meta name="description" content="Follow Paris from a training document to a streamed reply in twelve illustrated stages."><meta name="theme-color" content="#F6F5F2"><meta property="og:title" content="One Token, End to End | One Token Explainers"><meta property="og:description" content="Follow Paris from a training document to a streamed reply in twelve illustrated stages."><meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23ff4a1c'/%3E%3C/svg%3E">
 <link rel="preload" as="font" type="font/woff2" href="./one-token/fonts/roboto-flex.woff2" crossorigin>
+<link rel="stylesheet" href="./shared/suite-theme.css">
 <link rel="stylesheet" href="./shared/micro-labs.css">
 <link rel="stylesheet" href="./one-token/reader.css"><link rel="stylesheet" href="./one-token/inspector.css">
 <script src="./shared/theme-tokens.js"></script>
@@ -23,14 +24,26 @@
 <symbol id="i-down" viewBox="0 0 20 20"><path d="M10 3v13m-5-5 5 5 5-5"/></symbol>
 <symbol id="i-play" viewBox="0 0 20 20"><path d="m5 3 11 7-11 7z"/></symbol>
 <symbol id="i-info" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5 M10 6v1"/></symbol>
+<symbol id="i-mini" viewBox="0 0 20 20"><path d="M4 15h12 M7 9l3 3 3-3"/></symbol>
+<symbol id="i-expand" viewBox="0 0 20 20"><rect x="4" y="5" width="12" height="10" rx="1.5"/></symbol>
+<symbol id="i-close" viewBox="0 0 20 20"><path d="m5.5 5.5 9 9 M14.5 5.5l-9 9"/></symbol>
+<symbol id="i-grid" viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></symbol>
+<symbol id="i-list" viewBox="0 0 20 20"><path d="M7 5h10 M7 10h10 M7 15h10 M3.5 5h.01 M3.5 10h.01 M3.5 15h.01"/></symbol>
+<symbol id="st-doc" viewBox="0 0 28 18"><rect x="2" y="2" width="24" height="14" rx="2"/><path d="M5.5 6h17 M5.5 9.5h6 M18.5 9.5h4 M5.5 13h12"/><rect x="13" y="8" width="4.2" height="3" rx=".6" fill="currentColor"/></symbol>
+<symbol id="st-chip" viewBox="0 0 28 18"><rect x="2" y="3.5" width="24" height="11" rx="2"/><path d="M8.5 3.5v11 M19 3.5v11"/><path d="M4.5 10.5v1.5h2.2v-1.5"/></symbol>
+<symbol id="st-train" viewBox="0 0 28 18"><path d="M4 13.5h20 M4 9h20 M4 4.5h20"/><circle cx="14" cy="9" r="5"/></symbol>
+<symbol id="st-vec" viewBox="0 0 28 18"><rect x="1.5" y="2.5" width="25" height="13" rx="1.8"/><path d="M5.5 12.5V6.5 M9.5 13V4.8 M13.5 11.5V7.5 M17.5 13.2V4.5 M21.5 12V6.8" stroke-width="2.1"/></symbol>
+<symbol id="st-kv" viewBox="0 0 28 18"><path d="M3 2.5v13 M25 2.5v13 M3 6.8h22 M3 11.2h22"/><rect x="5.5" y="3.6" width="4" height="2.3" fill="currentColor"/><rect x="11" y="3.6" width="4" height="2.3" fill="currentColor"/><rect x="5.5" y="8" width="4" height="2.3" fill="currentColor"/><rect x="16.5" y="8" width="5.5" height="2.3" fill="currentColor"/></symbol>
+<symbol id="st-wire" viewBox="0 0 28 18"><path d="M3 13.5V9.5 M7 13.5V5 M11 13.5V8 M15 9h9m-3-3 3 3-3 3"/></symbol>
 </defs></svg>
-<header class="mast">
-  <a href="#top" class="brand"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-cube"/></svg>One Token</a>
+<header class="mast suite-bar-slot">
+  <a href="#top" class="brand" aria-label="One Token"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-cube"/></svg><span class="brand-name">One Token</span></a>
   <div class="view-switch interactive" role="group" aria-label="Figure view: overview diagram, then 3D model">
     <button type="button" data-view="diagram" aria-pressed="true" title="Overview diagram"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-diagram"/></svg>Diagram</button>
     <button type="button" data-view="spatial" aria-pressed="false" title="3D model"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-spatial"/></svg>Spatial</button>
   </div>
   <nav aria-label="Reader tools">
+    <button type="button" class="interactive" popovertarget="views-panel" id="views-btn" aria-label="Views and labs" title="All 6 editions &amp; 7 interactive labs"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-grid"/></svg><span>Views</span></button>
     <button type="button" class="interactive" id="present" aria-pressed="false" aria-label="Present"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-present"/></svg><span>Present</span></button>
     <button type="button" class="interactive" popovertarget="audio-panel" id="narrate" aria-label="Narrate"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-audio"/></svg><span>Narrate</span><span class="narr-live" hidden aria-hidden="true"></span></button>
     <a href="#sources" aria-label="Sources"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-book"/></svg><span>Sources</span></a>
@@ -39,8 +52,8 @@
 <section popover id="audio-panel" aria-labelledby="audio-heading">
   <div class="audio-head">
     <h2 id="audio-heading">Narration</h2>
-    <button type="button" id="audio-size" class="audio-icon" aria-pressed="false" aria-label="Shrink to mini player" title="Mini player">▁</button>
-    <button type="button" id="audio-close" class="audio-icon" popovertarget="audio-panel" popovertargetaction="hide" aria-label="Close narration panel" title="Close">✕</button>
+    <button type="button" id="audio-size" class="audio-icon" aria-pressed="false" aria-label="Shrink to mini player" title="Mini player"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use id="audio-size-icon" href="#i-mini"/></svg></button>
+    <button type="button" id="audio-close" class="audio-icon" popovertarget="audio-panel" popovertargetaction="hide" aria-label="Close narration panel" title="Close"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-close"/></svg></button>
   </div>
   <div class="audio-full">
     <label for="track">Recording</label>
@@ -51,15 +64,41 @@
   <p id="audio-status" role="status" hidden></p>
   <nav class="audio-full audio-chapters" aria-label="Narration chapters, one per stage"><h3>Jump to a stage</h3><ol id="chapters"></ol></nav>
 </section>
+<section popover id="views-panel" aria-labelledby="views-heading">
+  <div class="audio-head">
+    <h2 id="views-heading">Editions &amp; labs</h2>
+    <button type="button" class="audio-icon" popovertarget="views-panel" popovertargetaction="hide" aria-label="Close editions and labs" title="Close"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-close"/></svg></button>
+  </div>
+  <p class="views-sync" id="views-sync">Switch format without losing your place</p>
+  <nav class="views-editions" aria-label="Six explainer editions">
+    <span class="views-card" aria-current="page"><strong>One Token<em>Current</em></strong><span>12 stages · Diagram + 3D + labs</span></span>
+    <a class="views-card" data-edition="swiss" href="./end-to-end-swiss/index.html"><strong>Swiss</strong><span>Editorial 12-stage poster + scrub</span></a>
+    <a class="views-card" data-edition="beamline" href="./end-to-end-beamline/index.html"><strong>Beamline</strong><span>Continuous 3D rail · Watch &amp; Study</span></a>
+    <a class="views-card" data-edition="story" href="./journey-story/index.html"><strong>Story</strong><span>6 chapters + live 3D cutaways</span></a>
+    <a class="views-card" data-edition="tour" href="./journey-tour/index.html"><strong>Guided Tour</strong><span>30 stops + component catalog</span></a>
+    <a class="views-card" data-edition="obs" href="./shared/obs-core.html?realm=MODEL"><strong>3D Observatory</strong><span>Standalone 31-assembly studio</span></a>
+  </nav>
+  <div class="views-labs">
+    <h3>Jump straight to a hands-on lab</h3>
+    <div class="views-lab-list" id="views-labs"></div>
+  </div>
+</section>
+<section popover id="steps-panel" aria-labelledby="steps-heading">
+  <div class="audio-head">
+    <h2 id="steps-heading">All 12 stages &amp; 43 steps</h2>
+    <button type="button" class="audio-icon" popovertarget="steps-panel" popovertargetaction="hide" aria-label="Close step index" title="Close"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="steps-grid" id="steps-grid"></div>
+</section>
 <main class="spread">
   <figure id="figure" aria-labelledby="figure-name">
     <header class="figure-head">
       <div class="specimen" aria-label="Paris with a leading space"><span class="space-mark" aria-hidden="true"></span><span id="glyph">Paris</span></div>
-      <div class="form-readout"><span id="token-form">Word in a document</span><span id="token-id">ID 12842 · illustrative</span></div>
+      <div class="form-meta"><svg class="state-glyph" aria-hidden="true" viewBox="0 0 28 18"><use id="state-icon" href="#st-doc"/></svg><div class="form-readout"><span id="token-form">Word in a document</span><span id="token-id">ID 12842 · illustrative</span></div></div>
     </header>
     <div id="viewport" data-render="fallback">
       <canvas id="scene" aria-hidden="true"></canvas>
-      <svg class="leaders" aria-hidden="true"><line id="leader"/></svg><span id="pin" aria-hidden="true"></span>
+      <svg class="leaders" aria-hidden="true"><line id="leader"/><circle id="leader-dot" r="2.75"/></svg><span id="pin" aria-hidden="true"></span>
       <div class="fallback">
         <img src="./one-token/lifecycle.svg" alt="Training documents feed a model. A fresh request passes through its frozen layers to produce a reply.">
         <p id="fallback-status">Lifecycle diagram</p>
@@ -92,10 +131,19 @@
   </figure>
   <div id="lesson" tabindex="-1">
     <header class="opening">
+      <div id="readerReturnSlot"></div>
       <h1>One token, <br>end to end.</h1>
       <p>How does a word get from a training document into a reply? Follow <strong class="token-word">“&nbsp;Paris”</strong> through the making and serving of a language model.</p>
       <p class="levels"><b>Three levels:</b> scroll for the story · switch to <b>Spatial</b> for 3D · open any <b>Try it</b> to go deeper.</p>
       <a class="primary" id="follow" href="#s-1">Follow the token <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-down"/></svg></a>
+      <nav class="edition-strip" aria-label="Explore in six formats">
+        <span class="edition-chip" aria-current="page"><b>One Token</b><small>2D + 3D reader</small></span>
+        <a class="edition-chip" data-edition="swiss" href="./end-to-end-swiss/index.html"><b>Swiss</b><small>Poster + scrub</small></a>
+        <a class="edition-chip" data-edition="beamline" href="./end-to-end-beamline/index.html"><b>Beamline</b><small>Watch &amp; Study</small></a>
+        <a class="edition-chip" data-edition="story" href="./journey-story/index.html"><b>Story</b><small>6 chapters</small></a>
+        <a class="edition-chip" data-edition="tour" href="./journey-tour/index.html"><b>Guided Tour</b><small>30-stop 3D</small></a>
+        <a class="edition-chip" data-edition="obs" href="./shared/obs-core.html?realm=MODEL"><b>Observatory</b><small>Full 3D studio</small></a>
+      </nav>
       <p class="credits"><b>Claude Fable 5.2</b> for the public API. <b>DeepSeek‑V4‑Pro</b> for representative internals. The token ID and weather example are illustrative. <a href="#sources">Sources</a></p>
     </header>
     <!-- 01 CORPUS -->
@@ -769,6 +817,7 @@ data: {"delta": {"type": "input_json_delta",
     <label for="scrubber" id="rail-label">Journey</label>
     <input class="interactive" id="scrubber" type="range" min="0" max="42" value="0" step="1" aria-describedby="position">
     <output id="position" for="scrubber">01 / 12 · Corpus</output>
+    <button class="interactive" type="button" popovertarget="steps-panel" id="steps-btn" aria-label="Steps (all 43)" title="Jump to any of the 43 steps"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-list"/></svg><span class="steps-lbl">Steps</span></button>
     <button class="interactive" type="button" id="previous" aria-label="Previous step"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-prev"/></svg></button>
     <button class="interactive" type="button" id="next" aria-label="Next step"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-next"/></svg></button>
     <button class="interactive" type="button" id="studio-play" hidden>Play</button>

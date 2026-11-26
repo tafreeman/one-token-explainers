@@ -16,7 +16,8 @@
   const readout = get('position'), slider = get('scrubber'), figure = get('figure');
   let host, suspended = false, raf = 0, timer = 0, studioOrigin, sceneBeat, speechTimer;
   let lastBoundary, explanationKey, explanationOrigin, lastScrollY = window.scrollY, holdSync = 0;
-  const READING_LINE = .35;
+  let gesture = false, touching = false, resumeAfterScroll = false, settleTimer = 0;
+  const READING_LINE = .35, SCROLL_SETTLE_MS = 160;
   const initialHash = location.hash;
   let anchorPending = Boolean(initialHash);
 
@@ -40,6 +41,19 @@
     get('token-form').textContent = form;
     get('token-id').textContent = (isArgument ? 'ID 9021' : 'ID 12842') + ' · illustrative';
     $('.space-mark').style.visibility = isArgument ? 'hidden' : '';
+    const stageVisual = ({
+      1: ['#st-doc', 'token'], 2: ['#st-chip', 'token'], 3: ['#st-train', 'fault'],
+      4: ['#st-train', 'fault'], 5: ['#st-train', 'fault'], 6: ['#st-chip', 'cache'],
+      7: ['#st-vec', 'attention'], 8: ['#st-kv', 'cache'], 9: ['#st-kv', 'cache'],
+      10: ['#st-wire', 'token'], 11: ['#st-wire', 'token'], 12: ['#st-wire', 'tool']
+    })[stop.stage] || ['#st-doc', 'token'];
+    const stateIcon = get('state-icon');
+    // draw() runs every scroll frame; only write the glyph's attributes when they change.
+    if (stateIcon) {
+      if (stateIcon.getAttribute('href') !== stageVisual[0]) stateIcon.setAttribute('href', stageVisual[0]);
+      const head = stateIcon.closest('.figure-head');
+      if (head && head.dataset.stageRole !== stageVisual[1]) head.dataset.stageRole = stageVisual[1];
+    }
     const next = stages[Math.min(stages.length - 1, stop.stage)];
     const [g0, g1] = stop.diagramPose;
     const pose = g0 + (g1 - g0) * state.localT;
@@ -53,6 +67,7 @@
     get('step-name').textContent = state.opening ? 'Word in a document' : state.overview ? 'Twelve stages, one token' : stop.title;
     readout.replaceChildren(pad(stop.stage) + ' / 12', Object.assign(document.createElement('span'), {className: 'rn', textContent: ' · ' + stage.name}));
     slider.value = state.index;
+    slider.style.setProperty('--slider-progress', ((state.index / Math.max(1, stops.length - 1)) * 100).toFixed(2) + '%');
     slider.setAttribute('aria-valuetext', 'Stage ' + pad(stop.stage) + ' ' + stage.name + ', step ' + stop.id + ', ' + stop.title);
     get('previous').disabled = !state.index && !state.overview;
     get('next').disabled = state.index === stops.length - 1 && !state.opening;
@@ -78,10 +93,14 @@
     get('present').querySelector('span').textContent = state.present ? 'Read' : 'Present';
     get('runStory').setAttribute('aria-pressed', state.recap);
     get('runStory').querySelector('span').textContent = state.recap ? 'Pause recap' : 'Run end to end';
-    if (prevStep !== stop.id || !lastBoundary) {
-      lastBoundary = stop.id;
-      clearTimeout(speechTimer);
-      speechTimer = setTimeout(() => { get('announce').textContent = 'Step ' + stop.id + '. ' + stop.title; }, 280);
+    const navKey = stop.id + ':' + state.opening;
+    if (prevStep !== stop.id || lastBoundary !== navKey) {
+      lastBoundary = navKey;
+      if (prevStep !== stop.id) {
+        clearTimeout(speechTimer);
+        speechTimer = setTimeout(() => { get('announce').textContent = 'Step ' + stop.id + '. ' + stop.title; }, 280);
+      }
+      syncSuiteNavigation(stop, stage);
     }
     updateExplanation();
     const overallT = sceneBeat === 'f1' ? state.localT : (state.index + state.localT) / stops.length;
@@ -143,6 +162,7 @@
     state.recap = false;
   }
   function pause() {
+    resumeAfterScroll = false;
     playback.pause();
     stopRun();
     draw();
@@ -163,7 +183,96 @@
     const index = stops.findIndex(stop => stop.id === id);
     if (index >= 0) move(index, options);
   }
+  function hideAuxPopovers() {
+    for (const id of ['views-panel', 'steps-panel']) {
+      const pop = get(id);
+      if (pop?.matches(':popover-open')) pop.hidePopover();
+    }
+  }
+  function syncSuiteNavigation(stop, stage) {
+    if (!window.SuiteLinks) return;
+    const rm = new URLSearchParams(location.search).get('rm') === '1';
+    const syncState = state.opening ? { rm } : {
+      rm,
+      stage: stop.stage,
+      step: stop.id,
+      pos: stop.id,
+      label: 'Step ' + stop.id + ' · ' + stage.name
+    };
+    const viewsSync = get('views-sync');
+    if (viewsSync) {
+      viewsSync.textContent = state.opening
+        ? 'Switch format at the start of the journey'
+        : 'Synced to ' + pad(stop.stage) + ' · ' + stage.name + ' (' + stop.id + ')';
+    }
+    for (const link of document.querySelectorAll('a[data-edition]')) {
+      const href = window.SuiteLinks.editionHref('reader', link.dataset.edition, syncState);
+      if (href) link.href = href;
+    }
+    for (const btn of document.querySelectorAll('#steps-grid .steps-jump')) {
+      if (btn.dataset.stepJump === stop.id && !state.opening) btn.setAttribute('aria-current', 'step');
+      else btn.removeAttribute('aria-current');
+    }
+  }
+  function buildQuickNav() {
+    if (window.SuiteLinks) {
+      window.SuiteLinks.mountReturnChip(get('readerReturnSlot'), 'reader');
+    }
+    const labHost = get('views-labs');
+    if (labHost && window.ConceptMap) {
+      for (const [slug, info] of Object.entries(window.ConceptMap.CONCEPTS)) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'views-lab-btn';
+        btn.dataset.inspect = slug;
+        btn.dataset.stepJump = info.step;
+        const name = document.createTextNode(info.button + ' ');
+        const stepBadge = document.createElement('span');
+        stepBadge.textContent = info.step;
+        btn.append(name, stepBadge);
+        labHost.appendChild(btn);
+      }
+    }
+    const stepsGrid = get('steps-grid');
+    if (stepsGrid) {
+      for (let sIdx = 0; sIdx < stages.length; sIdx++) {
+        const stage = stages[sIdx];
+        const stageNum = sIdx + 1;
+        const block = document.createElement('div');
+        block.className = 'steps-stage';
+        const h3 = document.createElement('h3');
+        const num = document.createElement('span');
+        num.textContent = pad(stageNum);
+        h3.append(num, document.createTextNode(stage.name));
+        const ol = document.createElement('ol');
+        for (const stop of stops.filter(item => item.stage === stageNum)) {
+          const li = document.createElement('li');
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'steps-jump';
+          btn.dataset.stepJump = stop.id;
+          const sn = document.createElement('span');
+          sn.className = 'sj-n';
+          sn.textContent = stop.id;
+          btn.append(sn, document.createTextNode(stop.title));
+          if (stop.conceptSlug) {
+            const lab = document.createElement('span');
+            lab.className = 'sj-lab';
+            lab.textContent = 'Lab';
+            btn.appendChild(lab);
+          }
+          li.appendChild(btn);
+          ol.appendChild(li);
+        }
+        block.append(h3, ol);
+        stepsGrid.appendChild(block);
+      }
+    }
+  }
+  buildQuickNav();
+
   function togglePresent() {
+    hideAuxPopovers();
     if (inspector.isOpen) inspector.close();
     if (!state.present) {
       studioOrigin = {y: window.scrollY, index: state.index, opening: state.opening, overview: state.overview};
@@ -239,7 +348,11 @@
         detailHost.append(clone);
       }
       const tech = !state.opening && !state.overview && article.querySelector('.technical-detail');
-      if (tech) detailHost.append(tech.cloneNode(true));
+      if (tech) {
+        const techClone = tech.cloneNode(true);
+        techClone.querySelectorAll('.eq-gloss').forEach(el => { el.textContent = ''; delete el.dataset.role; });
+        detailHost.append(techClone);
+      }
       if (focusWasInDetail) get('explanation-content').focus({preventScroll: true});
     }
     get('explanation-content').scrollTop = 0;
@@ -263,6 +376,7 @@
       // Narration keeps playing, but its floating controls must not obscure
       // the step the learner has just chosen to read.
       if (get('audio-panel').matches(':popover-open')) get('audio-panel').hidePopover();
+      hideAuxPopovers();
       panel.hidden = false;
     } else if (!panel.hidden && !instant && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       panel.dataset.leaving = '';
@@ -317,7 +431,13 @@
     if (!target || event.ctrlKey || event.shiftKey || event.metaKey || event.altKey) return;
     if (target.dataset.inspect) {
       event.preventDefault();
-      inspector.open(target.dataset.inspect, target);
+      hideAuxPopovers();
+      if (target.dataset.stepJump) goToStep(target.dataset.stepJump, {hash: false});
+      inspector.open(target.dataset.inspect, target.closest('#views-panel') ? (articles[state.index]?.querySelector('[data-inspect]') || get('views-btn')) : target);
+    } else if (target.dataset.stepJump) {
+      event.preventDefault();
+      hideAuxPopovers();
+      goToStep(target.dataset.stepJump);
     } else if (target.dataset.view) { state.view = target.dataset.view; draw(); }
     else if (target.matches('a[href^="#s-"], a[href="#sources"], a[href="#top"]')) {
       event.preventDefault();
@@ -375,7 +495,7 @@
   get('lesson').addEventListener('change', event => applySettingChange(event.target));
   get('explanation')?.addEventListener('change', event => applySettingChange(event.target));
   window.addEventListener('keydown', event => {
-    if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || inspector.isOpen || get('audio-panel').matches(':popover-open') || document.getElementById('gloss-pop')?.matches(':popover-open')) return;
+    if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || inspector.isOpen || get('audio-panel').matches(':popover-open') || get('views-panel')?.matches(':popover-open') || get('steps-panel')?.matches(':popover-open') || document.getElementById('gloss-pop')?.matches(':popover-open')) return;
     if (event.key === 'Escape') {
       if (!get('explanation').hidden && !('leaving' in get('explanation').dataset)) setExplanation(false);
       else if (state.present) togglePresent();
@@ -394,10 +514,41 @@
     event.preventDefault();
   });
   window.addEventListener('hashchange', followHash);
-  window.addEventListener('scroll', scheduleScroll, {passive: true});
+  // A wheel or touch scroll holds narration while the page moves; the moment scrolling
+  // settles it resumes from the step at the reading line. Taps that don't scroll leave it alone.
+  function noteGesture(event) {
+    if (event.target.closest?.('[popover], #inspector, #explanation')) return false;
+    if (timer) { pause(); return false; }
+    gesture = true;
+    return true;
+  }
+  function settleSoon() {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(settleScroll, SCROLL_SETTLE_MS);
+  }
+  function settleScroll() {
+    settleTimer = 0;
+    if (touching) return;
+    gesture = false;
+    if (!resumeAfterScroll) return;
+    resumeAfterScroll = false;
+    if (state.present || state.recap || inspector.isOpen || document.hidden) return;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    syncScroll();
+    if (!state.overview) playback.resume();
+  }
+  window.addEventListener('scroll', () => {
+    if (gesture) {
+      if (playback.playing) { resumeAfterScroll = true; playback.pause(); }
+      if (!touching) settleSoon();
+    }
+    scheduleScroll();
+  }, {passive: true});
   window.addEventListener('resize', scheduleScroll);
-  for (const type of ['wheel','touchstart']) {
-    get('lesson').addEventListener(type, () => { if (playback.playing || timer) pause(); }, {passive: true});
+  window.addEventListener('wheel', event => { if (noteGesture(event)) settleSoon(); }, {passive: true});
+  window.addEventListener('touchstart', event => { if (noteGesture(event)) touching = true; }, {passive: true});
+  for (const type of ['touchend', 'touchcancel']) {
+    window.addEventListener(type, () => { if (touching) { touching = false; settleSoon(); } }, {passive: true});
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden && timer) pause(); });
   document.documentElement.classList.add('enabled');

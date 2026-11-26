@@ -1319,11 +1319,9 @@ for (const [beat, labs] of Object.entries(studyLabs)) {
 const toSwiss = $('#toSwiss');
 if (toSwiss && window.SuiteLinks) {
   const syncSwissHref = () => {
-    const g = SuiteLinks.beamlineBeatToSwissG(State.beatId);
-    const p = new URLSearchParams();
-    if (g > 0) p.set('g', g.toFixed(1));
-    if (RM) p.set('rm', '1');
-    toSwiss.href = '../end-to-end-swiss/index.html' + (p.toString() ? '?' + p.toString() : '');
+    const step = SuiteLinks.beamlineBeatToStep(State.beatId);
+    const st = step ? { stage: Number(step.split('.')[0]), step, pos: State.beatId, label: 'Beat ' + State.beatId, rm: RM } : { rm: RM };
+    toSwiss.href = SuiteLinks.editionHref('beamline', 'swiss', st);
   };
   toSwiss.addEventListener('pointerdown', syncSwissHref);
   toSwiss.addEventListener('focus', syncSwissHref);
@@ -1700,6 +1698,24 @@ document.addEventListener('visibilitychange', () => { last = performance.now(); 
     return true;
   }
   addEventListener('hashchange', resolveBeamConcept);
+  if (window.SuiteLinks) {
+    const beamSuiteState = () => {
+      const beat = activeId || State.beatId;
+      const step = SuiteLinks.beamlineBeatToStep(beat);
+      if (!step) return {};
+      const stage = Number(step.split('.')[0]);
+      return { stage, step, pos: beat, label: 'Beat ' + beat };
+    };
+    const toSwiss = document.getElementById('toSwiss');
+    if (toSwiss) {
+      const syncSwiss = () => { toSwiss.href = SuiteLinks.editionHref('beamline', 'swiss', { ...beamSuiteState(), rm: RM }); };
+      toSwiss.addEventListener('pointerdown', syncSwiss);
+      toSwiss.addEventListener('focus', syncSwiss);
+      toSwiss.addEventListener('click', syncSwiss);
+    }
+    SuiteLinks.mountSuiteMenu(document.querySelector('.suite-home'), { currentPage: 'beamline', getState: beamSuiteState });
+    SuiteLinks.mountReturnChip(document.getElementById('beamReturnSlot'), 'beamline');
+  }
   if (!resolveBeamConcept() && qs.get('beat')) { jumpTo(qs.get('beat'), true); }
   requestAnimationFrame(t => { measure(); last = t; snapNext = true; scheduleFrame(); });
 })();

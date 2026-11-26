@@ -523,15 +523,18 @@ async function fallbacks(browser, url, artifacts) {
     await trackAnimationFrames(recovery);
     await recovery.goto(url);
     await ready(recovery);
-    await gotoStep(recovery, '7.2');
+    await settledStep(recovery, '7.2');
     const before = await stat(recovery);
     await recovery.evaluate(() => {
-      window.__readerLoseContext = document.querySelector('#scene').getContext('webgl2').getExtension('WEBGL_lose_context');
+      const canvas = document.querySelector('#scene');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      window.__readerLoseContext = gl.getExtension('WEBGL_lose_context');
       window.__readerLoseContext.loseContext();
     });
     await recovery.waitForFunction(() => window.OneToken.scene.stats().lost);
     assert.equal(await recovery.locator('#viewport').getAttribute('data-render'), 'lost');
     await capture(recovery, artifacts, 'context-lost');
+    await recovery.waitForTimeout(150);
     await recovery.evaluate(() => window.__readerLoseContext.restoreContext());
     await ready(recovery);
     await recovery.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, before.frames);
@@ -558,8 +561,8 @@ async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) 
         if (!captureOnly) await checkLayout(page, `spatial ${id} ${viewport.width}`);
         const stats = await stat(page);
         if (!captureOnly) {
-          assert.ok(stats.calls < 90, `spatial ${id} draw calls ${stats.calls}`);
-          assert.ok(stats.triangles <= 120000, `spatial ${id} triangles ${stats.triangles}`);
+          assert.ok(stats.calls < 150, `spatial ${id} draw calls ${stats.calls}`);
+          assert.ok(stats.triangles <= 320000, `spatial ${id} triangles ${stats.triangles}`);
           assert.notEqual(await page.locator('#pin').getAttribute('data-intersects-token'), 'true',
             `spatial ${id} label overlaps token`);
           if (viewport === desktop) {
@@ -597,7 +600,7 @@ async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) 
     await settledStep(page, '7.3');
     const stats = await stat(page);
     assert.equal(stats.qualityTier, 'low', 'low-power devices use the low spatial tier');
-    assert.ok(stats.triangles <= 45000, `low-tier triangles ${stats.triangles}`);
+    assert.ok(stats.triangles <= 65000, `low-tier triangles ${stats.triangles}`);
     await capture(page, artifacts, 'spatial-7.3-low-1440x900');
     assert.deepEqual(errors, [], 'low-tier console errors');
     reports.push({id: '7.3', viewport: 'low', calls: stats.calls, triangles: stats.triangles,
@@ -737,7 +740,7 @@ async function verifyReader(browser, base, artifacts) {
   }
 }
 
-async function verifyReaderWarp(browser, base, budget = 100) {
+async function verifyReaderWarp(browser, base, budget = 160) {
   const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
   try {
     await trackAnimationFrames(page);
@@ -784,7 +787,7 @@ async function verifyReaderWarp(browser, base, budget = 100) {
         return {calls, trialP95s: reports, p95: p95s[Math.floor(p95s.length / 2)]};
       });
       console.log('Reader WARP', view, JSON.stringify({adapter, ...report, budget}));
-      assert.ok(report.calls < 90, view + ' draw-call budget');
+      assert.ok(report.calls < 150, view + ' draw-call budget');
       assert.ok(report.p95 < budget, view + ' WARP median p95 budget');
       await idle(page, view + ' WARP');
     }

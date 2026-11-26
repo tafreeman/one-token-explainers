@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Prepare app",
+      "detail": "Stop old servers on port 3000 and install dependencies if they changed",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/start.ps1", "-PrepareOnly"],
+      "presentation": { "reveal": "silent", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Prepare app (pull latest)",
+      "detail": "Same as Prepare app, after git pull --ff-only",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/start.ps1", "-PrepareOnly", "-Pull"],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run app (terminal)",
+      "detail": "start.ps1 in a terminal, without the debugger",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/start.ps1"],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    }
+  ]
+}

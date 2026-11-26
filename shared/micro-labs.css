@@ -12,7 +12,7 @@
 .ml-body textarea { width: 100%; resize: vertical }
 .ml-pieces,.ml-tokens,.ml-presets,.ml-prefix { display: flex; flex-wrap: wrap; gap: .3rem; overflow-wrap: anywhere }
 .ml-pieces > span { display: grid; padding: .2rem .4rem; border: 1px solid var(--ml-line); border-radius: var(--ml-radius); font-size: .84rem; white-space: pre-wrap; transition: opacity .15s ease }
-.ml-pieces small { opacity: .74; font-size: .68rem }
+.ml-pieces small { opacity: .74; font-size: .75rem }
 .ml-readout,.micro-lab .ml-wire { font-size: .79rem; padding: .5rem; background: color-mix(in srgb, currentColor 6%, transparent); color: inherit; border-radius: var(--ml-radius); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 }
 .ml-equation { display: flex; align-items: baseline; flex-wrap: wrap; gap: .2rem; font-size: .88rem }
 .ml-equation button,.ml-tokens button,.ml-presets button,.ml-break,.ml-prefix button { color: inherit; background: transparent; font: inherit; cursor: pointer; padding: .2rem .45rem; border: 1px solid var(--ml-line); border-radius: var(--ml-radius); font-size: .76rem; line-height: 1.3; transition: background-color .15s ease, border-color .15s ease }

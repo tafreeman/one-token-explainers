@@ -15,12 +15,13 @@
     const pin = document.getElementById('pin');
     const mobilePin = document.getElementById('mobile-pin');
     const leader = document.getElementById('leader');
+    const leaderDot = document.getElementById('leader-dot');
     const fallbackStatus = document.getElementById('fallback-status');
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const scenes = {};
     let renderer, THREE, state, animation, fadeCanvas, fadeCtx;
     let moving = false, snapNext = false;
-    let quality = 1, qualityTier = 'high', appliedSpatialQuality = null;
+    let quality = 1, qualityTier = 'high', appliedSpatialQuality = null, primePending = null;
     let frames = 0, calls = 0, raf = 0, width = 0, height = 0, pixelRatio = 0;
     const spatialFrameCosts = [];
     let revision = null, signature, renderedView, renderedStep;
@@ -37,6 +38,7 @@
       if (pin) pin.hidden = true;
       if (mobilePin) mobilePin.textContent = '';
       if (leader) leader.style.visibility = 'hidden';
+      if (leaderDot) leaderDot.style.visibility = 'hidden';
     }
 
     function placePin({ anchor, label, tokenAnchor, tokenRadius = 0, moving = false }, camera, w, h) {
@@ -47,6 +49,7 @@
         forgetPin();
         if (pin) pin.hidden = true;
         if (leader) leader.style.visibility = 'hidden';
+        if (leaderDot) leaderDot.style.visibility = 'hidden';
         return;
       }
       const point = anchor.clone().project(camera);
@@ -65,6 +68,7 @@
         forgetPin();
         pin.hidden = true;
         leader.style.visibility = 'hidden';
+        if (leaderDot) leaderDot.style.visibility = 'hidden';
         return;
       }
       pin.hidden = false;
@@ -75,6 +79,7 @@
       if (pinLabel !== label) {
         // New label: a short fade says "this is a different callout" without moving anything.
         if (pinLabel && !reduced.matches && pin.animate) pin.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PIN_FADE_MS, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+        forgetPin();
         pinLabel = label;
       }
       pin.style.maxWidth = Math.max(24, Math.min(240, w - 24)) + 'px';
@@ -82,6 +87,7 @@
       const ph = pin.offsetHeight;
       if (!pw || !ph) {
         leader.style.visibility = 'hidden';
+        if (leaderDot) leaderDot.style.visibility = 'hidden';
         return;
       }
       const gap = 26;
@@ -158,11 +164,28 @@
       // Text and viewport dimensions can change during an active glide.
       left = Math.max(pad, Math.min(w - pw - pad, left));
       top = Math.max(pad, Math.min(h - ph - pad, top));
-      // Do not sweep an otherwise clear label across the travelling token.
+      // Skirt around the travelling token during a glide instead of aborting to a 200px jump.
       if (overlapsToken(left, top) && !overlapsToken(best[0], best[1])) {
-        [left, top] = best;
-        pinFrom = null;
-        gliding = false;
+        if (gliding) {
+          const pushes = [
+            [left, tokenRect.top - ph],
+            [left, tokenRect.bottom],
+            [tokenRect.left - pw, top],
+            [tokenRect.right, top]
+          ].map(([nx, ny]) => [Math.max(pad, Math.min(w - pw - pad, nx)), Math.max(pad, Math.min(h - ph - pad, ny))])
+            .filter(([nx, ny]) => !overlapsToken(nx, ny));
+          if (pushes.length) {
+            pushes.sort((a, b) => Math.hypot(a[0] - left, a[1] - top) - Math.hypot(b[0] - left, b[1] - top));
+            [left, top] = pushes[0];
+          } else {
+            [left, top] = best;
+            pinFrom = null;
+            gliding = false;
+          }
+        } else {
+          [left, top] = best;
+          pinFrom = null;
+        }
       }
       pinShown = [left, top];
       pin.style.left = Math.round(left) + 'px';
@@ -174,6 +197,11 @@
       leader.setAttribute('y1', y.toFixed(1));
       leader.setAttribute('x2', Math.max(left, Math.min(left + pw, x)).toFixed(1));
       leader.setAttribute('y2', Math.max(top, Math.min(top + ph, y)).toFixed(1));
+      if (leaderDot) {
+        leaderDot.style.visibility = 'visible';
+        leaderDot.setAttribute('cx', x.toFixed(1));
+        leaderDot.setAttribute('cy', y.toFixed(1));
+      }
       return gliding;
     }
 
@@ -189,6 +217,77 @@
       if (fallbackStatus) fallbackStatus.textContent = '3D view unavailable — showing static lifecycle diagram.';
       hidePin();
       console.warn('Interactive figure unavailable.', error);
+    }
+
+    function withAllRenderable(current, fn) {
+      const changed = [];
+      current.scene.traverse(object => {
+        const range = object.geometry?.drawRange;
+        const zeroRange = range && range.count === 0;
+        const zeroInst = object.isInstancedMesh && object.count === 0;
+        if (!object.visible || object.frustumCulled || zeroRange || zeroInst) {
+          changed.push([object, object.visible, object.frustumCulled,
+            zeroRange ? range.count : null, zeroInst ? object.count : null]);
+          object.visible = true;
+          object.frustumCulled = false;
+          if (zeroRange) {
+            const avail = object.geometry.index?.count ?? object.geometry.attributes.position?.count ?? 0;
+            if (avail > 0) object.geometry.setDrawRange(range.start, Math.min(3, avail));
+          }
+          if (zeroInst) object.count = 1;
+        }
+      });
+      try { return fn(); }
+      finally {
+        for (const [object, visible, culled, rangeCount, instCount] of changed) {
+          object.visible = visible;
+          object.frustumCulled = culled;
+          if (rangeCount !== null) object.geometry.setDrawRange(object.geometry.drawRange.start, rangeCount);
+          if (instCount !== null) object.count = instCount;
+        }
+      }
+    }
+
+    // Compile every program the spatial hall can show (hidden stages included) in the
+    // background, so a stage's first appearance mid-scroll doesn't stall a frame and the
+    // camera doesn't jump to catch up. Skip software CPU rasterizers (SwiftShader/WARP),
+    // where compiling all hidden stages upfront saturates CPU worker threads.
+    function warmShaders(current) {
+      if (software || !renderer.compileAsync || !current.scene || !current.camera) return;
+      const prior = renderer.toneMapping;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      try {
+        withAllRenderable(current, () => renderer.compileAsync(current.scene, current.camera)).then(() => {
+          if (scenes.spatial !== current) return;
+          primePending = current;
+          if (renderedView === 'spatial' && !suspended && !lost && !failed && !document.hidden) primeDraw(current);
+        }).catch(() => {});
+      } catch {}
+      renderer.toneMapping = prior;
+    }
+    // ANGLE on D3D11 finishes each pipeline on its first real draw, in the GPU process, where
+    // compileAsync can't reach. Draw every object into a 1x1 non-clearing scissor so D3D11
+    // builds every PSO and uploads geometry/textures without shading millions of fragments.
+    function primeDraw(current) {
+      primePending = null;
+      const prior = [renderer.toneMapping, renderer.toneMappingExposure, renderer.autoClear, renderer.getScissorTest()];
+      const vp = new THREE.Vector4(), sc = new THREE.Vector4();
+      renderer.getViewport(vp); renderer.getScissor(sc);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = current.exposure ?? 1;
+      renderer.autoClear = false;
+      renderer.setViewport(0, 0, 1, 1);
+      renderer.setScissor(0, 0, 1, 1);
+      renderer.setScissorTest(true);
+      try { withAllRenderable(current, () => renderer.render(current.scene, current.camera)); } catch {}
+      finally {
+        renderer.setViewport(vp);
+        renderer.setScissor(sc);
+        renderer.setScissorTest(prior[3]);
+        renderer.autoClear = prior[2];
+        renderer.toneMapping = prior[0];
+        renderer.toneMappingExposure = prior[1];
+      }
     }
 
     function draw() {
@@ -241,7 +340,9 @@
         const current = scenes[view] ??= api.create(THREE, window.ReaderTheme, renderer);
         if (view === 'spatial' && appliedSpatialQuality !== qualityTier) {
           current.setQuality?.(qualityTier); appliedSpatialQuality = qualityTier;
+          warmShaders(current);
         }
+        if (view === 'spatial' && primePending === current) primeDraw(current);
         const started = performance.now();
         // A representation returns at the current stop, never from its stale hidden camera.
         const snapCamera = switchingView || resized || snapNext;
@@ -374,6 +475,7 @@
       canvas.addEventListener('webglcontextrestored', () => {
         lost = false;
         snapNext = true;
+        width = 0; height = 0; pixelRatio = 0;
         scenes.spatial?.contextRestored?.(); appliedSpatialQuality = null;
         if (fallbackStatus) fallbackStatus.textContent = 'Lifecycle diagram';
         schedule();

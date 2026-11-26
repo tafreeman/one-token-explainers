@@ -2556,16 +2556,19 @@ function resolveSwissConcept(){
 }
 const toBeam=$('#toBeamline');
 if(toBeam&&window.SuiteLinks){
+  const swissSuiteState=()=>{
+    if(gS<=0.004) return {};
+    const stage=gS>=11.996?12:(clamp(Math.floor(gS),0,11)+1);
+    const step=stepLabelAt(gS)||(stage+(gS>=11.996?'.4':'.1'));
+    return {stage,step,pos:String(+gS.toFixed(3)),label:'Stage '+String(stage).padStart(2,'0')+' ('+step+')'};
+  };
   const syncBeamHref=()=>{
-    const beat=SuiteLinks.swissToBeamlineBeat(gS);
-    const p=new URLSearchParams();
-    if(beat&&beat!=='hero') p.set('beat',beat);
-    if(forceRM) p.set('rm','1');
-    toBeam.href='../end-to-end-beamline/index.html'+(p.toString()?'?'+p.toString():'');
+    toBeam.href=SuiteLinks.editionHref('swiss','beamline',{...swissSuiteState(),rm:forceRM});
   };
   toBeam.addEventListener('pointerdown',syncBeamHref);
   toBeam.addEventListener('focus',syncBeamHref);
   toBeam.addEventListener('click',syncBeamHref);
+  SuiteLinks.mountSuiteMenu($('.suite-home'),{currentPage:'swiss',getState:swissSuiteState});
   SuiteLinks.mountReturnChip($('#swissMastRight'),'swiss');
 }
 addEventListener('hashchange',resolveSwissConcept);

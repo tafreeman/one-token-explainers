@@ -8309,7 +8309,21 @@ let gantryShell=null;
       if(QS.get('focus'))api.focus(QS.get('focus').split(','),{fly:false});if(QS.has('kv'))api.setKV(+QS.get('kv'));
       if (EMBED) forwardJourneyKeys();
       else {
-        if (window.SuiteLinks) SuiteLinks.mountReturnChip(document.querySelector('.top-actions'), 'obs');
+        if (window.SuiteLinks) {
+          const obsSuiteState = () => {
+            const detOpen = document.getElementById('detailPanel')?.classList.contains('open');
+            const realmTxt = detOpen ? (document.getElementById('detRealm')?.textContent || '') : '';
+            const codeMatch = realmTxt.match(/\b((?:TR|MD|IN)-[0-9a-z]+)\b/i);
+            const code = codeMatch ? codeMatch[1] : '';
+            const lesson = code && window.ConceptMap?.COMPONENTS[code]?.lesson;
+            if (lesson) return { stage: lesson.split('.')[0], step: lesson, pos: code, label: code };
+            if (currentRealm === 'TRAINING') return { stage: '3', step: '3', pos: 'TRAINING', label: 'Training' };
+            if (currentRealm === 'INFERENCE') return { stage: '8', step: '8', pos: 'INFERENCE', label: 'Inference' };
+            return { stage: '7', step: '7.2', pos: 'MODEL', label: 'Model Core' };
+          };
+          SuiteLinks.mountSuiteMenu(document.querySelector('.suite-home'), { currentPage: 'obs', getState: obsSuiteState });
+          SuiteLinks.mountReturnChip(document.querySelector('.top-actions'), 'obs');
+        }
         deepLinkInit();
         window.addEventListener('hashchange', deepLinkInit);
       }

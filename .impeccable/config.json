@@ -30,6 +30,15 @@
         ],
         "createdAt": "2026-11-23T12:18:00.000Z",
         "reason": "Agent: sanctioned exception for multi-axis variable Roboto Flex (wdth, wght, opsz) driving the morphing Paris typographic specimen specified in DESIGN.md and .impeccable/surfaces/one-token-index-html.md, not generic static Roboto."
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-26T05:15:08.757Z",
+        "reason": "agent decision: the only pulse is the Narrate button dot while narration audio is playing (reader.css .mast nav button[data-playing=true]); live state, disabled under prefers-reduced-motion; pre-existing"
       }
     ]
   }

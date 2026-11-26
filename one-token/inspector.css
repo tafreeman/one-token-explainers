@@ -6,7 +6,7 @@
   box-sizing: border-box;
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  scrollbar-color: var(--silhouette, #5e6268) var(--vellum, #fbfaf7);
   color: var(--ink, #16181a);
   background: var(--vellum, #fbfaf7);
   border-inline-end: 1px solid var(--grid, #b8b4aa);
@@ -56,7 +56,7 @@
 #inspector .inspect-status { margin: .4rem 0 .75rem; }
 #inspector .steer-section h4 { display: none; }
 #inspector .steer-svg { display: block; width: 100%; max-width: 28rem; height: auto; }
-#inspector .steer-svg text { fill: var(--ink, #16181a); font: 10px var(--mono, monospace); }
+#inspector .steer-svg text { fill: var(--ink, #16181a); font: 11.5px var(--mono, monospace); }
 #inspector .steer-svg :is([data-edge], .math-guide) { stroke: var(--muted, #52575d); }
 #inspector .steer-svg [data-edge][data-active="true"] { stroke: var(--attention, #1e4ec8); }
 #inspector .steer-node rect { fill: var(--plate, #fff); stroke: var(--muted, #52575d); }

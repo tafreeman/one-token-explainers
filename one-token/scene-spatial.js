@@ -191,14 +191,24 @@ const trainAnswer = makeTrain([' in', ' clear', ' and', ' °C', ' 18', '’s', '
 const Corpus = (() => {
   const g = new THREE.Group(); scene.add(g);
   const rails = RAIL_Z.map(z => { const c = new THREE.CatmullRomCurve3(railPts(z).map(p => V3(...p)), false, 'centripetal'); const m = tube(c, .055, M.steelL, 40); g.add(m); return c; });
-  RAIL_Z.forEach(z => { box(.5, .5, .5, M.train, -15.2, 5.4, z, g); });
+  RAIL_Z.forEach((z, idx) => {
+    box(.68, .16 + (idx % 2) * .08, .54, M.slab, -15.25, 5.26, z, g);
+    box(.58, .12, .46, M.train, -15.2, 5.44, z, g);
+  });
   const funnel = new THREE.Mesh(new THREE.TorusGeometry(.72, .11, 12, 40), M.train); funnel.position.set(-3, Y0, 0); funnel.rotation.y = Math.PI / 2; g.add(funnel);
-  // Limestone posts with a Terracotta training lintel mark the corpus filter gate.
-  box(.18, 2.3, .18, M.slab, X_GATE, 1.15, -1.05, g); box(.18, 2.3, .18, M.slab, X_GATE, 1.15, 1.05, g); box(.22, .22, 2.34, M.train, X_GATE, 2.3, 0, g);
-  const comb = new THREE.InstancedMesh(BOX, M.steel, 7); for (let i = 0; i < 7; i++) { dummy.position.set(X_GATE, 1.25, -.78 + i * .26); dummy.rotation.set(0, 0, 0); dummy.scale.set(.035, 1.5, .035); dummy.updateMatrix(); comb.setMatrixAt(i, dummy.matrix); } g.add(comb);
-  box(1.9, .16, 1.2, M.steelL, X_GATE + .9, .08, 2.35, g); shadow(X_GATE + .9, 2.35, 2.6, 1.8, .35, g); shadow(X_GATE, 0, 1.4, 3.2, .4, g);
+  // Limestone posts with a Terracotta training lintel and woven MinHash sieve screen mark the corpus filter gate.
+  box(.22, 2.34, .22, M.slab, X_GATE, 1.17, -1.08, g); box(.22, 2.34, .22, M.slab, X_GATE, 1.17, 1.08, g); box(.26, .24, 2.44, M.train, X_GATE, 2.32, 0, g);
+  const comb = new THREE.InstancedMesh(BOX, M.steel, 12);
+  for (let i = 0; i < 7; i++) { dummy.position.set(X_GATE, 1.25, -.78 + i * .26); dummy.rotation.set(0, 0, 0); dummy.scale.set(.035, 1.54, .035); dummy.updateMatrix(); comb.setMatrixAt(i, dummy.matrix); }
+  for (let j = 0; j < 5; j++) { dummy.position.set(X_GATE, .62 + j * .32, 0); dummy.rotation.set(0, 0, 0); dummy.scale.set(.032, .032, 1.88); dummy.updateMatrix(); comb.setMatrixAt(7 + j, dummy.matrix); }
+  g.add(comb);
+  // Angled deduplication deflection chute into a recessed reject tray
+  const chute = box(.62, .055, 2.05, M.steel, X_GATE + .52, .38, 1.18, g); chute.rotation.x = .24; chute.rotation.y = -.28;
+  box(2.04, .18, 1.32, M.steelL, X_GATE + .9, .09, 2.35, g);
+  box(1.88, .06, 1.16, M.train, X_GATE + .9, .19, 2.35, g);
+  shadow(X_GATE + .9, 2.35, 2.6, 1.8, .35, g); shadow(X_GATE, 0, 1.4, 3.2, .4, g);
   box(14.8, .06, .9, M.plinth, X_GATE + 2.4, .03, 0, g);
-  // particles
+  // Document-sheet proportioned particles flowing through the sieve
   const N = 56, P = new THREE.InstancedMesh(BOX, lam(0xffffff), N); P.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(P);
   const keepC = new THREE.Color(HEX.ink2), dropC = new THREE.Color(HEX.train);
   const parts = Array.from({ length: N }, (_, i) => ({ r: i % 5, ph: (i * .6180339) % 1, drop: (i * 7) % 10 < 3 }));
@@ -212,8 +222,8 @@ const Corpus = (() => {
       if (s < .45) tmp.copy(rails[p.r].getPointAt(s / .45));
       else if (s < .72) tmp.copy(main.getPointAt((s - .45) / .27));
       else if (!p.drop) { const u = (s - .72) / .28; tmp.copy(tail.getPointAt(u)); sc *= clamp((1 - u) * 6); }
-      else { const u = (s - .72) / .28; tmp.set(X_GATE + .2 + u * .8, lerp(Y0, .22, ease(clamp(u * 1.6))), lerp(0, 2.35, ease(clamp(u * 1.3)))); sc *= clamp((1 - u) * 5); }
-      dummy.position.copy(tmp); dummy.rotation.set(s * 6, s * 9, 0); dummy.scale.setScalar(sc); dummy.updateMatrix(); P.setMatrixAt(i, dummy.matrix);
+      else { const u = (s - .72) / .28; tmp.set(X_GATE + .18 + u * .78, lerp(Y0, .24, ease(clamp(u * 1.45))), lerp(.15, 2.32, ease(clamp(u * 1.25)))); sc *= clamp((1 - u) * 5); }
+      dummy.position.copy(tmp); dummy.rotation.set(p.drop && s > .72 ? .28 : s * 2.2, s * 4.5, 0); dummy.scale.set(sc * 1.45, sc * .36, sc * 1.05); dummy.updateMatrix(); P.setMatrixAt(i, dummy.matrix);
       P.setColorAt(i, p.drop && s > .66 ? dropC : keepC);
     });
     P.instanceMatrix.needsUpdate = true; P.instanceColor.needsUpdate = true;
@@ -282,7 +292,11 @@ const Tower = (() => {
   }
   const collars = new THREE.InstancedMesh(new THREE.TorusGeometry(.15, .018, 6, 24), M.steel, NCOL); g.add(collars);
   for (let i = 0; i < NCOL; i++) { dummy.position.set(0, ROD0 + .3 + i * (ROD1 - ROD0 - .6) / (NCOL - 1), 0); dummy.rotation.set(Math.PI / 2, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); collars.setMatrixAt(i, dummy.matrix); }
-  const crownRing = new THREE.Mesh(new THREE.TorusGeometry(.5, .06, 8, 32), M.steel); crownRing.rotation.x = Math.PI / 2; crownRing.position.y = TOWER_TOP + .08; g.add(crownRing);
+  // 4-to-1 stream reduction collar + Final RMSNorm calibration ring + unembedding vocabulary deck
+  const crownRing = new THREE.Mesh(new THREE.TorusGeometry(.54, .062, 8, 32), M.steel); crownRing.rotation.x = Math.PI / 2; crownRing.position.y = TOWER_TOP + .09; g.add(crownRing);
+  const normRing = new THREE.Mesh(new THREE.TorusGeometry(.34, .032, 8, 28), M.serve); normRing.rotation.x = Math.PI / 2; normRing.position.y = TOWER_TOP + .15; g.add(normRing);
+  box(3.52, .06, .42, M.slab, 0, TOWER_TOP + .19, .2, g);
+  box(1.86, .05, .36, M.steelL, 0, TOWER_TOP + .19, -1.05, g);
   // LM head bars
   const NB = 25, bars = new THREE.InstancedMesh(BOX, lam(0xffffff), NB); bars.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(bars);
   const barH = Array.from({ length: NB }, (_, i) => .12 + .55 * Math.exp(-Math.pow((i - 12) / 5, 2)) * (.6 + .4 * Math.sin(i * 2.7) ** 2));
@@ -325,11 +339,12 @@ const Tower = (() => {
     bars.instanceMatrix.needsUpdate = true; bars.instanceColor.needsUpdate = true;
     for (let i = 0; i < NM; i++) { const h = lerp(.08, mtpH[i], Math.max(.25, lv * .9)); dummy.position.set(-.8 + i * .135, TOWER_TOP + .22 + h / 2, -1.05); dummy.scale.set(.08, h, .08); dummy.updateMatrix(); mtp.setMatrixAt(i, dummy.matrix); }
     mtp.instanceMatrix.needsUpdate = true;
-    // The selected library row carries a visible vector strip toward the residual conduits.
-    embedding.selectedRow.position.y = .5 + S.v.embed * .06 * Math.sin(a * 2);
-    embedding.selectedRow.position.z = .3 + S.v.embed * 1.9;
-    embedding.selectedRow.scale.y = 1 + S.v.embed * 1.4;
-    embedding.vector.position.z = .5 + S.v.embed * 1.9;
+    // The selected library row carries a segmented activation vector strip toward the residual conduits.
+    embedding.selectedRow.position.y = .51 + S.v.embed * .04 * Math.sin(a * 2);
+    embedding.selectedRow.position.z = .28 + S.v.embed * .92;
+    embedding.selectedRow.scale.y = 1 + S.v.embed * .55;
+    embedding.vector.position.y = .66 + S.v.embed * .08;
+    embedding.vector.position.z = .34 + S.v.embed * 1.02;
     embedding.vector.visible = S.v.embed > .02;
   } };
 })();
@@ -447,17 +462,24 @@ const Serve = (() => {
   const parisAttention = tube(new THREE.QuadraticBezierCurve3(V3(X_SAMPLE, Y0, 0),
     V3((X_SAMPLE + X_INTAKE) / 2, 4.2, 2.1), V3(X_INTAKE + 2, Y0, 0)), .026, bas(colors.attention), 40);
   parisAttention.name = 'paris-prompt-attention'; parisAttention.visible = false; g.add(parisAttention);
-  const outHoop = new THREE.Mesh(new THREE.TorusGeometry(.64, .085, 10, 40), M.serve); outHoop.position.set(X_STREAM + 1.15, Y0, 0); outHoop.rotation.y = Math.PI / 2; g.add(outHoop);
+  // Grounded output classifier scanner arch instead of a lone ring floating in space
+  box(1.1, .08, 1.56, M.slab, X_STREAM + 1.15, .04, 0, g);
+  for (const z of [-.64, .64]) box(.12, 1.32, .12, M.steel, X_STREAM + 1.15, .68, z, g);
+  const outHoop = new THREE.Mesh(new THREE.TorusGeometry(.64, .085, 10, 40), M.serve); outHoop.position.set(X_STREAM + 1.15, Y0 + .12, 0); outHoop.rotation.y = Math.PI / 2; g.add(outHoop);
   // thinking lane barrier
   const barrier = box(.1, 1, 1, M.ink, X_STREAM - 2.6, .5, -1.8, g);
   const laneM = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: colors.grid })); laneM.scale.set(X_STREAM - 2.6 - (X_TOWER + 3.2), .012, .05); laneM.position.set((X_STREAM - 2.6 + X_TOWER + 3.2) / 2, .02, -1.8); g.add(laneM);
+  // Bus plinth linking the serving tower to the Paged HBM KV Cache bank
+  box(2.8, .08, 1.2, M.plinth, X_TOWER + 2.3, .04, 2.2, g);
   const cache = modelKit.makeKVCache(PM); cache.g.position.set(X_TOWER + 2.4, 0, 2.7); g.add(cache.g);
   // batch rows
   const batch = new THREE.InstancedMesh(BOX, lam(colors.hardwareFrame), 12); batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage); g.add(batch);
   // thinking tiles (hollow)
   const thinking = Array.from({ length: 11 }, () => { const e = edgesBox(.62, .32, .32, HEX.ink, g); e.visible = false; return e; });
   const draft = edgesBox(.66, .34, .34, HEX.token, g); draft.visible = false;
-  const stex = texCanvas(1100, 700, () => {});
+  const stex = texCanvas(550, 350, () => {});
+  stex.generateMipmaps = false; stex.minFilter = THREE.LinearFilter;
+  if (renderer) stex.anisotropy = renderer.userData?.software ? 1 : Math.min(4, renderer.capabilities.getMaxAnisotropy());
   const screenMaterial = new THREE.MeshPhysicalMaterial({ color: colors.plate, map: stex,
     emissive: colors.plate, emissiveMap: stex, emissiveIntensity: .18,
     roughness: .16, metalness: 0, clearcoat: 1, clearcoatRoughness: .12, envMapIntensity: .8 });
@@ -480,20 +502,40 @@ const Serve = (() => {
   function drawScreen(state) {
     const key = JSON.stringify(state); if (key === screenKey) return; screenKey = key;
     const c = stex.userData.g, w = 1100, h = 700;
+    c.setTransform(.5, 0, 0, .5, 0, 0);
     c.fillStyle = theme.css.plate; c.fillRect(0, 0, w, h);
-    c.fillStyle = theme.css.inset; c.fillRect(0, 0, w, 64); c.fillStyle = theme.css.ink; c.font = '600 28px "Roboto Flex", sans-serif'; c.fillText('your app', 32, 42);
-    c.fillStyle = theme.css.muted; c.font = '500 22px "Martian Mono", monospace'; c.fillText('POST /v1/messages', w - 300, 42);
+    c.fillStyle = theme.css.ink; c.fillRect(0, 0, w, 72);
+    c.fillStyle = theme.css.token; c.fillRect(28, 22, 16, 28);
+    c.fillStyle = theme.css.plate; c.font = '700 30px "Roboto Flex", sans-serif'; c.fillText('your app', 58, 46);
+    c.fillStyle = theme.css.inset; c.font = '500 23px "Martian Mono", monospace'; c.fillText('POST /v1/messages · SSE', w - 365, 45);
     // user bubble
-    c.fillStyle = theme.css.ink; c.fillRect(w - 600, 104, 568, 72); c.fillStyle = theme.css.plate; c.font = '500 27px "Roboto Flex", sans-serif'; c.fillText('What’s the weather in Paris right now?', w - 578, 150);
-    let y = 236; c.font = '500 25px "Martian Mono", monospace';
-    const line = (txt, col = theme.css.ink, font) => { c.fillStyle = col; if (font) c.font = font; c.fillText(txt, 32, y); y += 46; };
-    if (state.status) line(state.status, theme.css.muted);
-    if (state.call) { c.strokeStyle = theme.css.ink; c.lineWidth = 2; c.strokeRect(24, y - 34, w - 48, 98); line('tool_use  get_weather', theme.css.ink, '600 25px "Martian Mono", monospace'); line(state.call, theme.css.ink, '500 25px "Martian Mono", monospace'); y += 14; }
-    if (state.result) { c.fillStyle = theme.css.inset; c.fillRect(24, y - 34, w - 48, 56); line(state.result, theme.css.tool); y += 10; }
-    if (state.answer !== undefined) { c.font = '500 36px "Roboto Flex", sans-serif'; c.fillStyle = theme.css.ink; c.fillText(state.answer, 32, y + 12); y += 70; }
-    if (state.stop) { c.font = '500 22px "Martian Mono", monospace'; c.fillStyle = theme.css.muted; c.fillText(state.stop, 32, h - 34); }
+    c.fillStyle = theme.css.inset; c.fillRect(w - 636, 98, 604, 78);
+    c.strokeStyle = theme.css.grid; c.lineWidth = 2; c.strokeRect(w - 636, 98, 604, 78);
+    c.fillStyle = theme.css.ink; c.font = '600 28px "Roboto Flex", sans-serif'; c.fillText('What’s the weather in Paris right now?', w - 612, 147);
+    let y = 236; c.font = '500 26px "Martian Mono", monospace';
+    const line = (txt, col = theme.css.ink, font) => { c.fillStyle = col; if (font) c.font = font; c.fillText(txt, 34, y); y += 46; };
+    if (state.status) line('● ' + state.status, theme.css.muted, '600 25px "Martian Mono", monospace');
+    if (state.call) {
+      c.fillStyle = theme.css.ground; c.fillRect(26, y - 34, w - 52, 102);
+      c.strokeStyle = theme.css.ink; c.lineWidth = 2.5; c.strokeRect(26, y - 34, w - 52, 102);
+      line('tool_use · get_weather', theme.css.mark, '700 25px "Martian Mono", monospace');
+      line(state.call, theme.css.ink, '600 26px "Martian Mono", monospace'); y += 16;
+    }
+    if (state.result) {
+      c.fillStyle = theme.css.inset; c.fillRect(26, y - 34, w - 52, 58);
+      c.strokeStyle = theme.css.tool; c.lineWidth = 2.5; c.strokeRect(26, y - 34, w - 52, 58);
+      line(state.result, theme.css.tool, '600 25px "Martian Mono", monospace'); y += 14;
+    }
+    if (state.answer !== undefined) {
+      c.font = '700 40px "Roboto Flex", sans-serif'; c.fillStyle = theme.css.ink; c.fillText(state.answer, 34, y + 16); y += 72;
+    }
+    if (state.stop) {
+      c.fillStyle = theme.css.inset; c.fillRect(0, h - 58, w, 58);
+      c.font = '600 24px "Martian Mono", monospace'; c.fillStyle = theme.css.ink; c.fillText(state.stop, 34, h - 22);
+    }
     stex.needsUpdate = true;
   }
+  drawScreen({ status: 'waiting for input' });
   const lanes = [1.55, -1.55];
   return { g, drawScreen, resetScreen() { screenKey = ''; }, update(S) {
     const a = S.anim;
@@ -534,7 +576,7 @@ const Serve = (() => {
     draft.visible = S.v.draft > .02 && S.bead.visible && S.bead.pos.y < 1.2 && S.bead.pos.x > X_TOWER + 3;
     if (draft.visible) { draft.position.set(S.bead.pos.x + .95, Y0, 0); draft.scale.setScalar(.6 + .4 * frac(a * 1.8)); }
     compact.visible = S.v.compact > .02; compact.scale.x = Math.max(.001, S.v.compact);
-    drawScreen(S.screen);
+    if (scr.visible) drawScreen(S.screen);
   } };
 })();
 
@@ -543,20 +585,46 @@ const Callouts = (() => {
   const g = new THREE.Group(); scene.add(g);
   const AX = X_TOWER - 13.5, AY = 7.4, AZ = 4.4, SP = .72;
   const att = new THREE.Group(); g.add(att);
+  // Datum rail beneath context sequence positions (past/window, active query, masked future)
+  box(16.6 * SP, .09, .54, M.slab, AX + 7.8 * SP, AY - .24, AZ, att);
+  box(4.2 * SP, .05, .42, M.steelL, AX + 9.5 * SP, AY - .18, AZ, att);
   const keys = new THREE.InstancedMesh(BOX, M.ink, 12); att.add(keys);
   for (let i = 0; i < 12; i++) { dummy.position.set(AX + i * SP, AY, AZ); dummy.rotation.set(0, 0, 0); dummy.scale.set(.56, .3, .3); dummy.updateMatrix(); keys.setMatrixAt(i, dummy.matrix); }
   const q = box(TOKW, .34, .34, new THREE.MeshBasicMaterial({ color: HEX.token }), AX + 12 * SP, AY, AZ, att);
+  // RoPE rotary phase ring around the Query launch position
+  const ropeRing = new THREE.Mesh(new THREE.TorusGeometry(.38, .024, 8, 28), M.serve);
+  ropeRing.position.set(AX + 12 * SP, AY, AZ + .2); att.add(ropeRing);
   const future = [0, 1, 2, 3].map(i => { const e = edgesBox(.56, .3, .3, colors.hardwareFrame, att); e.position.set(AX + (13 + i) * SP + .1, AY, AZ); return e; });
-  const mask = box(.06, 1.1, .9, M.train, AX + 12.55 * SP, AY + .2, AZ, att); mask.name = 'causal-mask';
+  // Prominent stepped Causal Mask shield + top stop-bar blocking future positions (> n)
+  const mask = box(.14, 1.32, 1.08, M.train, AX + 12.55 * SP, AY + .24, AZ, att); mask.name = 'causal-mask';
+  box(3.15 * SP, .075, .76, M.train, AX + 14.2 * SP, AY + .78, AZ, att);
   const W = [.15, .1, .1, .12, .3, .1, .25, .9, .75, .2, .35, .5];
   const arcD = W.map((w, i) => { const c = new THREE.QuadraticBezierCurve3(V3(AX + 12 * SP, AY + .18, AZ), V3(AX + (i + 12) / 2 * SP, AY + 1.0 + (12 - i) * .16, AZ), V3(AX + i * SP, AY + .16, AZ)); const m = tube(c, .012 + .05 * w, bas(colors.attention), 36); m.name = 'attention-dense-' + i; att.add(m); return m; });
   const sp = new THREE.Group(); att.add(sp);
-  const blocks = [0, 1].map(b => box(4 * SP - .14, .32, .32, b === 1 ? M.ink : M.steelL, AX + (b * 4 + 1.5) * SP, AY, AZ, sp));
+  // Compressed summary cartridges (4:1 compressed history blocks + brass latent summary header on selected top-k block)
+  const blocks = [0, 1].map(b => {
+    const bx = AX + (b * 4 + 1.5) * SP;
+    const body = box(4 * SP - .18, b === 1 ? .42 : .3, .38, b === 1 ? M.ink : M.steelL, bx, AY + (b === 1 ? .05 : 0), AZ, sp);
+    if (b === 1) box(4 * SP - .28, .065, .42, M.serve, bx, AY + .29, AZ, sp);
+    for (let s = -1; s <= 1; s++) box(.035, b === 1 ? .44 : .32, .42, M.steel, bx + s * .68, AY + (b === 1 ? .05 : 0), AZ, sp);
+    return body;
+  });
+  // CSA lightweight indexer ring perched at the indexer callout anchor
+  const idxRing = new THREE.Mesh(new THREE.TorusGeometry(.28, .028, 8, 24), M.serve);
+  idxRing.position.set(AX + 5.5 * SP, AY + 1.72, AZ); sp.add(idxRing);
   const arcS = [[5.5, .8], [8, .3], [9, .55], [10, .4], [11, .7]].map(([x, w]) => { const c = new THREE.QuadraticBezierCurve3(V3(AX + 12 * SP, AY + .18, AZ), V3(AX + (x + 12) / 2 * SP, AY + 1.0 + (12 - x) * .17, AZ), V3(AX + x * SP, AY + .16, AZ)); const m = tube(c, .012 + .05 * w, bas(colors.attention), 36); m.name = 'attention-sparse'; sp.add(m); return m; });
   const lead = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V3(0, 0, 0), V3(0, 0, 0)]), new THREE.LineDashedMaterial({ color: colors.hardwareFrame, dashSize: .2, gapSize: .14 })); g.add(lead);
   // MoE
   const moe = new THREE.Group(); g.add(moe);
   const MX = X_TOWER - 14, MY = 9.2, MZ = 4.4, CW = .27, COLS = 24, ROWS = 16;
+  // Switchyard frame enclosing the 384-expert bank + Weighted Sum Collector Ring on the output edge
+  const bankCenterX = MX + 1.9 + (COLS - 1) * CW / 2, bankCenterY = MY - .5 * CW, bankW = COLS * CW + .36, bankH = ROWS * CW + .36;
+  box(bankW, bankH, .12, M.slab, bankCenterX, bankCenterY, MZ - .14, moe);
+  box(bankW + .12, .08, .22, M.steel, bankCenterX, bankCenterY + bankH / 2 + .02, MZ - .08, moe);
+  box(bankW + .12, .08, .22, M.steel, bankCenterX, bankCenterY - bankH / 2 - .02, MZ - .08, moe);
+  const collectorX = MX + 1.9 + COLS * CW + .38;
+  const collector = new THREE.Mesh(new THREE.TorusGeometry(.32, .048, 10, 32), M.serve);
+  collector.name = 'moe-sum-collector'; collector.position.set(collectorX, MY, MZ + .08); moe.add(collector);
   const cells = new THREE.InstancedMesh(CHAMFER, lam(colors.plate), COLS * ROWS); cells.name = '384-expert-bank'; moe.add(cells);
   const LIT = [41, 98, 171, 214, 287, 340];
   const pc = new THREE.Color(colors.hardwareBody), lc = new THREE.Color(HEX.token), hotC = new THREE.Color(HEX.train);
@@ -590,8 +658,21 @@ const Callouts = (() => {
   paintMoeBank(LIT.map(id => ({ id, weight: 1 / LIT.length })), false);
   const shared = modelKit.makeExpert(PM, true); shared.g.position.set(MX + .5, MY + 1.1, MZ); moe.add(shared.g);
   const router = modelKit.makeRouter(PM); router.g.position.set(MX + .5, MY - .9, MZ); moe.add(router.g);
-  const streams = [...LIT.map(i => { const cx = i % COLS, cy = Math.floor(i / COLS); return V3(MX + 1.9 + cx * CW, MY - ROWS * CW / 2 + cy * CW, MZ + .05); }), V3(MX + .5, MY + 1.1, MZ + .07)].map((p, k) => {
+  const activeExpertTargets = [...LIT.map(i => { const cx = i % COLS, cy = Math.floor(i / COLS); return V3(MX + 1.9 + cx * CW, MY - ROWS * CW / 2 + cy * CW, MZ + .05); }), V3(MX + .5, MY + 1.1, MZ + .07)];
+  const streams = activeExpertTargets.map((p, k) => {
     const c = new THREE.QuadraticBezierCurve3(V3(MX + .5, MY - .9, MZ + .1), V3((MX + .5 + p.x) / 2, (MY - .9 + p.y) / 2 + .5, MZ + .5), p); const m = tube(c, k === 6 ? .03 : .018 + .02 * ((k * 37) % 5) / 4, new THREE.MeshBasicMaterial({ color: HEX.token }), 30); moe.add(m); return m; });
+  // Weighted summation return arcs from the 6 active routed experts + 1 shared expert into the Collector Ring
+  activeExpertTargets.forEach((p, k) => {
+    const end = V3(collectorX, MY, MZ + .1);
+    const c = new THREE.QuadraticBezierCurve3(V3(p.x, p.y, p.z + .16), V3((p.x + collectorX) / 2, (p.y + MY) / 2 + (k === 6 ? .65 : .25), MZ + .45), end);
+    const ret = tube(c, k === 6 ? .024 : .015, M.serve, 24);
+    delete ret.userData.curve;
+    moe.add(ret);
+  });
+  modelKit.mergeStatic(att, [mask, ...arcD]);
+  modelKit.mergeStatic(sp, arcS);
+  modelKit.mergeStatic(router.g, [router.pointer, router.rim, router.g.getObjectByName('router-wheel')]);
+  modelKit.mergeStatic(moe, streams);
   // One instanced draw carries direction along the active connections. The arrows
   // follow lesson progress, never a wall clock; rewinding reconstructs each pose.
   const signal = new THREE.InstancedMesh(new THREE.ConeGeometry(.105, .31, 8), bas(0xffffff), 12);
@@ -602,6 +683,8 @@ const Callouts = (() => {
   const signalUp = V3(0, 1, 0), signalDirection = V3(0, 0, 0);
   const signalBlue = new THREE.Color(colors.attention);
   const signalToken = new THREE.Color(colors.token);
+  // Pre-allocate instanceColor so compileAsync compiles USE_INSTANCING_COLOR upfront instead of mid-scroll at 7.2.
+  signal.setColorAt(0, signalBlue); signal.count = 0; signal.visible = false;
   function setSignals(paths, progress, color, reducedMotion) {
     signal.visible = paths.length > 0;
     signal.count = paths.length;
@@ -635,7 +718,7 @@ const Callouts = (() => {
       lead.visible = va > .3; if (lead.visible) setLead(lead, V3(AX + 12 * SP, AY - .2, AZ), V3(S.tower.x + .2, AY, 1.7));
       moe.visible = vm > .01; moe.scale.set(1, Math.max(.001, vm), 1); moe.position.y = MY * (1 - Math.max(.001, vm));
       router.pointer.rotation.z = -1.1 + 2.2 * sstep(.15, .82, S.prog);
-      lead2.visible = vm > .3; if (lead2.visible) setLead(lead2, V3(MX + 1.9 + 23 * CW, MY, MZ), V3(S.tower.x + .2, MY, 1.7));
+      lead2.visible = vm > .3; if (lead2.visible) setLead(lead2, V3(collectorX + .32, MY, MZ + .08), V3(S.tower.x + .2, MY, 1.7));
       setSignals(vm > .01 ? streams : va > .01 ? (S.v.attnS > .01 ? arcS : arcD) : [],
         S.prog, vm > .01 ? signalToken : signalBlue, S.reducedMotion);
     } };
@@ -704,6 +787,7 @@ Object.assign(B, {
   '1b-filter': {...B['1b'], tags: ['mix', 'reject']},
   '1c-vocab': {...B['1c'], cam: [17, 5.5, 12, 15.2, .9, -2.4], tags: ['vocab'], show: {vocab: 1, corpus: .3}},
   '2a-loss': {...B['2a'], tags: ['loss', 'mtp'], winner: 1, show: {logits: 1, flicker: .25}},
+  '2b-update': {...B['2b'], cam: [40, 14, 34, 27, 6.8, -2], tags: ['grad', 'cluster'], show: {flicker: 1, grad: 1, cluster: 1, logits: .5}},
   '3c-cons': {...B['3c'], tags: ['cons']},
   '3c-ref': {...B['3c'], tags: ['ref'], show: {ghost: 1, cons: .35}},
   '3e-safeguards': {...B['3e'], tags: ['safeguards']},
@@ -736,7 +820,7 @@ B['1c'].fit = [[X_TOK - 7.2, 0, -1], [X_TOK + 1.7, 2.6, 1.2]];
 B['1c-vocab'].fit = [[X_TOK + 1.6, 0, -4], [X_TOK + 4.8, 2.5, -.8]];
 B['1d'].fit = [[X_TOK - 3.7, 0, -4.4], [X_TOK + 4.8, 2.5, 1]];
 const STEP_BEATS = {
-  '1.3': {'1b': '1b-filter'}, '2.2': {'1c': '1c-vocab'}, '3.2': {'2a': '2a-loss'},
+  '1.3': {'1b': '1b-filter'}, '2.2': {'1c': '1c-vocab'}, '3.2': {'2a': '2a-loss'}, '3.3': {'2b': '2b-update'},
   '4.3': {'3c': '3c-cons'}, '4.4': {'3c': '3c-ref'}, '5.2': {'3e': '3e-safeguards'},
   '6.2': {'4b': '4b-template'}, '6.3': {'4b': '4b-tokenizer'}, '8.2': {'6a': '6a-kv'},
   '9.2': {'6b': '6b-summary'}, '9.3': {'6b': '6b-tool'}, '10.3': {'6c': '6c-draft'},
@@ -789,18 +873,22 @@ const State = { t: 0, dt: 0, anim: 0, J: 0, beatId: 'hero', prog: 0, tl: 0, v: O
 /* Camera rig and frame clock: the scene is a function of (beat, progress), so the rig carries the
    only memory, easing the eye, target and lens toward each authored pose in real time. */
 const SHOW_RATE = 12;
-const rig = { ready: false, moving: false, t: 0, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30,
-  zoom: 1, shiftX: 0, shiftY: 0, towerX: 0,
-  vPos: V3(0, 0, 0), vTgt: V3(0, 0, 0), vFov: 0, vZoom: 0, vShiftX: 0, vShiftY: 0, vTowerX: 0 };
+const rig = { ready: false, moving: false, t: 0, pace: 1 / 60, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30,
+  zoom: 1, shiftX: 0, shiftY: 0, towerX: 0, j: 0,
+  vPos: V3(0, 0, 0), vTgt: V3(0, 0, 0), vFov: 0, vZoom: 0, vShiftX: 0, vShiftY: 0, vTowerX: 0, vJ: 0 };
 // World units; well below a pixel at every authored shot distance.
-const TOWER_SETTLE = .002;
+const TOWER_SETTLE = .002, J_SETTLE = .00002, J_SMOOTH = .09;
 /* Critically damped follow: unlike a plain exponential ease it starts gently, so a stop change
    reads as a camera settling in rather than a lurch. The goal is always the pure pose. */
 const CAM_SMOOTH = .18;
-function smoothDamp(cur, goal, vel, dt) {
+/* A one-off stall (GC, a late upload) must not teleport the camera through the time it lost.
+   Each step is capped near the recent frame pace; a steadily slow device lifts the cap in a
+   few frames, so its flights still take real time. */
+const STEP_FLOOR = 1 / 30, STEP_PACE_CAP = 2, PACE_RATE = .15;
+function smoothDamp(cur, goal, vel, dt, smooth = CAM_SMOOTH) {
   // Exact critical damping: the same elapsed time produces the same pose at any refresh rate.
   if (!dt) return [cur, vel];
-  const omega = 2 / CAM_SMOOTH, e = Math.exp(-omega * dt);
+  const omega = 2 / smooth, e = Math.exp(-omega * dt);
   const change = cur - goal, temp = (vel + omega * change) * dt;
   return [goal + (change + temp) * e, (vel - omega * temp) * e];
 }
@@ -844,18 +932,57 @@ const openingCam = [-18, 23, 38, 11, 4.8, 0];
 const openingTight = [-18, 10.5, 18, -4.2, 2.0, 0];
 
 const SUB_BEATS = {
-  '3.3': ['2b', '2c'],
   '4.2': ['3b', '3d'],
   '7.2': ['5c', '5d'],
   '7.4': ['5b', '5f'],
   '12.2': ['7b', '7c']
 };
 
+// Written stops share narrated source clips, whose [0..1] loopJ would otherwise rewind at every
+// sub-step boundary when scrolling. Partition each stage monotonically in non-narrated mode.
+const Y74 = uAtY('serve-up', 7.4), Y92 = uAtY('serve-up', 9.2);
+const STEP_FLOW = {
+  '1.1': { j: [J('feed', .42), J('feed', .64)] },
+  '1.2': { j: [J('feed', .64), J('feed', .82)] },
+  '1.3': { j: [J('feed', .82), J('feed', 1)] },
+  '2.1': { j: [J('tokens', 0), J('tokens', .22)] },
+  '2.2': { j: [J('tokens', .22), J('tokens', .42)] },
+  '2.3': { j: [J('tokens', .42), J('tokens', .6)] },
+  '3.1': { j: [J('tokens', .6), J('train-up', .92)], tower: [X_TRAIN, [.06, .28]] },
+  '3.2': { j: [J('train-up', .92), J('absorb', .35)], tower: [X_TRAIN, [.28, .5]] },
+  '3.3': { j: [J('absorb', .35), J('absorb', 1)], tower: [X_TRAIN, [.5, .85]] },
+  '3.4': { j: [J('absorb', 1), J('absorb', 1)], hideBead: true, tower: [X_TRAIN, [.85, 1]] },
+  '5.1': { tower: [[X_POST, X_REL], 1], lamps: [0, 3.2] },
+  '5.2': { tower: [X_REL, 1], lamps: [3.2, 6.2] },
+  '6.1': { j: [J('request', 1e-4), J('request', .72)] },
+  '6.2': { j: [J('request', .72), J('request', .92)] },
+  '6.3': { j: [J('request', .92), J('serve-up', .08)] },
+  '6.4': { j: [J('serve-up', .08), J('serve-up', .36)] },
+  '7.1': { j: [J('serve-up', .36), J('serve-up', Y74)] },
+  '7.4:5b': { j: [J('serve-up', Y92), J('serve-up', .88)] },
+  '7.4:5f': { j: [J('serve-up', .88), J('serve-up', 1)] },
+  '8.3': { j: [J('serve-up', .18), J('serve-up', .48)], kv: 14 },
+  '9.1': { kvSpan: [0, 1 / 3] },
+  '9.2': { kvSpan: [1 / 3, 2 / 3] },
+  '9.3': { kvSpan: [2 / 3, 1] },
+  '10.1': { j: [J('decode', 1e-4), J('decode', .6)] },
+  '10.2': { j: [J('decode', .6), J('decode', .85)] },
+  '10.3': { j: [J('decode', .85), J('stream', .08)] },
+  '10.4': { j: [J('stream', .08), J('stream', .2)] },
+  '11.1': { j: [J('stream', .2), J('stream', .5)] },
+  '11.2': { j: [J('stream', .5), J('stream', .85)] },
+  '11.3': { j: [J('stream', .85), J('stream', 1)] },
+  '12.1': { j: [J('tool', 1e-4), J('tool', .42)] },
+  '12.2:7b': { j: [J('tool', .42), J('tool', 1)] },
+  '12.2:7c': { j: [J('cached', 1e-4), J('cached', 1)] },
+};
+
 function locate(state) {
   let beatKey = STEP_BEATS[state.stepId]?.[state.spatialBeat] || state.spatialBeat;
   const rawU = clamp(state.recap ? (state.overallT ?? state.localT ?? 0) : (state.localT ?? 0));
   let u = rawU;
-  if (!state.narrated && !state.opening && !state.recap && !state.overview && state.stepId && SUB_BEATS[state.stepId] && beatKey === SUB_BEATS[state.stepId][0]) {
+  const scrollLesson = !state.narrated && !state.opening && !state.recap && !state.overview && Boolean(state.stepId);
+  if (scrollLesson && SUB_BEATS[state.stepId] && beatKey === SUB_BEATS[state.stepId][0]) {
     const pair = SUB_BEATS[state.stepId];
     if (rawU >= 0.55) {
       beatKey = pair[1];
@@ -865,11 +992,13 @@ function locate(state) {
     }
   }
   const b = (state.opening || state.overview) ? B.hero : state.recap ? B.f1 : B[beatKey] || B.hero;
+  const flow = scrollLesson ? (STEP_FLOW[state.stepId + ':' + beatKey] || STEP_FLOW[state.stepId] || null) : null;
   const j = (state.opening || state.overview) ? J('feed', .42)
+    : flow?.j ? lerp(flow.j[0], flow.j[1], u)
     : b.scrubJ ? lerp(b.scrubJ[0], b.scrubJ[1], b === B.f1 ? sstep(.04, .9, u) : u)
     : b.loopJ ? lerp(b.loopJ[0], b.loopJ[1], u)
     : b.parkJ ?? 0;
-  return { b, u, j };
+  return { b, u, j, flow, scrollLesson };
 }
 
 /* Director framing helpers */
@@ -904,8 +1033,27 @@ function fitShot(points, offset, fovDeg, aspect, margin) {
   return { center, distance: Math.max(distance, offset.length() * .6) };
 }
 
+function beadPoseAt(jVal, towerX, opening, b, flow) {
+  const seg = segAtJ(jVal), sk = seg.k, t = uIn(seg, jVal);
+  let scale = opening ? 1.42 : 1, rotY = 0;
+  const pos = V3(0, 0, 0);
+  if (seg.c) {
+    pos.copy(seg.c.getPointAt(t));
+    const tangent = seg.c.getTangentAt(t);
+    rotY = Math.abs(tangent.y) > .8 ? 0 : Math.atan2(-tangent.z, tangent.x);
+  } else {
+    pos.set(towerX, TOWER_TOP + .4, 0);
+    if (sk === 'absorb') scale *= 1 - .85 * sstep(.2, .9, t);
+  }
+  if (b.parkToken) { pos.set(...b.parkToken); rotY = 0; }
+  if (sk === 'cached') scale *= 1 - .45 * sstep(.6, 1, t);
+  if (sk === 'answer' || sk === 'stream') scale *= 1 - .65 * sstep(.9, .985, t);
+  const visible = !(flow?.hideBead ?? b.hideBead) && (!!seg.c || sk === 'absorb');
+  return { seg, sk, t, pos, rotY, scale, visible };
+}
+
 function update(state, aspect, viewportWidth) {
-  const { b, u, j } = locate(state);
+  const { b, u, j: jGoal, flow, scrollLesson } = locate(state);
   exposure = b.exposure ?? (b.A ? 1.06 : 1);
   const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < .85;
   const corpusOpening = !!state.opening && compact;
@@ -913,25 +1061,31 @@ function update(state, aspect, viewportWidth) {
   const S = State;
   S.prog = u;
   S.reducedMotion = !!state.reducedMotion;
-  S.anim = u * (b.loopJ?.[2] ?? 4) + .8;
+  // Continuous scroll-linked phase prevents all 43 step boundaries from snapping stage particles.
+  S.anim = (scrollLesson && state.diagramPose != null) ? state.diagramPose * 12 + .8 : u * (b.loopJ?.[2] ?? 4) + .8;
   // Without a frame clock (tests, headless reconstruction) every pose is exact and order-independent.
   const hasClock = typeof performance !== 'undefined', clock = hasClock ? performance.now() : 0;
   const gap = rig.ready ? Math.max(0, (clock - rig.t) / 1000) : 0;
   rig.t = clock;
   const snap = !hasClock || !rig.ready || S.reducedMotion || state.snapCamera;
-  // The host snaps on restoration; ordinary slow frames still consume their real elapsed time.
-  S.dt = snap ? 1 : rig.moving ? gap : 0;
+  const step = Math.min(gap, Math.max(STEP_FLOOR, rig.pace * STEP_PACE_CAP));
+  // Idle gaps are not frame pace; only frames inside a flight teach it.
+  if (rig.moving && !snap) rig.pace += (step - rig.pace) * PACE_RATE;
+  // The host snaps on restoration; steady slow frames still consume their real elapsed time.
+  S.dt = snap ? 1 : rig.moving ? step : 0;
+  // Smooth continuous rail scrubs at frame rate so discrete wheel ticks never stair-step the token.
+  if (snap || !rig.ready || b.parkToken || Math.abs(jGoal - rig.j) > .28) { rig.j = jGoal; rig.vJ = 0; }
+  else [rig.j, rig.vJ] = smoothDamp(rig.j, jGoal, rig.vJ, S.dt, J_SMOOTH);
+  const jMoving = !snap && (Math.abs(rig.j - jGoal) > J_SETTLE || Math.abs(rig.vJ) > J_SETTLE * 10);
+  if (!jMoving) { rig.j = jGoal; rig.vJ = 0; }
+  const j = rig.j;
   S.J = j;
   beamCacheBust = settings.cache === 'miss';
-  const segment = segAtJ(j);
-  const sk = segment.k;
-  const t = uIn(segment, j);
-  S.bead.seg = segment;
-  S.bead.u = t;
 
-  S.tower = towerFromJ(j);
-  if (b.tower) {
-    const [pos, trained] = b.tower;
+  const towerRule = flow?.tower || b.tower;
+  S.tower = towerFromJ(jGoal);
+  if (towerRule) {
+    const [pos, trained] = towerRule;
     S.tower.x = Array.isArray(pos) ? lerp(...pos, ease(clamp(u / .7))) : pos;
     S.tower.trained = Array.isArray(trained) ? lerp(...trained, u) : trained;
   }
@@ -944,20 +1098,14 @@ function update(state, aspect, viewportWidth) {
   if (!towerMoving) { rig.towerX = towerGoal; rig.vTowerX = 0; }
   S.tower.x = rig.towerX;
 
-  let scale = state.opening ? 1.42 : 1;
-  if (segment.c) {
-    S.bead.pos.copy(segment.c.getPointAt(t));
-    const tangent = segment.c.getTangentAt(t);
-    bead.rotation.y = Math.abs(tangent.y) > .8 ? 0 : Math.atan2(-tangent.z, tangent.x);
-  } else {
-    S.bead.pos.set(S.tower.x, TOWER_TOP + .4, 0);
-    bead.rotation.y = 0;
-    if (sk === 'absorb') scale *= 1 - .85 * sstep(.2, .9, t);
-  }
-  if (b.parkToken) { S.bead.pos.set(...b.parkToken); bead.rotation.y = 0; }
-  if (sk === 'cached') scale *= 1 - .45 * sstep(.6, 1, t);
-  if (sk === 'answer' || sk === 'stream') scale *= 1 - .65 * sstep(.9, .985, t);
-  S.bead.visible = !b.hideBead && (!!segment.c || sk === 'absorb');
+  const canonicalBead = beadPoseAt(jGoal, towerGoal, state.opening, b, flow);
+  const liveBead = (j === jGoal && S.tower.x === towerGoal) ? canonicalBead : beadPoseAt(j, S.tower.x, state.opening, b, flow);
+  const { seg: segment, sk, t, scale } = liveBead;
+  S.bead.seg = segment;
+  S.bead.u = t;
+  S.bead.pos.copy(liveBead.pos);
+  S.bead.visible = liveBead.visible;
+  bead.rotation.y = liveBead.rotY;
   bead.visible = S.bead.visible;
   bead.position.copy(S.bead.pos);
   bead.scale.setScalar(scale);
@@ -980,10 +1128,13 @@ function update(state, aspect, viewportWidth) {
   S.cache = b.cache || (['cached', 'answer'].includes(sk) && b === B.f1 ? [X_INTAKE - 1.2, X_TOWER - 1.6] : null);
   const effort = { low: 3, medium: 5, high: 7, xhigh: 9, max: 11 }[settings.effort] ?? 7;
   S.effort = effort;
-  S.kv = b.kv !== undefined ? b.kv + (b.kvTick ? Math.round(effort * u) : 0)
+  const kvU = flow?.kvSpan ? lerp(flow.kvSpan[0], flow.kvSpan[1], u) : u;
+  S.kv = flow?.kv !== undefined ? flow.kv
+    : b.kv !== undefined ? b.kv + (b.kvTick ? Math.round(effort * kvU) : 0)
     : b.kvFill ? Math.round(14 * clamp(uIn(SEG['serve-up'], j) / SEG['serve-up'].floorEnd)) : kvFromJ(j);
   S.ctx = b.ctx ? lerp(b.ctx[0], b.ctx[1], sstep(.1, .8, u)) : 0;
-  S.lampsOn = b.lamps ? lerp(b.lamps[0], b.lamps[1], sstep(.1, .85, u))
+  const lampsRule = flow?.lamps || b.lamps;
+  S.lampsOn = lampsRule ? lerp(lampsRule[0], lampsRule[1], sstep(.1, .85, u))
     : clamp(uIn(SEG['ship-rel'], j) * 2) * 6;
   S.headHot = ((sk === 'train-up' || sk === 'serve-up') && t > .85) || sk === 'absorb'
     || ((sk === 'decode' || sk === 'answer') && t < .25) ? 1 : 0;
@@ -1028,6 +1179,9 @@ function update(state, aspect, viewportWidth) {
   Tokenizer.g.visible = Tower.g.visible = Serve.g.visible = !corpusOpening;
   Post.g.visible = Gate.g.visible = S.tower.x < X_TOWER - 1;
 
+  // Frame camera goals from canonical (undamped) token and tower poses so flights stay exact at any Hz.
+  const livePos = S.bead.pos.clone(), liveVis = S.bead.visible, liveTowerX = S.tower.x;
+  S.bead.pos.copy(canonicalBead.pos); S.bead.visible = canonicalBead.visible; S.tower.x = towerGoal;
   let shot = b.cam || B.hero.cam;
   if (state.opening) shot = compact ? openingTight : openingCam;
   const eye = V3(...shot.slice(0, 3));
@@ -1054,8 +1208,8 @@ function update(state, aspect, viewportWidth) {
     // Frame the tracked token together with this beat's explanatory anchors.
     // A landscape shot's fixed target can put the token beyond a portrait edge.
     const points = [];
-    if (bead.visible) {
-      const half = V3(TOKW * scale / 2, .34 * scale / 2, .34 * scale / 2);
+    if (S.bead.visible) {
+      const half = V3(TOKW * canonicalBead.scale / 2, .34 * canonicalBead.scale / 2, .34 * canonicalBead.scale / 2);
       for (let corner = 0; corner < 8; corner++) points.push(S.bead.pos.clone().add(V3(
         corner & 1 ? half.x : -half.x, corner & 2 ? half.y : -half.y, corner & 4 ? half.z : -half.z)));
     }
@@ -1078,7 +1232,7 @@ function update(state, aspect, viewportWidth) {
     // Director keeps the authored viewing direction but re-centres on what matters in this
     // beat (the token, its callouts, and the tower when the beat is about it) and sets the
     // distance so all of it sits inside the plate at any aspect ratio.
-    const points = interestPoints(b, scale);
+    const points = interestPoints(b, canonicalBead.scale);
     if (points.length) {
       const fit = fitShot(points, offset, b.fov || 30, aspect, compact ? { x: .74, y: .58 } : { x: .78, y: .7 });
       target.copy(fit.center);
@@ -1088,6 +1242,7 @@ function update(state, aspect, viewportWidth) {
   } else if (!state.opening && (state.camera === 'close' || compact)) {
     offset.multiplyScalar(compact ? .79 : .69);
   }
+  S.bead.pos.copy(livePos); S.bead.visible = liveVis; S.tower.x = liveTowerX;
   // Wide overview shots gain enough depth to fit the hall in nearly square plates.
   if (b.A && !state.opening && !state.recap && !compact) {
     offset.multiplyScalar(Math.max(1, Math.sqrt(b.A / aspect)));
@@ -1123,7 +1278,7 @@ function update(state, aspect, viewportWidth) {
   const still = rig.pos.distanceTo(goalEye) < pixelWorld * .08 && rig.tgt.distanceTo(target) < pixelWorld * .08
     && rig.vPos.length() < pixelWorld && rig.vTgt.length() < pixelWorld
     && lens.every(([key, goal, velocity]) => Math.abs(rig[key] - goal) < .00001 && Math.abs(rig[velocity]) < .0001);
-  const moving = !snap && (!still || layersMoving || towerMoving);
+  const moving = !snap && (!still || layersMoving || towerMoving || jMoving);
   rig.moving = moving;
   if (snap || still) {
     rig.pos.copy(goalEye); rig.tgt.copy(target);

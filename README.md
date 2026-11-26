@@ -49,13 +49,13 @@ Don't add anything else to those two folders.
 
 ## Run locally
 
-Local copies of these pages can open directly from disk with their sibling folders in place. To serve all pages over HTTP, run this from the repository root.
+Local copies of these pages can open directly from disk with their sibling folders in place. To serve all pages over HTTP from the current working tree, use any one of these:
 
-```powershell
-python -m http.server 8000
-```
+- **VS Code:** Run and Debug → **Run app** (F5). **Run app (pull latest)** runs `git pull --ff-only` first.
+- **Explorer:** double-click `start.cmd`.
+- **Terminal:** `./start.ps1` (`-Pull`, `-Port 8080`, `-NoBrowser`).
 
-Then open <http://localhost:8000/>.
+Each one stops whatever holds port 3000 and any other copy of this repo's `server.js`, runs `npm ci` if `package.json` or `package-lock.json` changed since the last install, then serves <http://127.0.0.1:3000/> and opens it. Without Node, `python -m http.server 8000` serves the same files at <http://localhost:8000/>.
 
 Every page loads its bundled Three.js build first, so the 3D views work offline. If that file is missing, `shared/three-loader.js` tries cdnjs, then unpkg, then jsDelivr, each pinned to the bundled bytes with a subresource-integrity hash. The pages use system fallback fonts offline. If the GPU drops the WebGL context, the scene pauses, shows a one-line text fallback, and redraws when the context comes back.
 

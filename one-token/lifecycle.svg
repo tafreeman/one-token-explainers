@@ -1,75 +1,118 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="460" height="270" viewBox="0 0 460 270" role="img" aria-labelledby="title description">
   <title id="title">Training and serving a language model</title>
-  <desc id="description">Training updates weights using documents, and the final weights are frozen. During serving, a new request passes through the model loaded with those weights, then a reply streams back. Vermilion samples show separate appearances of Paris in text.</desc>
+  <desc id="description">Training updates a 61-layer transformer tower using filtered documents, then freezes the weights. During serving, a prompt enters through tokenization and prefix cache, passes up the frozen tower while filling and reading a paged KV cache, streams a reply, and loops through client tools when needed. Vermilion marks separate appearances of Paris.</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="m1 1 6 3-6 3" fill="none" stroke="#52575d" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="m1 1.2 5.8 2.8-5.8 2.8" fill="none" stroke="#52575d" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrow-tool" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto">
+      <path d="m1 1.2 5.8 2.8-5.8 2.8" fill="none" stroke="#1c6b4c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
     <style>
-      .label { fill: #16181a; font: 600 18px Arial, sans-serif; text-anchor: middle }
-      .lane { fill: #52575d; font: 700 15px Arial, sans-serif; letter-spacing: 1.3px }
-      .sample { fill: #b8320d; font: 700 16px Arial, sans-serif; text-anchor: middle }
-      .legend { fill: #52575d; font: 400 17px Arial, sans-serif }
-      .plate { fill: #fff; stroke: #52575d; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round }
-      .detail { fill: none; stroke: #85837e; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round }
-      .flow { fill: none; stroke: #52575d; stroke-width: 1.45; marker-end: url(#arrow) }
+      .label { fill: #16181a; font: 600 13.5px system-ui, -apple-system, Arial, sans-serif; text-anchor: middle }
+      .sub { fill: #52575d; font: 500 10.5px ui-monospace, Consolas, monospace; text-anchor: middle }
+      .lane { fill: #52575d; font: 700 11.5px ui-monospace, Consolas, monospace; letter-spacing: 1.2px }
+      .sample { fill: #b8320d; font: 700 13px ui-monospace, Consolas, monospace; text-anchor: middle }
+      .legend { fill: #16181a; font: 500 11.5px system-ui, -apple-system, Arial, sans-serif }
+      .plate { fill: #ffffff; stroke: #16181a; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round }
+      .stone { fill: #efece6; stroke: #52575d; stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round }
+      .detail { fill: none; stroke: #686c72; stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round }
+      .flow { fill: none; stroke: #52575d; stroke-width: 1.35; marker-end: url(#arrow) }
     </style>
   </defs>
 
-  <path d="M9 27h442v96H9zm0 135h442v73H9z" fill="#eceae3" stroke="#d6d3cb"/>
-  <text class="lane" x="9" y="20">TRAINING</text>
-  <text class="lane" x="9" y="153">SERVING</text>
+  <rect x="9" y="22" width="442" height="96" rx="4" fill="#eceae3" stroke="#d6d3cb"/>
+  <rect x="9" y="140" width="442" height="100" rx="4" fill="#eceae3" stroke="#d6d3cb"/>
+  <text class="lane" x="16" y="16">01–05 · OFFLINE TRAINING (WEIGHTS UPDATED)</text>
+  <text class="lane" x="16" y="134">06–12 · ONLINE SERVING (WEIGHTS FROZEN θ*)</text>
 
   <g class="flow">
-    <path d="M139 66h48 M273 66h48"/>
-    <path d="M365 125v16H230v29" stroke-dasharray="3.5 2.5"/>
-    <path d="M139 191h48 M273 191h48"/>
+    <path d="M126 62h44 M270 62h46"/>
+    <path d="M366 112v14H220v18" stroke-dasharray="4 2.5"/>
+    <path d="M126 184h44 M284 184h40"/>
   </g>
 
-  <g transform="translate(95 66)">
-    <path class="plate" d="M-18-24h38v45h-38z M-24-18h38v45h-38z"/>
-    <path class="detail" d="M-19-11h26 M-19-6h16 M-19 21H4"/>
-    <text class="sample" x="-5" y="12">Paris</text>
+  <!-- 1. Corpus & BPE -->
+  <g transform="translate(80 60)">
+    <rect class="stone" x="-34" y="-23" width="60" height="38" rx="2"/>
+    <rect class="plate" x="-28" y="-27" width="60" height="38" rx="2"/>
+    <path class="detail" d="M-21-19h42 M-21-13h28 M-21 3h36"/>
+    <rect x="-15" y="-8" width="40" height="13" rx="2" fill="#fff1ec" stroke="#b8320d" stroke-width="1"/>
+    <text class="sample" x="5" y="2">␣Paris</text>
   </g>
-  <text class="label" x="95" y="110">Documents</text>
+  <text class="label" x="80" y="102">Corpus &amp; BPE</text>
+  <text class="sub" x="80" y="113">ID 12842</text>
 
-  <g transform="translate(230 66)">
-    <path class="plate" d="m-27 14 27 11 27-11V-3L0-14-27-3z M-27-3 0 8 27-3 M0 8v17"/>
-    <path class="plate" d="m-27-4 27 11 27-11v-12L0-27l-27 11z M-27-16 0-5l27-11 M0-5V7"/>
-    <path class="detail" d="m-19-18 19 8 17-7m-37 20 5 2m26 7 8-3"/>
+  <!-- 2. Train 61-layer Tower -->
+  <g transform="translate(220 60)">
+    <rect class="stone" x="-34" y="12" width="68" height="7" rx="1"/>
+    <rect class="plate" x="-26" y="-24" width="52" height="36" rx="1.5"/>
+    <path class="detail" d="M-26-17h52 M-26-10h52 M-26-3h52 M-26 4h52 M0-27v40"/>
+    <ellipse cx="0" cy="-10" rx="30" ry="5" fill="none" stroke="#9e3e22" stroke-width="1.35"/>
+    <path d="M29-22v28" fill="none" stroke="#9e3e22" stroke-width="1.2" stroke-dasharray="2.5 2"/>
   </g>
-  <text class="label" x="230" y="110">Train model</text>
+  <text class="label" x="220" y="102">Train ×61 tower</text>
+  <text class="sub" x="220" y="113">loss + gradients</text>
 
-  <g transform="translate(365 66)">
-    <path class="plate" d="M-26-23h52v48h-52z M-20-16h40v34h-40z"/>
-    <path class="detail" d="M-20-5h40 M-20 6h40 M-10-16v34 M0-16v34 M10-16v34"/>
-    <path d="M0-5h10V6H0z M-20 6h10v12h-10z M10-16h10v11H10z" fill="#aaa497"/>
+  <!-- 3. Frozen Weights Release Gate -->
+  <g transform="translate(366 60)">
+    <rect class="plate" x="-34" y="-24" width="68" height="42" rx="2"/>
+    <path class="detail" d="M-26-12h52 M-26 0h52 M-26 10h52 M-9-20v34 M9-20v34"/>
+    <rect x="-26" y="-20" width="17" height="8" fill="#cfa03e" opacity=".45"/>
+    <rect x="9" y="-12" width="17" height="12" fill="#1e4ec8" opacity=".28"/>
+    <rect x="-9" y="0" width="18" height="10" fill="#ff4a1c" opacity=".32"/>
   </g>
-  <text class="label" x="365" y="110">Frozen weights</text>
+  <text class="label" x="366" y="102">Frozen weights</text>
+  <text class="sub" x="366" y="113">evals · θ* fixed</text>
 
-  <g transform="translate(95 190)">
-    <path class="plate" d="M-28-15h56v30h-31l-9 6v-6h-16z"/>
-    <text class="sample" x="0" y="6">Paris</text>
+  <!-- 4. Prompt & Prefix Cache -->
+  <g transform="translate(80 182)">
+    <rect class="plate" x="-36" y="-20" width="72" height="34" rx="2"/>
+    <line x1="-32" y1="-24" x2="4" y2="-24" stroke="#855d14" stroke-width="1.5"/>
+    <line x1="-32" y1="-27" x2="4" y2="-27" stroke="#855d14" stroke-width="1.5"/>
+    <rect x="-18" y="-9" width="42" height="14" rx="2" fill="#fff1ec" stroke="#b8320d" stroke-width="1"/>
+    <text class="sample" x="3" y="2">␣Paris</text>
   </g>
-  <text class="label" x="95" y="225">New request</text>
+  <text class="label" x="80" y="218">Prompt &amp; prefix</text>
+  <text class="sub" x="80" y="230">tools → sys → user</text>
 
-  <g transform="translate(230 189)">
-    <path class="plate" d="m-27 8 27 10 27-10V-7L0-17-27-7z M-27-7 0 3 27-7 M0 3v15"/>
-    <path class="detail" d="m-27-1 27 10 27-10 M-27 4 0 14 27 4 M-11-10l21 8 M-11-3l21-8"/>
+  <!-- 5. Frozen Tower + Attention + Paged KV Cache -->
+  <g transform="translate(226 182)">
+    <rect class="stone" x="-44" y="12" width="88" height="7" rx="1"/>
+    <rect class="plate" x="-38" y="-22" width="44" height="34" rx="1.5"/>
+    <path class="detail" d="M-38-14h44 M-38-6h44 M-38 2h44 M-16-25v38"/>
+    <path d="M-16-6 Q4-22 20-8" fill="none" stroke="#1e4ec8" stroke-width="1.4"/>
+    <!-- KV Cache Rack -->
+    <rect class="plate" x="12" y="-18" width="26" height="30" rx="1.5"/>
+    <rect x="15" y="-14" width="20" height="6" rx="1" fill="#cfa03e" stroke="#855d14" stroke-width=".8"/>
+    <rect x="15" y="-5" width="20" height="6" rx="1" fill="#cfa03e" stroke="#855d14" stroke-width=".8"/>
+    <rect x="15" y="4" width="13" height="6" rx="1" fill="#ff4a1c" stroke="#b8320d" stroke-width=".8"/>
   </g>
-  <text class="label" x="230" y="225">Frozen model</text>
+  <text class="label" x="226" y="218">Attend + KV cache</text>
+  <text class="sub" x="226" y="230">CSA/HCA · 6/384 MoE</text>
 
-  <g transform="translate(365 190)">
-    <path class="plate" d="M-30-15h60v30h-60z"/>
-    <text class="sample" x="-5" y="6">Paris</text>
-    <path class="detail" d="M18-6v12"/>
+  <!-- 6. Streamed Reply + Tool Loop -->
+  <g transform="translate(374 182)">
+    <rect class="plate" x="-38" y="-20" width="76" height="34" rx="2.5"/>
+    <rect x="-34" y="-16" width="68" height="7" fill="#eceae3"/>
+    <text class="sample" x="-4" y="5">Paris</text>
+    <line x1="20" y1="-5" x2="20" y2="8" stroke="#16181a" stroke-width="1.4"/>
   </g>
-  <text class="label" x="365" y="225">Streamed reply</text>
+  <path d="M374 162 C374 146, 118 146, 98 160" fill="none" stroke="#1c6b4c" stroke-width="1.25" stroke-dasharray="3.5 2.5" marker-end="url(#arrow-tool)"/>
+  <text class="label" x="374" y="218">SSE reply &amp; tools</text>
+  <text class="sub" x="374" y="230">UTF-8 · tool_result</text>
 
-  <g transform="translate(9 257)">
-    <path d="M0-6h10v10H0z" fill="#b8320d"/>
-    <text class="legend" x="18" y="3">“Paris” in separate texts</text>
-    <path d="M250-1h25" stroke="#52575d" stroke-width="1.45" stroke-dasharray="3.5 2.5"/>
-    <text class="legend" x="283" y="3">Weights loaded</text>
+  <!-- Legend -->
+  <g transform="translate(12 259)">
+    <rect x="0" y="-8" width="9" height="9" rx="1.5" fill="#ff4a1c" stroke="#b8320d"/>
+    <text class="legend" x="14" y="0">Token</text>
+    <rect x="64" y="-8" width="9" height="9" rx="1.5" fill="#1e4ec8"/>
+    <text class="legend" x="78" y="0">Attention</text>
+    <rect x="146" y="-8" width="9" height="9" rx="1.5" fill="#cfa03e" stroke="#855d14"/>
+    <text class="legend" x="160" y="0">KV / Prefix cache</text>
+    <rect x="274" y="-8" width="9" height="9" rx="1.5" fill="#1c6b4c"/>
+    <text class="legend" x="288" y="0">Tool loop</text>
+    <line x1="358" y1="-3.5" x2="380" y2="-3.5" stroke="#52575d" stroke-width="1.4" stroke-dasharray="3.5 2.5"/>
+    <text class="legend" x="385" y="0">Frozen θ*</text>
   </g>
 </svg>

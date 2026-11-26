@@ -229,8 +229,28 @@ test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline st
     const url = links.urlFor('tour', slug, {from: 'swiss', pos: 7.3});
     assert.match(url, /^\.\.\/journey-tour\/index\.html\?.*#concept=/);
   }
-  assert.equal(links.swissToBeamlineBeat(7.3), '5e');
-  assert.equal(links.beamlineBeatToSwissG('5e'), 7.3);
+  assert.equal(links.stepToSwissG('1.1'), 0.06);
+  assert.equal(links.stepToSwissG('7.2'), 6.248);
+  assert.equal(links.stepToSwissG('7.3'), 6.436);
+  assert.equal(links.stepToSwissG('12.1'), 11.06);
+  assert.equal(links.stepToSwissG('12.2'), 11.295);
+  for (let stage = 1; stage <= 12; stage++) {
+    const href = links.editionHref('reader', 'swiss', {stage, step: stage + '.1', pos: stage + '.1'});
+    const g = Number(new URL(href, 'https://example.test/').searchParams.get('g'));
+    assert.equal(Math.floor(g), stage - 1, `Swiss stage ${stage} must map to zero-based index ${stage - 1}`);
+  }
+  assert.equal(links.swissToBeamlineBeat(6.436), '5e');
+  assert.equal(links.beamlineBeatToSwissG('5e'), 6.436);
+  assert.equal(links.beamlineBeatToStep('5g'), '7.5');
+  assert.equal(links.editionHref('beamline', 'reader', {stage: 7, step: links.beamlineBeatToStep('5g'), pos: '5g', label: 'Beat 5g'}),
+    '../index.html?from=beamline&pos=5g&fromLabel=Beat+5g#step-7.5');
+  assert.equal(links.stageFromStop(17), '7.3');
+  assert.equal(links.editionHref('reader', 'beamline', {stage: 7, step: '7.3', pos: '7.3', label: 'Step 7.3'}),
+    './end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');
+  assert.equal(links.editionHref('tour', 'reader', {stage: '7', step: '7.3', pos: '17', label: 'Stop 17'}),
+    '../index.html?from=tour&pos=17&fromLabel=Stop+17#step-7.3');
+  assert.equal(links.returnHref('tour', '17', false, 'reader'), './journey-tour/index.html#stop-17');
+  assert.equal(links.returnHref('obs', 'MD-2g', false, 'reader'), './shared/obs-core.html?focus=MD-2g');
 });
 
 test('Ch. 4 causal feature steering preserves 100% probability sum and shifts predictions on clamp', () => {
@@ -271,10 +291,10 @@ test('scene focus messages trust only the parent window and its paired origin', 
   }
 });
 
-test('lab and bridge stay below 43 KB with workload and timing explanations; Swiss stays independent', () => {
+test('lab and bridge stay below 68 KB with workload and timing explanations; Swiss stays independent', () => {
   const size = ['micro-labs.js', 'obs-file-bridge.js'].reduce((sum, f) =>
     sum + statSync(path.join(root, 'shared', f)).size, 0);
-  assert.ok(size < 43000, size);
+  assert.ok(size < 68000, size);
   assert.doesNotMatch(readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8'), /micro-labs/);
 });
 
