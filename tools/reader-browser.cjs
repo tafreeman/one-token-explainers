@@ -16,6 +16,14 @@ const step = (page, id) => page.waitForFunction(id => document.body.dataset.step
 const mode = (page, value) => page.waitForFunction(value => document.body.dataset.mode === value, value, {timeout});
 const ready = page => page.waitForFunction(() => document.querySelector('#viewport').dataset.render === 'ready'
   && window.OneToken?.scene.stats().revision === '160', null, {timeout});
+// Text that shares the figure with the 3D callout; the callout must never cover any of it.
+const LABEL_OVERLAYS = '#spoken-caption, .figure-head, .figure-note, figcaption .camera, #explain, #fallback-status';
+// With a stepId, only a settled frame that actually drew that stop counts. A frame already in
+// flight when the page changed step is otherwise accepted, and records the previous shot.
+const cameraSettled = (page, afterFrames = -1, stepId = null) => page.waitForFunction(([frames, id]) => {
+  const stats = window.OneToken.scene.stats();
+  return stats.frames > frames && stats.moving === false && (!id || stats.step === id);
+}, [afterFrames, stepId], {timeout});
 
 function collectErrors(page) {
   const errors = [];
@@ -54,6 +62,14 @@ async function gotoStep(page, id) {
   await step(page, id);
 }
 
+async function settledStep(page, id) {
+  const before = await stat(page);
+  const current = await page.locator('body').getAttribute('data-step');
+  await gotoStep(page, id);
+  await cameraSettled(page, current === id ? -1 : before.frames, id);
+  return (await stat(page)).cameraPose;
+}
+
 async function capture(page, artifacts, name) {
   await settle(page, 320);
   await page.screenshot({path: path.join(artifacts, 'Reader-' + name + '.png'), animations: 'disabled'});
@@ -76,7 +92,7 @@ async function axe(page, label) {
 }
 
 async function checkLayout(page, label) {
-  const layout = await page.evaluate(() => {
+  const layout = await page.evaluate(overlaySelectors => {
     const bounds = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
     const pin = bounds('#pin');
     return {
@@ -91,9 +107,16 @@ async function checkLayout(page, label) {
       height: innerHeight,
       mode: document.body.dataset.mode,
       mastControls: Array.from(document.querySelectorAll('.mast button, .mast nav a'), element => element.getBoundingClientRect().toJSON()),
-      pin: pin.width && pin.height ? pin : null
+      pin: pin.width && pin.height && !document.querySelector('#pin').hidden ? pin : null,
+      // Every other piece of text that can sit over or beside the figure.
+      overlays: Array.from(document.querySelectorAll(overlaySelectors), element => {
+        const style = getComputedStyle(element), rect = element.getBoundingClientRect();
+        const shown = !element.hidden && style.display !== 'none' && style.visibility !== 'hidden'
+          && Number(style.opacity) > .05 && rect.width > 0 && rect.height > 0;
+        return shown ? {name: element.id ? '#' + element.id : '.' + element.classList[0], ...rect.toJSON()} : null;
+      }).filter(Boolean)
     };
-  });
+  }, LABEL_OVERLAYS);
   assert.ok(layout.documentWidth <= layout.width + 1, label + ' horizontal overflow');
   assert.ok(layout.canvas.width > 100 && layout.canvas.height > 0, label + ' figure collapsed');
   assert.ok(layout.head.bottom <= layout.canvas.top + 1, label + ' canvas overlaps specimen header');
@@ -109,6 +132,9 @@ async function checkLayout(page, label) {
   if (layout.pin) {
     assert.ok(layout.pin.left >= layout.viewport.left - 1 && layout.pin.right <= layout.viewport.right + 1
       && layout.pin.top >= layout.viewport.top - 1 && layout.pin.bottom <= layout.viewport.bottom + 1, label + ' pin outside figure');
+    for (const overlay of layout.overlays) {
+      assert.ok(!intersects(layout.pin, overlay), `${label} callout overlaps ${overlay.name}`);
+    }
   }
 }
 
@@ -209,11 +235,19 @@ async function navigation(browser, url, artifacts) {
     await page.locator('#scrubber').press('Home');
     await step(page, '1.1');
 
-    await clickVisible(page, '#present');
-    await mode(page, 'present');
     await clickVisible(page, '#explain');
     await page.locator('#explanation').waitFor({state: 'visible'});
-    assert.ok((await page.locator('#explanation > p').textContent()).trim().length > 0, 'Present explanation prose');
+    assert.ok((await page.locator('#explanation-copy').textContent()).trim().length > 0, 'Read explanation prose');
+    await clickVisible(page, '#close-explanation');
+    await page.locator('#explanation').waitFor({state: 'hidden'});
+
+    await clickVisible(page, '#present');
+    await mode(page, 'present');
+    const openExplanation = await rectOf(page, '#open-explanation');
+    assert.ok(openExplanation.width > 100 && openExplanation.height >= 44, 'Present explanation action is obvious');
+    await clickVisible(page, '#open-explanation');
+    await page.locator('#explanation').waitFor({state: 'visible'});
+    assert.ok((await page.locator('#explanation-copy').textContent()).trim().length > 0, 'Present explanation prose');
     await clickVisible(page, '#close-explanation');
     await page.locator('#explanation').waitFor({state: 'hidden'});
     await clickVisible(page, '#studio-play');
@@ -234,6 +268,106 @@ async function navigation(browser, url, artifacts) {
   }
 }
 
+const rectOf = (page, selector) => page.locator(selector).evaluate(node => node.getBoundingClientRect().toJSON());
+const intersects = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+const sameRect = (a, b) => ['left', 'top', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) <= 1);
+const isFocused = (page, selector) => page.locator(selector).evaluate(node => node === document.activeElement);
+
+// Phones: the explanation and the inspector live in free space; the 3D frame never moves or is covered.
+async function phonePopups(browser, url) {
+  const phones = [
+    {label: 'portrait', viewport: {width: 390, height: 844}},
+    {label: 'landscape', viewport: {width: 844, height: 390}},
+    {label: '360', viewport: {width: 360, height: 640}}
+  ];
+  for (const {label, viewport} of phones) {
+    for (const reducedMotion of ['no-preference', 'reduce']) {
+      const name = 'phone-' + label + '-' + reducedMotion;
+      const page = await browser.newPage({viewport, reducedMotion, hasTouch: true});
+      const errors = collectErrors(page);
+      try {
+        await page.goto(url);
+        await ready(page);
+        await gotoStep(page, '7.2');
+        await switchView(page, 'spatial');
+        await clickVisible(page, '#present');
+        await mode(page, 'present');
+        await step(page, '7.2');
+        const frame = await rectOf(page, '#viewport');
+
+        const explain = await rectOf(page, '#explain');
+        assert.ok(explain.height >= 44 && explain.width >= 44, name + ' Explain touch target');
+        await clickVisible(page, '#explain');
+        await page.locator('#explanation').waitFor({state: 'visible'});
+        await settle(page, 300);
+        const popup = await rectOf(page, '#explanation');
+        assert.ok(!intersects(popup, frame), name + ' explanation must not overlap the 3D frame');
+        assert.ok(popup.height > 60 && popup.left >= 0 && popup.right <= viewport.width + 1 && popup.bottom <= viewport.height, name + ' explanation inside the screen');
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' opening the explanation must not move or resize the 3D frame');
+        const close = await rectOf(page, '#close-explanation');
+        assert.ok(close.height >= 44 && close.width >= 44, name + ' close touch target');
+        assert.ok(await isFocused(page, '#close-explanation'), name + ' focus moves into the explanation');
+
+        // Narration position, popup copy and 3D stop move together, forward and backward.
+        const shown = async () => ({step: await page.locator('body').getAttribute('data-step'),
+          title: await page.locator('#explanation-title').textContent(), value: await page.locator('#scrubber').inputValue()});
+        const at72 = await shown();
+        assert.match(at72.title, /^7\.2\b/);
+        await clickVisible(page, '#next');
+        await step(page, '7.3');
+        const at73 = await shown();
+        assert.match(at73.title, /^7\.3\b/);
+        assert.equal(Number(at73.value), Number(at72.value) + 1, name + ' scrubber follows Next');
+        await clickVisible(page, '#previous');
+        await step(page, '7.2');
+        assert.deepEqual(await shown(), at72, name + ' going back reconstructs the same state');
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' stepping must not move the 3D frame');
+        assert.ok(await page.locator('#explanation').isVisible(), name + ' explanation stays open while stepping');
+
+        await page.keyboard.press('Escape');
+        await page.locator('#explanation').waitFor({state: 'hidden'});
+        assert.ok(await isFocused(page, '#explain'), name + ' focus returns to Explain');
+        assert.equal(await page.locator('body').getAttribute('data-mode'), 'present', name + ' Escape closes only the explanation');
+
+        // The inspector (Try it) takes the same free space.
+        await clickVisible(page, '#explain');
+        await page.locator('#explanation').waitFor({state: 'visible'});
+        await page.locator('#explanation [data-inspect]').click();
+        const drawer = page.locator('#inspector');
+        await drawer.waitFor({state: 'visible'});
+        await settle(page, 350);
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' opening the inspector must not move the 3D frame');
+        const sheet = await rectOf(page, '#inspector');
+        assert.ok(!intersects(sheet, frame), name + ' inspector must not overlap the 3D frame');
+        assert.ok(sheet.width > 200 && sheet.height > 100, name + ' inspector has room');
+        assert.ok((await rectOf(page, '#inspector .inspect-back')).height >= 44, name + ' inspector back touch target');
+        await page.keyboard.press('Escape');
+        await drawer.waitFor({state: 'hidden'});
+        assert.ok(sameRect(frame, await rectOf(page, '#viewport')), name + ' closing the inspector must not move the 3D frame');
+        await page.keyboard.press('Escape');
+        await page.locator('#explanation').waitFor({state: 'hidden'});
+
+        // Read mode: the inspector sheet also leaves the sticky figure alone.
+        await clickVisible(page, '#present');
+        await mode(page, 'read');
+        await step(page, '7.2');
+        const readFrame = await rectOf(page, '#viewport');
+        await page.evaluate(() => { location.hash = 'concept=csa-hca-kv'; });
+        await drawer.waitFor({state: 'visible'});
+        await settle(page, 350);
+        assert.ok(sameRect(readFrame, await rectOf(page, '#viewport')), name + ' Read inspector must not move the 3D frame');
+        assert.ok(!intersects(await rectOf(page, '#inspector'), readFrame), name + ' Read inspector must not overlap the 3D frame');
+        await page.keyboard.press('Escape');
+        await drawer.waitFor({state: 'hidden'});
+        assert.deepEqual(errors, [], name + ' console and page errors');
+      } finally {
+        await page.close();
+      }
+    }
+  }
+  console.log('Reader phone explanation and inspector stay clear of the 3D frame (portrait, landscape, 360px)');
+}
+
 async function narration(browser, url) {
   const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
   try {
@@ -247,12 +381,15 @@ async function narration(browser, url) {
     const fullFile = path.posix.basename(new URL((await full).url()).pathname);
     const fullClip = tracks.full.find(clip => clip.id + '.mp3' === fullFile);
     assert.ok(fullClip, 'the Full track requested a clip from its manifest');
-    assert.equal(fullClip.id, '5d');
+    assert.equal(fullClip.id, '5c');
     await step(page, fullClip.stepId);
     await page.locator('#spoken-caption').waitFor({state: 'visible'});
     assert.ok((await page.locator('#spoken-caption').textContent()).trim());
     const quick = page.waitForRequest(/\/end-to-end-swiss\/assets\/narration\/.*\.mp3$/);
     if (!await page.locator('#audio-panel').isVisible()) await clickVisible(page, '#narrate');
+    // After Play the panel is a mini player; expand it to reach the recording picker and chapters.
+    if (await page.locator('#audio-panel.mini').count()) await page.locator('#audio-size').click();
+    assert.equal(await page.locator('#chapters button').count(), 12, 'one chapter marker per stage');
     await page.locator('#track').selectOption('quick');
     // Selecting a recording may pause playback; use the accessible Play button to resume.
     const play = page.getByRole('button', {name: /^play narration$/i});
@@ -261,17 +398,44 @@ async function narration(browser, url) {
     const quickClip = tracks.quick.find(clip => clip.id + '.mp3' === quickFile);
     assert.ok(quickClip, 'the Quick track requested a clip from its manifest');
     assert.equal(quickClip.id, '07-forward-pass');
-    await step(page, quickClip.stepId);
+    await step(page, '7.2');
+    assert.equal(await page.locator('body').getAttribute('data-step'), '7.2',
+      'changing to the stage-wide quick recording retains the selected attention mechanism');
     const duration = tracks.quick.reduce((sum, clip) => sum + clip.dur, 0);
     const expectedTime = Math.floor(duration / 60) + ':' + String(Math.floor(duration % 60)).padStart(2, '0');
     await page.waitForFunction(expected => document.querySelector('#audio-time').textContent.endsWith('/ ' + expected), expectedTime);
     if (!await page.locator('#audio-panel').isVisible()) await clickVisible(page, '#narrate');
+    if (await page.locator('#audio-panel.mini').count()) await page.locator('#audio-size').click();
     await page.locator('#captions').uncheck();
     await page.locator('#spoken-caption').waitFor({state: 'hidden'});
     console.log('Reader audio control, local playback, track switch, mute, and captions passed');
   } finally {
     await page.close();
   }
+}
+
+async function narrationScroll(browser, url) {
+  const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
+  try {
+    await page.addInitScript(() => {
+      const NativeAudio = window.Audio;
+      window.Audio = function (...args) { const audio = new NativeAudio(...args); window.__readerTestAudio = audio; return audio; };
+    });
+    await page.goto(url); await ready(page); await gotoStep(page, '7.2');
+    await clickVisible(page, '#narrate'); await page.locator('#muted').check();
+    await page.locator('#play-audio').click();
+    await page.waitForFunction(() => window.__readerTestAudio?.readyState >= 1);
+    const routed = page.waitForRequest(/\/5e\.mp3$/);
+    await page.evaluate(() => {
+      const article = document.querySelector('#step-7\\.3');
+      window.scrollTo({top: scrollY + article.getBoundingClientRect().top - innerHeight * .35, behavior: 'instant'});
+    });
+    await routed; await step(page, '7.3');
+    assert.equal(await page.locator('#play-audio').textContent(), 'Pause narration',
+      'scrolling seeks narration without pausing it');
+    assert.equal(await page.evaluate(() => window.__readerTestAudio.paused), false);
+    console.log('Reader active scrolling seeks narration without pausing');
+  } finally { await page.close(); }
 }
 
 async function inspect(browser, url, local, artifacts) {
@@ -306,7 +470,7 @@ async function inspect(browser, url, local, artifacts) {
     const frame = drawer.locator('iframe');
     await frame.waitFor();
     const frameUrl = new URL(await frame.getAttribute('src'), url);
-    assert.equal(frameUrl.searchParams.get('focus'), 'MD-2b,MD-2c');
+    assert.equal(frameUrl.searchParams.get('focus'), require('../shared/concept-map.js').CONCEPTS['csa-hca-kv'].obs.join(','));
     assert.equal(frameUrl.searchParams.get('skin'), 'light');
     assert.equal((await stat(page)).suspended, true);
     await page.waitForFunction(() => document.querySelector('.inspect-status').textContent === '', null, {timeout});
@@ -379,11 +543,183 @@ async function fallbacks(browser, url, artifacts) {
   console.log('Reader static no-JS lesson, no-WebGL fallback, and WebGL context recovery passed');
 }
 
+async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) {
+  const ids = ['2.1', '7.2', '7.3', '8.2', '10.2', '11.2', '12.1'];
+  const reports = [];
+  for (const viewport of [desktop, phone]) {
+    const page = await browser.newPage({viewport, reducedMotion: 'no-preference', hasTouch: viewport === phone});
+    const errors = collectErrors(page);
+    try {
+      await page.goto(url); await ready(page); await switchView(page, 'spatial');
+      await clickVisible(page, '#present'); await mode(page, 'present');
+      await page.evaluate(() => window.OneToken.scene.resetPerformance?.());
+      for (const id of ids) {
+        await settledStep(page, id);
+        if (!captureOnly) await checkLayout(page, `spatial ${id} ${viewport.width}`);
+        const stats = await stat(page);
+        if (!captureOnly) {
+          assert.ok(stats.calls < 90, `spatial ${id} draw calls ${stats.calls}`);
+          assert.ok(stats.triangles <= 120000, `spatial ${id} triangles ${stats.triangles}`);
+          assert.notEqual(await page.locator('#pin').getAttribute('data-intersects-token'), 'true',
+            `spatial ${id} label overlaps token`);
+          if (viewport === desktop) {
+            const leader = await page.locator('#leader').evaluate(element => ({
+              visible: getComputedStyle(element).visibility === 'visible',
+              length: Math.hypot(element.x2.baseVal.value - element.x1.baseVal.value,
+                element.y2.baseVal.value - element.y1.baseVal.value)
+            }));
+            assert.ok(leader.visible, `spatial ${id} desktop label leader is visible`);
+            assert.ok(leader.length <= 180, `spatial ${id} desktop leader stays local (${leader.length.toFixed(1)}px)`);
+          }
+        }
+        await capture(page, artifacts, `spatial-${id}-${viewport.width}x${viewport.height}`);
+        reports.push({id, viewport: viewport.width, calls: stats.calls, triangles: stats.triangles,
+          quality: stats.qualityTier, p95FrameMs: +Number(stats.p95FrameMs || 0).toFixed(1)});
+      }
+      if (!captureOnly) {
+        const before = await settledStep(page, '7.2');
+        await settledStep(page, '7.3');
+        await settledStep(page, '7.2');
+        assert.deepEqual((await stat(page)).cameraPose, before, 'spatial A→B→A restores the exact camera pose');
+      }
+      assert.deepEqual(errors, [], `spatial visual stops ${viewport.width} console errors`);
+    } finally { await page.close(); }
+  }
+  if (captureOnly) return;
+  const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
+  const errors = collectErrors(page);
+  try {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 2});
+      Object.defineProperty(navigator, 'deviceMemory', {get: () => 2});
+    });
+    await page.goto(url); await ready(page); await switchView(page, 'spatial');
+    await settledStep(page, '7.3');
+    const stats = await stat(page);
+    assert.equal(stats.qualityTier, 'low', 'low-power devices use the low spatial tier');
+    assert.ok(stats.triangles <= 45000, `low-tier triangles ${stats.triangles}`);
+    await capture(page, artifacts, 'spatial-7.3-low-1440x900');
+    assert.deepEqual(errors, [], 'low-tier console errors');
+    reports.push({id: '7.3', viewport: 'low', calls: stats.calls, triangles: stats.triangles,
+      quality: stats.qualityTier, p95FrameMs: +stats.p95FrameMs.toFixed(1)});
+  } finally { await page.close(); }
+  console.log('Reader spatial visual stops', JSON.stringify(reports));
+}
+
+async function cameraNavigation(browser, url) {
+  for (const viewport of [desktop, phone]) {
+    for (const reducedMotion of ['no-preference', 'reduce']) {
+      const label = `${viewport.width} ${reducedMotion}`;
+      const page = await browser.newPage({viewport, reducedMotion, hasTouch: viewport === phone});
+      const errors = collectErrors(page);
+      try {
+        await page.goto(url); await ready(page); await switchView(page, 'spatial');
+        await cameraSettled(page);
+        const opening = await stat(page);
+        await clickVisible(page, '#next'); await step(page, '1.1');
+        await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, opening.frames, {timeout});
+        if (reducedMotion === 'reduce') {
+          assert.equal((await stat(page)).moving, false, label + ' reduced opening snaps');
+        } else {
+          assert.equal((await stat(page)).moving, true, label + ' opening transitions before settling');
+        }
+        await cameraSettled(page, opening.frames);
+        assert.notDeepEqual((await stat(page)).cameraPose, opening.cameraPose, label + ' opening reaches lesson shot');
+        await clickVisible(page, '#present'); await mode(page, 'present'); await cameraSettled(page);
+
+        const canonical = await settledStep(page, '7.2');
+        // Each jump reaches a rendered frame, but interrupts its camera flight.
+        for (const id of ['12.1', '2.1', '10.2', '7.3', '7.2']) {
+          const before = (await stat(page)).frames;
+          await gotoStep(page, id);
+          await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, before, {timeout});
+        }
+        await cameraSettled(page, -1, '7.2');
+        assert.deepEqual((await stat(page)).cameraPose, canonical, label + ' rapid forward/reverse jumps reach canonical shot');
+
+        const poses = new Map([['director', canonical]]);
+        for (const preset of ['close', 'overhead', 'director']) {
+          const before = (await stat(page)).frames;
+          await page.locator('#camera').selectOption(preset);
+          await cameraSettled(page, before);
+          const pose = (await stat(page)).cameraPose;
+          if (poses.has(preset)) assert.deepEqual(pose, poses.get(preset), label + ' Director restores canonical shot');
+          else poses.set(preset, pose);
+          if (poses.has('overhead')) assert.notDeepEqual(poses.get('close'), poses.get('overhead'), label + ' presets remain distinct');
+          const target = await settledStep(page, '12.1');
+          await settledStep(page, '7.2');
+          // Hide a camera mid-flight, navigate elsewhere in Diagram, then return.
+          const flyingFrom = (await stat(page)).frames;
+          await gotoStep(page, '2.1');
+          await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, flyingFrom, {timeout});
+          await switchView(page, 'diagram');
+          await settledStep(page, '12.1');
+          await switchView(page, 'spatial');
+          await cameraSettled(page);
+          assert.deepEqual((await stat(page)).cameraPose, target,
+            label + ' ' + preset + ' returns from Diagram at the current canonical shot');
+          await settledStep(page, '7.2');
+        }
+        assert.deepEqual(errors, [], label + ' camera navigation console errors');
+      } finally { await page.close(); }
+    }
+  }
+  console.log('Reader opening transitions, rapid reversals, camera presets, and Diagram return shots passed');
+}
+
+async function visibility(browser, url) {
+  const page = await browser.newPage({viewport: desktop});
+  const errors = collectErrors(page);
+  const hidden = value => page.evaluate(value => {
+    window.__readerDocumentHidden = value;
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, value);
+  try {
+    await page.addInitScript(() => {
+      window.__readerDocumentHidden = false;
+      Object.defineProperty(document, 'hidden', {configurable: true, get: () => window.__readerDocumentHidden});
+    });
+    await page.goto(url); await ready(page); await switchView(page, 'spatial');
+    await clickVisible(page, '#present'); await mode(page, 'present');
+    await settledStep(page, '7.2');
+    // Hide during a flight to exercise cancellation of an already queued scene frame.
+    const start = (await stat(page)).frames;
+    await gotoStep(page, '12.1');
+    await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, start, {timeout});
+    await hidden(true);
+    const paused = (await stat(page)).frames;
+    await gotoStep(page, '2.1'); await settle(page, 180);
+    assert.equal((await stat(page)).frames, paused, 'hidden updates draw zero scene frames');
+    await hidden(false); await cameraSettled(page, paused);
+    const restored = (await stat(page)).cameraPose;
+    await settledStep(page, '7.2');
+    assert.deepEqual(await settledStep(page, '2.1'), restored, 'visibility restore snaps to the latest hidden update');
+
+    // Inspector uses this same explicit suspension; visibility must never resume it.
+    await page.evaluate(() => window.OneToken.scene.suspend());
+    const suspended = (await stat(page)).frames;
+    await hidden(true); await gotoStep(page, '10.2'); await hidden(false);
+    await settle(page, 180);
+    assert.equal((await stat(page)).suspended, true, 'visibility restoration preserves Inspector suspension');
+    assert.equal((await stat(page)).frames, suspended, 'suspended scene stays idle after visibility restoration');
+    await page.evaluate(() => window.OneToken.scene.resume());
+    await cameraSettled(page, suspended);
+    assert.equal((await stat(page)).suspended, false, 'explicit Inspector resume restores rendering');
+    assert.deepEqual(errors, [], 'visibility console errors');
+  } finally { await page.close(); }
+  console.log('Reader hidden-frame cancellation, latest-state restoration, and independent Inspector suspension passed');
+}
+
 async function verifyReader(browser, base, artifacts) {
   const url = new URL('./', base).href;
   await layouts(browser, url, artifacts);
+  await visualStops(browser, url, artifacts);
+  await cameraNavigation(browser, url);
+  await visibility(browser, url);
   await navigation(browser, url, artifacts);
   await narration(browser, url);
+  await narrationScroll(browser, url);
+  await phonePopups(browser, url);
   await inspect(browser, url, false, artifacts);
   await inspect(browser, fileReader, true);
   await fallbacks(browser, url, artifacts);
@@ -457,4 +793,4 @@ async function verifyReaderWarp(browser, base, budget = 100) {
   }
 }
 
-module.exports = {verifyReader, verifyReaderWarp};
+module.exports = {verifyReader, verifyReaderWarp, phonePopups, visualStops};

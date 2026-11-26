@@ -6,7 +6,7 @@
   "clips": [
     { "id": "hero", "text": "One token, end to end. This is one beamline. A single token, Paris, enters on the left as raw text and leaves on the right as a streamed reply from Claude Fable five point two. Where Anthropic doesn't publish the internals, the drawing uses DeepSeek V4 Pro as a representative design, and says so." },
     { "id": "p1", "text": "Part one: make the data. Months before your request, trillions of tokens of text, code and images are gathered, cleaned, and cut into pieces from a fixed vocabulary." },
-    { "id": "1a", "text": "Many sources become one stream: public web pages, licensed data, labelled examples, data from users who opted in, and data Anthropic generates itself. Our token starts here, inside a web page that says the Eiffel Tower is in Paris." },
+    { "id": "1a", "text": "Many sources become one stream: public web pages, licensed data, labeled examples, data from users who opted in, and data Anthropic generates itself. Our token starts here, inside a web page that says the Eiffel Tower is in Paris." },
     { "id": "1b", "text": "At the gate, near-duplicate documents are dropped, and classifiers remove low-quality, unsafe and private text. Whatever falls into the tray never reaches training." },
     { "id": "1c", "text": "Then the tokenizer cuts the text into pieces. Common words become a single piece, and the leading space travels with the word. So our token is space-Paris: one piece, one integer ID." },
     { "id": "1d", "text": "Images take a different road. A vision encoder cuts each image into square patches and turns each patch into a vector, so images enter the model as embeddings, not token IDs." },
@@ -18,7 +18,7 @@
     { "id": "p3", "text": "Part three: tune it, test it, ship it. Post-training teaches the model to follow instructions, reason, and decline harm. Then evaluations decide whether it leaves the training floor." },
     { "id": "3a", "text": "First, imitation. Supervised fine-tuning shows the model worked examples of good replies, as the tower rolls forward along the line." },
     { "id": "3b", "text": "Then, many tries. For a problem with a checkable answer, the model makes a group of attempts and a verifier grades them. Better-than-average attempts, the solid arcs, are reinforced. The dashed ones are discouraged." },
-    { "id": "3c", "text": "For behaviour no test can check, Anthropic trains against a written constitution, and the model's own judgements become the reward. A leash to the frozen reference model, the outline on the left, keeps it from drifting." },
+    { "id": "3c", "text": "For behavior no test can check, Anthropic trains against a written constitution, and the model's own judgments become the reward. A leash to the frozen reference model, the outline on the left, keeps it from drifting." },
     { "id": "3d", "text": "Reasoning is trained the same way. Long chains of thought that end in verified answers earn the reward, which is why Fable five point two thinks before it answers." },
     { "id": "3e", "text": "Before release, the model is tested for dangerous capabilities and for alignment. Each lamp on the gate is one family of evaluations. Anthropic's Responsible Scaling Policy ties deployment to the results." },
     { "id": "3f", "text": "The tower that passes is the tower that serves. Its weights are copied to the serving floor and frozen. Nothing in it changes, however many requests it answers." },
@@ -46,7 +46,7 @@
     { "id": "7b", "text": "Because the API keeps no state, your app sends the entire conversation again: your prompt, the model's tool call, and the tool result, the green tile." },
     { "id": "7c", "text": "Everything up to the tool result matches the last request byte for byte, so it's a cache hit. The old Paris doesn't go up the tower again. Only the new part is computed." },
     { "id": "7d", "text": "With the weather in context, the model writes the answer: it's eighteen degrees and clear in Paris. The loop ends when a reply stops with end turn, instead of tool use." },
-    { "id": "7e", "text": "Agents can loop for hours. When a conversation nears its limit, compaction summarises earlier turns into one block, so the run can continue." },
+    { "id": "7e", "text": "Agents can loop for hours. When a conversation nears its limit, compaction summarizes earlier turns into one block, so the run can continue." },
     { "id": "f1", "text": "Now, once more, end to end. One token, from a web page in the corpus, up the tower in training, through the release gate, then back inside your request, through the forward pass, decode, the tool loop, and onto your screen." },
     { "id": "ledger", "text": "What's published, and what's drawn. Anthropic publishes how Fable five point two behaves, not how it's built. Where the drawing needs internals, it uses DeepSeek V4 Pro, and says so beside every number. One token in a web page became a few weight updates. A new copy of it came back as an answer." }
   ]

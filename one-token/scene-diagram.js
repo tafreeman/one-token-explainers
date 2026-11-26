@@ -3,9 +3,10 @@
 'use strict';
 
 function create(THREE, theme) {
-  const { colors, scene } = theme.makeScene(THREE);
+  const { colors, scene } = theme.makeScene(THREE, 'diagram');
   const EFF = { low: 6, medium: 11, high: 16, xhigh: 21, max: 28 };
   let KV_MODE = 'sparse', CACHE_MODE = 'hit', EFFORT = 'high';
+  let reducedMotion = false;
   let settingsKey = '';
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const ease=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
@@ -17,14 +18,15 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   const po={polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1};
   const fill = color => new THREE.MeshLambertMaterial({ color, ...po });
   const MAT = {
-    paper: fill(colors.hardwarePale),
-    ink: fill(colors.hardwareFrame),
+    paper: fill(colors.plate),
+    ink: fill(colors.hardwareGraphite),
     inkB: new THREE.MeshBasicMaterial({ color: colors.fault }),
-    mid: fill(colors.hardwareBody),
+    mid: fill(colors.hardwareFrame),
     token: new THREE.MeshBasicMaterial({ color: colors.token, ...po }),
-    edge: new THREE.LineBasicMaterial({ color: colors.silhouette }),
+    edge: new THREE.LineBasicMaterial({ color: colors.ink }),
     ghost: new THREE.LineBasicMaterial({ color: colors.grid }),
-    dash: new THREE.LineDashedMaterial({ color: colors.silhouette, dashSize: 0.3, gapSize: 0.22 }),
+    ghostTower: new THREE.LineBasicMaterial({ color: colors.grid, transparent: true, opacity: .34, depthWrite: false }),
+    dash: new THREE.LineDashedMaterial({ color: colors.ink, dashSize: 0.3, gapSize: 0.22 }),
     ghostDash: new THREE.LineDashedMaterial({ color: colors.hardwareFrame, dashSize: 0.13, gapSize: 0.11 }),
     tokEdge: new THREE.LineBasicMaterial({ color: colors.mark }),
     cache: fill(colors.cache),
@@ -45,7 +47,31 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   function segs(pts,mat){const l=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),mat||MAT.ghost);if((mat||MAT.ghost).isLineDashedMaterial) l.computeLineDistances();return l;}
   function polyline(pts,mat){const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat||MAT.edge);if((mat||MAT.edge).isLineDashedMaterial) l.computeLineDistances();return l;}
   function bez(a,b,lift){const c=a.clone().add(b).multiplyScalar(0.5);c.y+=lift;return new THREE.QuadraticBezierCurve3(a,c,b);}
-  const curveLine=(c,mat)=>polyline(c.getPoints(30),mat);
+  const curveLine=(c,mat)=>{const line=polyline(c.getPoints(30),mat);line.userData.curve=c;return line;};
+  function connectionSignals(parent, capacity, color) {
+    const mesh = new THREE.InstancedMesh(new THREE.ConeGeometry(.105, .3, 8),
+      new THREE.MeshBasicMaterial({ color }), capacity);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+    mesh.userData.connectionSignal = true;
+    parent.add(mesh);
+    const marker = new THREE.Object3D(), up = V(0, 1, 0), tangent = V();
+    return (paths, progress) => {
+      const visible = paths.filter(path => path.visible
+        && path.geometry.drawRange.count >= path.geometry.attributes.position.count - 1);
+      mesh.count = visible.length;
+      mesh.visible = visible.length > 0;
+      visible.forEach((path, i) => {
+        const u = reducedMotion ? .92 : lerp(.08, .92, ease(progress));
+        const curve = path.userData.curve;
+        marker.position.copy(curve.getPoint(u));
+        marker.quaternion.setFromUnitVectors(up, curve.getTangent(u, tangent).normalize());
+        marker.updateMatrix();
+        mesh.setMatrixAt(i, marker.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    };
+  }
   function reveal(line,u){const n=line.geometry.attributes.position.count;const k=Math.round(n*clamp(u,0,1));line.geometry.setDrawRange(0,k);line.visible=k>1;}
   function torus(r,tube){const m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,8,48),MAT.inkB);return m;}
   const CUBE=V(1,1,1), SLICE=V(0.28,0.74,2.0);
@@ -60,7 +86,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const n=61,gap=0.2,w=5.2,y0=0.7,G=new THREE.Group();
     G.add(at(box(w+1.0,0.7,w+1.0,ghostOnly?null:MAT.paper,ghostOnly?MAT.ghost:MAT.edge),0,0.35,0));
     const pg=bg(w,0.08,w),M=[];for(let i=0;i<n;i++) M.push(mT(0,y0+0.12+i*gap,0));
-    const inst=instFill(pg,M),edges=mergedEdges(pg,M),ghost=mergedEdges(pg,M,MAT.ghost);G.add(inst,edges,ghost);
+    const inst=instFill(pg,M),edges=mergedEdges(pg,M),ghost=mergedEdges(pg,M,MAT.ghostTower);G.add(inst,edges,ghost);
     const H=n*gap+0.3;G.add(at(box(0.3,H,0.3,ghostOnly?null:MAT.paper,ghostOnly?MAT.ghost:MAT.edge),0,y0+H/2,0));
     const per=edges.userData.per;
     const T={G,n,gap,y0,top:y0+H,layerY:i=>y0+0.12+i*gap,_k:-1,solid(k){k=clamp(Math.round(k),0,n);if(k===T._k) return;T._k=k;inst.count=k;inst.visible=k>0;edges.geometry.setDrawRange(0,k*per);edges.visible=k>0;ghost.geometry.setDrawRange(k*per,(n-k)*per);ghost.visible=k<n;}};
@@ -382,6 +408,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const arcs=sparseTargets.map((p,k)=>{const l=curveLine(bez(src,p,2.2+k*0.14),MAT.attention);AG.add(l);return l;});
     const denseTargets=blocks.filter(o=>!o.sel).map(o=>V(o.x,yA+0.36,AZ));
     const denseArcs=denseTargets.map((p,k)=>{const l=curveLine(bez(src,p,2.6+k*0.22),MAT.attention);AG.add(l);return l;});
+    const attentionSignals=connectionSignals(AG,arcs.length+denseArcs.length,colors.attention);
     AG.add(at(box(0.08, 1.1, 0.98, MAT.fault), 2.95, yA + 0.22, AZ));
     AG.add(polyline([V(0.3,yA+0.25,0.4),V(3.1,yA+0.25,AZ)],MAT.ghostDash));
     const MG=new THREE.Group();G.add(MG);
@@ -422,6 +449,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
         winBoxes.forEach(b=>{b.userData.mesh.material=dense?MAT.ink:MAT.paper;});
         arcs.forEach((l,j)=>reveal(l,seg(t,0.26+j*0.012,0.36+j*0.012)));
         denseArcs.forEach((l,j)=>{if(dense) reveal(l,seg(t,0.26+j*0.014,0.36+j*0.014));else l.visible=false;});
+        attentionSignals([...arcs,...denseArcs],lin(t,0.34,0.46));
         MG.visible=t>0.44&&t<0.7;
         sel.forEach(b=>{b.position.y=yM+0.5*seg(t,0.5,0.54);});
         elines.forEach(l=>reveal(l,seg(t,0.52,0.58)));
@@ -688,14 +716,12 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
 
   const camera = new THREE.OrthographicCamera();
-  // The opening plate connects the first three assemblies as one scale model.
+  // Flat paper-thin architectural drafting grid across all 12 stations (no thick 3D plank).
   const foundation = new THREE.Group();
-  const plinth = fill(colors.hardwareDeck);
-  foundation.add(at(box(70, 0.42, 12.5, plinth, MAT.ghost), 22, -0.36, 0));
   const grid = [];
-  for (let x = -12; x <= 56; x += 2) grid.push(V(x, -0.146, -6.15), V(x, -0.146, 6.15));
-  for (let z = -6; z <= 6; z += 2) grid.push(V(-12.8, -0.146, z), V(56.8, -0.146, z));
-  foundation.add(segs(grid, new THREE.LineBasicMaterial({ color: colors.line, transparent: true, opacity: 0.46 })));
+  for (let x = Math.ceil(LINE0); x <= Math.floor(LINE1); x += 2) grid.push(V(x, -0.01, -6.5), V(x, -0.01, 6.5));
+  for (let z = -6; z <= 6; z += 2) grid.push(V(LINE0, -0.01, z), V(LINE1, -0.01, z));
+  foundation.add(segs(grid, new THREE.LineBasicMaterial({ color: colors.grid, transparent: true, opacity: 0.42 })));
   scene.add(foundation);
 
   const openingCam = cam(-13, -1, -6.3, 57, 13.8, 6.3, -61, 24);
@@ -704,11 +730,12 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
   function update(state, aspect, viewportWidth) {
     const settings = state.settings || {};
-    const nextSettings = [settings.kv, settings.cache, settings.effort].join('|');
+    const nextSettings = [settings.kv, settings.cache, settings.effort, !!state.reducedMotion].join('|');
     if (settingsKey !== nextSettings) {
       KV_MODE = settings.kv === 'dense' ? 'dense' : 'sparse';
       CACHE_MODE = settings.cache === 'miss' ? 'miss' : 'hit';
       EFFORT = Object.hasOwn(EFF, settings.effort) ? settings.effort : 'high';
+      reducedMotion = !!state.reducedMotion;
       ST.forEach(station => { station._t = -1; });
       settingsKey = nextSettings;
     }
@@ -719,7 +746,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < 0.85;
     const fullLine = Boolean(state.overview || (state.recap && state.camera === 'overhead'));
     setStations(g);
-    foundation.visible = !!state.opening && !compact;
+    foundation.visible = true;
     for (const station of ST) {
       station.G.visible = state.opening ? station.i < (compact ? 1 : 3)
         : fullLine || station.i === i

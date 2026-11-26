@@ -15,7 +15,8 @@
   const state = {index: 0, localT: 0, view: 'diagram', camera: 'director', opening: true, overview: false, present: false, recap: false};
   const readout = get('position'), slider = get('scrubber'), figure = get('figure');
   let host, suspended = false, raf = 0, timer = 0, studioOrigin, sceneBeat, speechTimer;
-  let lastBoundary, lastScrollY = window.scrollY;
+  let lastBoundary, explanationKey, explanationOrigin, lastScrollY = window.scrollY, holdSync = 0;
+  const READING_LINE = .35;
   const initialHash = location.hash;
   let anchorPending = Boolean(initialHash);
 
@@ -23,6 +24,7 @@
     suspend() { suspended = true; host?.suspend(); },
     resume() { suspended = false; host?.resume(); },
     setRouting(k, bias) { host?.setRouting?.(k, bias); },
+    resetPerformance() { host?.resetPerformance?.(); },
     stats() { return host?.stats() || {frames: 0, calls: 0, revision: null}; }
   };
 
@@ -49,20 +51,25 @@
     get('plate-id').textContent = state.overview ? '12 / 12' : pad(stop.stage) + ' / 12';
     get('figure-name').textContent = state.overview ? 'The whole line' : stage.name;
     get('step-name').textContent = state.opening ? 'Word in a document' : state.overview ? 'Twelve stages, one token' : stop.title;
-    readout.textContent = pad(stop.stage) + ' / 12 · ' + stage.name;
+    readout.replaceChildren(pad(stop.stage) + ' / 12', Object.assign(document.createElement('span'), {className: 'rn', textContent: ' · ' + stage.name}));
     slider.value = state.index;
-    slider.setAttribute('aria-valuetext', 'Step ' + stop.id + ', ' + stop.title);
+    slider.setAttribute('aria-valuetext', 'Stage ' + pad(stop.stage) + ' ' + stage.name + ', step ' + stop.id + ', ' + stop.title);
     get('previous').disabled = !state.index && !state.overview;
     get('next').disabled = state.index === stops.length - 1 && !state.opening;
     for (const [i, link] of stageLinks.entries()) {
-      if (i + 1 === stop.stage) link.setAttribute('aria-current', 'step');
-      else link.removeAttribute('aria-current');
+      if (i + 1 === stop.stage) {
+        link.setAttribute('aria-current', 'step');
+        const strip = link.closest('ol');
+        if (strip && strip.scrollWidth > strip.clientWidth) {
+          strip.scrollLeft = link.offsetLeft - (strip.clientWidth - link.offsetWidth) / 2;
+        }
+      } else link.removeAttribute('aria-current');
     }
     for (const button of document.querySelectorAll('[data-view][type=button]')) {
       button.setAttribute('aria-pressed', button.dataset.view === state.view);
     }
     $('.camera').hidden = state.view !== 'spatial';
-    get('explain').hidden = !state.present;
+    get('explain').hidden = false;
     get('studio-play').hidden = !state.present;
     get('studio-play').textContent = timer ? 'Pause' : 'Play';
     get('studio-play').setAttribute('aria-label', timer ? 'Pause journey' : 'Play journey');
@@ -75,11 +82,12 @@
       lastBoundary = stop.id;
       clearTimeout(speechTimer);
       speechTimer = setTimeout(() => { get('announce').textContent = 'Step ' + stop.id + '. ' + stop.title; }, 280);
-      updateExplanation();
     }
+    updateExplanation();
     const overallT = sceneBeat === 'f1' ? state.localT : (state.index + state.localT) / stops.length;
     const camera = state.view === 'spatial' ? state.camera : 'director';
-    host?.update({...state, camera, settings, stepId: stop.id, stage: stop.stage, diagramPose: pose, spatialBeat: sceneBeat || stop.spatialBeat, overallT});
+    host?.update({...state, camera, settings, stepId: stop.id, stage: stop.stage, diagramPose: pose,
+      spatialBeat: sceneBeat || stop.spatialBeat, narrated: Boolean(sceneBeat), overallT});
   }
 
   function anchorY() {
@@ -87,7 +95,13 @@
     const stacked = getComputedStyle($('.spread')).display === 'block';
     return Math.round((stacked ? figure.getBoundingClientRect().bottom : mastBottom) + 12);
   }
+  // The line a heading must cross to take over the figure: about 35% down the viewport,
+  // never above the sticky header (or, stacked on phones, the figure that sits over the text).
+  function readingLine() {
+    return Math.max(anchorY() + 2, Math.round(window.innerHeight * READING_LINE));
+  }
   function scrollToElement(el) {
+    holdSync = performance.now() + 160;
     window.scrollTo({top: window.scrollY + el.getBoundingClientRect().top - anchorY(), behavior: 'instant'});
   }
   function recordHash(hash) {
@@ -95,11 +109,15 @@
   }
   function syncScroll() {
     raf = 0;
-    if (anchorPending || state.present || state.recap || playback.playing || inspector.isOpen) return;
-    const y = anchorY() + 2;
-    const stageIndex = Math.max(0, sections.findLastIndex(node => node.getBoundingClientRect().top <= y));
+    if (anchorPending || state.present || state.recap || inspector.isOpen) return;
+    const narrating = playback.playing;
+    // A step the reader just picked (Next, a stage tab, a link) stays put until they scroll on.
+    if (performance.now() < holdSync) { lastScrollY = window.scrollY; return; }
+    const y = readingLine();
+    // A stage takes over when its heading (not the section's padding above it) crosses the line.
+    const stageIndex = Math.max(0, sections.findLastIndex(node => (node.querySelector('.st-title') || node).getBoundingClientRect().top <= y));
     const start = first[stageIndex], end = first[stageIndex + 1] ?? articles.length;
-    const opening = sections[0].getBoundingClientRect().top > y;
+    const opening = (sections[0].querySelector('.st-title') || sections[0]).getBoundingClientRect().top > y;
     let index = start;
     for (let i = start + 1; i < end; i++) {
       if (articles[i].getBoundingClientRect().top > y) break;
@@ -109,12 +127,13 @@
     const lineTop = get('line')?.getBoundingClientRect().top ?? Infinity;
     const overview = !opening && lineTop <= y;
     if (state.index !== index || state.opening !== opening) {
-      playback.selectPosition(stops[index].id, opening);
+      if (narrating) playback.seekPosition(stops[index].id, opening, opening ? 0 : clamp((y - rect.top) / Math.max(1, rect.height), 0, .999));
+      else playback.selectPosition(stops[index].id, opening);
       if (location.hash.startsWith('#step-') && lastScrollY !== window.scrollY) recordHash('#step-' + stops[index].id);
     }
     lastScrollY = window.scrollY;
     Object.assign(state, {index, opening, overview, localT: opening ? 0 : clamp((y - rect.top) / Math.max(1, rect.height), 0, .999)});
-    sceneBeat = null;
+    if (!narrating) sceneBeat = null;
     draw();
   }
   function scheduleScroll() { if (!raf) raf = requestAnimationFrame(syncScroll); }
@@ -155,8 +174,7 @@
       state.present = false;
     }
     get('lesson').inert = state.present;
-    get('explanation').hidden = true;
-    get('explain').setAttribute('aria-expanded', false);
+    setExplanation(false, {focus: false, instant: true});
     draw();
     if (state.present) {
       requestAnimationFrame(() => get('studio-play')?.focus({preventScroll: true}));
@@ -177,47 +195,88 @@
     const start = performance.now();
     const initial = state.index;
     const perStep = recap ? 650 : 1800;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     function tick() {
       const progress = initial + (performance.now() - start) / perStep;
       state.index = Math.min(Math.floor(progress), stops.length - 1);
-      state.localT = progress >= stops.length ? .999 : progress % 1;
+      state.localT = progress >= stops.length ? .999 : reduced ? .5 : progress % 1;
       if (progress >= stops.length) { stopRun(); if (recap) syncScroll(); }
       draw();
     }
-    timer = setInterval(tick, matchMedia('(prefers-reduced-motion: reduce)').matches ? 180 : 55);
+    timer = setInterval(tick, reduced ? Math.round(perStep / 2) : 55);
     tick();
   }
   function updateExplanation() {
     const dock = get('explanation');
     const stop = stops[state.index];
     const article = articles[state.index];
-    dock.querySelector('h2').textContent = stop.id + ' · ' + stop.title;
-    dock.querySelector('p').textContent = article.querySelector('p')?.textContent || '';
+    const key = stop.id + ':' + state.opening + ':' + state.overview;
+    if (key === explanationKey) return;
+    explanationKey = key;
+    dock.dataset.step = stop.id;
+    const title = state.opening ? 'Word in a document' : state.overview ? 'Twelve stages, one token' : stop.id + ' · ' + stop.title;
+    const source = state.opening ? $('.opening > p') : state.overview ? $('.finale > p') : article.querySelector('p');
+    get('explanation-title').textContent = title;
+    get('explanation-preview-title').textContent = title;
+    get('explanation-preview-copy').textContent = source?.textContent || '';
+    const copy = source?.cloneNode(true);
+    // Glossary listeners belong to the lesson. Preserve inline emphasis/code,
+    // without copying buttons whose definitions would not open in this panel.
+    copy?.querySelectorAll('.gloss').forEach(button => button.replaceWith(button.textContent));
+    get('explanation-copy').replaceChildren(...(copy ? [...copy.childNodes] : []));
     const detailHost = get('explanation-detail');
     if (detailHost) {
+      const focusWasInDetail = detailHost.contains(document.activeElement);
       detailHost.replaceChildren();
-      const effortBox = article.querySelector('fieldset.effort');
+      for (const paragraph of state.opening || state.overview ? [] : article.querySelectorAll(':scope > .plain, :scope > .why')) {
+        detailHost.append(paragraph.cloneNode(true));
+      }
+      const effortBox = !state.opening && !state.overview && article.querySelector('fieldset.effort');
       if (effortBox) {
         const clone = effortBox.cloneNode(true);
         clone.querySelectorAll('input[type=radio]').forEach(r => { r.name = r.name + '_present'; });
         clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
         detailHost.append(clone);
       }
-      const tech = article.querySelector('.technical-detail');
+      const tech = !state.opening && !state.overview && article.querySelector('.technical-detail');
       if (tech) detailHost.append(tech.cloneNode(true));
+      if (focusWasInDetail) get('explanation-content').focus({preventScroll: true});
     }
+    get('explanation-content').scrollTop = 0;
+    get('explanation-preview').scrollTop = 0;
     const inspect = dock.querySelector('button[data-inspect]');
-    inspect.hidden = !stop.conceptSlug;
+    inspect.hidden = state.opening || state.overview || !stop.conceptSlug;
     inspect.dataset.inspect = stop.conceptSlug || '';
+    const concept = stop.conceptSlug && window.SuiteLinks.resolve(stop.conceptSlug);
+    inspect.textContent = concept ? 'Try it → ' + concept.button : 'Try it';
   }
-  function setExplanation(show) {
-    get('explanation').hidden = !show;
+  const EXPLANATION_EXIT_MS = 160;
+  let leaving = 0;
+  // The explanation lives in its own bay beside or below the figure, so opening it never
+  // moves or covers the model. It leaves with a short fade; Present/Read switches skip it.
+  function setExplanation(show, {focus = true, instant = false} = {}) {
+    const panel = get('explanation');
+    clearTimeout(leaving);
+    panel.removeAttribute('data-leaving');
+    if (show) {
+      if (panel.hidden) explanationOrigin = document.activeElement;
+      // Narration keeps playing, but its floating controls must not obscure
+      // the step the learner has just chosen to read.
+      if (get('audio-panel').matches(':popover-open')) get('audio-panel').hidePopover();
+      panel.hidden = false;
+    } else if (!panel.hidden && !instant && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      panel.dataset.leaving = '';
+      leaving = setTimeout(() => { panel.hidden = true; panel.removeAttribute('data-leaving'); }, EXPLANATION_EXIT_MS);
+    } else panel.hidden = true;
+    get('explanation-preview').hidden = show;
     get('explain').setAttribute('aria-expanded', show);
-    if (show) get('close-explanation').focus();
-    else get('explain').focus();
+    get('open-explanation').setAttribute('aria-expanded', show);
+    if (!focus) return;
+    if (show) get('close-explanation').focus({preventScroll: true});
+    else (explanationOrigin === get('open-explanation') ? explanationOrigin : get('explain')).focus({preventScroll: true});
   }
   const playback = window.ReaderPlayback.create({
-    tracks, stops, asset, getPosition: () => ({id: stops[state.index].id, opening: state.opening, localT: state.localT}), onStart() { stopRun(); },
+    tracks, stops, stages, asset, getPosition: () => ({id: stops[state.index].id, opening: state.opening, localT: state.localT}), onStart() { stopRun(); },
     onPosition(id, localT, beat) {
       const from = state.index;
       state.index = stops.findIndex(stop => stop.id === id);
@@ -273,7 +332,8 @@
   get('next').onclick = () => move(state.opening ? 0 : state.index + 1);
   get('studio-play').onclick = () => run(false);
   get('runStory').onclick = () => run(true);
-  get('explain').onclick = () => setExplanation(get('explanation').hidden);
+  get('explain').onclick = () => setExplanation(get('explanation').hidden || 'leaving' in get('explanation').dataset);
+  get('open-explanation').onclick = () => setExplanation(true);
   get('close-explanation').onclick = () => setExplanation(false);
   get('explain').setAttribute('aria-controls', 'explanation');
   slider.oninput = () => move(Number(slider.value));
@@ -315,9 +375,9 @@
   get('lesson').addEventListener('change', event => applySettingChange(event.target));
   get('explanation')?.addEventListener('change', event => applySettingChange(event.target));
   window.addEventListener('keydown', event => {
-    if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || inspector.isOpen || get('audio-panel').matches(':popover-open')) return;
+    if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || inspector.isOpen || get('audio-panel').matches(':popover-open') || document.getElementById('gloss-pop')?.matches(':popover-open')) return;
     if (event.key === 'Escape') {
-      if (!get('explanation').hidden) setExplanation(false);
+      if (!get('explanation').hidden && !('leaving' in get('explanation').dataset)) setExplanation(false);
       else if (state.present) togglePresent();
       else pause();
       return;
@@ -353,6 +413,21 @@
       followHash();
     }));
   } else syncScroll();
+  const forceSpatial = new URLSearchParams(location.search).get('spatial') === 'force';
+  let fellBack = false, insisted = false;
+  function fallBackToDiagram(reason) {
+    if (forceSpatial || insisted || fellBack || state.view !== 'spatial') return;
+    fellBack = true;
+    state.view = 'diagram';
+    draw();
+    get('announce').textContent = 'The 3D view ' + reason + ', so the diagram is showing. Choose Spatial to try again.';
+    for (const button of document.querySelectorAll('[data-view=spatial]')) button.title = '3D model (' + reason + '; the diagram is showing)';
+  }
+  // Choosing Spatial again after a fallback is an explicit choice and stays.
+  document.addEventListener('click', event => {
+    if (fellBack && event.target.closest('[data-view=spatial]')) insisted = true;
+  }, true);
+  window.addEventListener('reader-spatial-slow', () => fallBackToDiagram('was running slowly on this device'));
   window.ReaderScene.create().then(result => {
     host = result;
     if (suspended) host.suspend();

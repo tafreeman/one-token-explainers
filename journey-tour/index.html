@@ -97,6 +97,7 @@ html.on-dark{--rail-bg:#1a2532;--rail-ink:#f3f1eb;--acc-ink:#e6bf80}.tblock span
 <script src="../shared/micro-labs.js"></script>
 <link rel="stylesheet" href="../journey-story/component-math.css">
 <script src="../journey-story/component-math.js"></script>
+<script src="../shared/concept-map.js"></script>
 <script src="../shared/concept-links.js"></script>
 <script src="../shared/obs-file-bridge.js"></script>
 </head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -129,7 +130,7 @@ const toSrgb = v => { v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(Math.max
 function rgb2ok(c) { const r = toLin(c[0]), g = toLin(c[1]), b = toLin(c[2]); const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b); return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; }
 function ok2rgb(o) { const l = Math.pow(o[0] + 0.3963377774 * o[1] + 0.2158037573 * o[2], 3), m = Math.pow(o[0] - 0.1055613458 * o[1] - 0.0638541728 * o[2], 3), s = Math.pow(o[0] - 0.0894841775 * o[1] - 1.291485548 * o[2], 3); return [toSrgb(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), toSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), toSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)]; }
 const ACC_DIR = (() => { const o = rgb2ok([94, 96, 250]), h = Math.hypot(o[1], o[2]); return [o[1] / h, o[2] / h]; })();
-/* perceptual mix; `tint` bows the midpoint toward the accent hue so dark<->light blends never pass through flat grey */
+/* perceptual mix; `tint` bows the midpoint toward the accent hue so dark<->light blends never pass through flat gray */
 function mixOK(a, b, t, tint) { const A = rgb2ok(a), B = rgb2ok(b), o = A.map((v, i) => v + (B[i] - v) * t); if (tint) { const k = tint * Math.sin(Math.PI * t); o[1] += ACC_DIR[0] * k; o[2] += ACC_DIR[1] * k; } return ok2rgb(o); }
 const blendOf = t => sstep(clamp((t - 0.3) / 0.4));
 function cubicBez(x1, y1, x2, y2) { const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by; const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx; return x => { let t = x; for (let i = 0; i < 8; i++) { const d = dX(t); if (Math.abs(d) < 1e-6) break; t = clamp(t - (X(t) - x) / d); } return Y(t); }; }

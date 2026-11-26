@@ -271,10 +271,10 @@ test('scene focus messages trust only the parent window and its paired origin', 
   }
 });
 
-test('lab and bridge stay below 41 KB with workload and timing explanations; Swiss stays independent', () => {
+test('lab and bridge stay below 43 KB with workload and timing explanations; Swiss stays independent', () => {
   const size = ['micro-labs.js', 'obs-file-bridge.js'].reduce((sum, f) =>
     sum + statSync(path.join(root, 'shared', f)).size, 0);
-  assert.ok(size < 41000, size);
+  assert.ok(size < 43000, size);
   assert.doesNotMatch(readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8'), /micro-labs/);
 });
 

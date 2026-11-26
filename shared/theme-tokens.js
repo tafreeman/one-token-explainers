@@ -15,25 +15,34 @@
   const colors = Object.freeze({
     ground: color(css.ground), plate: color(css.plate), inset: color(css.inset),
     line: color(css.line), grid: color(css.grid), ink: color(css.ink), muted: color(css.muted),
-    mark: color(css.mark), token: color(css.token), attention: 0x2455D6,
-    cache: 0xC9973B, tool: 0x2C8C68, fault: 0xB85233, silhouette: color(css.silhouette),
+    mark: color(css.mark), token: color(css.token), attention: 0x265CE0,
+    cache: 0xCFA03E, tool: 0x22946E, fault: 0xCA4E2E, silhouette: color(css.silhouette),
+    // Spatial PBR uses a light warm limestone-to-pewter ramp with crisp gunmetal/slate frames.
+    hardwarePale: 0xDDD8CE, hardwareDeck: 0xC6C0B4, hardwarePlinth: 0xB2ACA0,
+    hardwareBody: 0x969186, hardwareFrame: 0x686C72, hardwareSlate: 0x525862, hardwareGraphite: 0x3D434C
+  });
+  // Diagram wireframe plates use the pale architectural paper/stone ramp so floors and edges stay crisp.
+  const diagramColors = Object.freeze({
+    ...colors,
     hardwarePale: color(css['hardware-pale']), hardwareDeck: color(css['hardware-deck']),
     hardwarePlinth: color(css['hardware-plinth']), hardwareBody: color(css['hardware-body']),
-    hardwareFrame: color(css['hardware-frame'])
+    hardwareFrame: color(css['hardware-frame']), hardwareGraphite: 0x282C34
   });
 
   for (const [name, value] of Object.entries(css)) {
     document.documentElement.style.setProperty('--' + name, value);
   }
 
-  function makeScene(THREE) {
+  function makeScene(THREE, variant) {
+    const diagram = variant === 'diagram';
+    const palette = diagram ? diagramColors : colors;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(colors.ground);
-    scene.add(new THREE.HemisphereLight(0xFFFFFF, colors.hardwareBody, 1.45));
-    const sun = new THREE.DirectionalLight(0xFFFFFF, 1.25);
+    scene.background = new THREE.Color(palette.ground);
+    scene.add(new THREE.HemisphereLight(0xFFFDF9, palette.hardwarePlinth, diagram ? 1.85 : 1.18));
+    const sun = new THREE.DirectionalLight(0xFFFFFF, diagram ? 1.35 : .95);
     sun.position.set(-30, 70, 45);
     scene.add(sun);
-    return { colors, scene };
+    return { colors: palette, scene };
   }
 
   function projectedExtent(THREE, group, camera) {
