@@ -8,7 +8,9 @@ window.ReaderPlayback = (() => {
     const play = get('play-audio'), select = get('track'), caption = get('spoken-caption');
     const status = get('audio-status'), panel = get('audio-panel'), narrStory = get('narrStory');
     const narrate = get('narrate'), chaptersEl = get('chapters'), sizeBtn = get('audio-size');
-    let clips = tracks.full, route = tracks.routes.full, routeIndex = 0;
+    // A track's clips are its source copy plus any reader-only recordings for the same route.
+    const clipsOf = name => tracks[name].concat(tracks.supplements?.[name] || []);
+    let clips = clipsOf('full'), route = tracks.routes.full, routeIndex = 0;
     let loaded = null, playing = false, generation = 0;
     let selection = null, lastCue = '', pendingSeek = null;
     const seconds = n => Math.floor(n / 60) + ':' + String(Math.floor(n % 60)).padStart(2, '0');
@@ -215,7 +217,7 @@ window.ReaderPlayback = (() => {
       const resume = playing;
       const current = getPosition?.() || selection;
       pause();
-      clips = tracks[select.value];
+      clips = clipsOf(select.value);
       route = tracks.routes[select.value];
       routeIndex = 0;
       loaded = null;

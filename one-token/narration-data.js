@@ -1,6 +1,8 @@
 /* Offline copies of Beamline's inline narration-data and Swiss's narration manifest.
    Cue times preserve the recordings; factual caption corrections are listed in reader-manifest tests.
-   Spoken MP3s retain their original wording. */
+   Spoken MP3s retain their original wording. Three reader-only clips (3f-classifiers, 6b-tool,
+   6c-draft) were recorded later in the same voice (Sylvie, eleven_v4) for stops 5.3, 9.3 and 10.3,
+   whose original audio described a different mechanism. */
 (function (root) {
   'use strict';
 
@@ -70,6 +72,17 @@
     ],
   };
 
+  // Reader-only recordings in the Beamline voice. The source copies above stay byte-for-byte;
+  // routes reference these by id alongside them.
+  tracks.supplements = {
+    full: [
+      {"id": "3f-classifiers", "src": "../end-to-end-beamline/assets/narration/3f-classifiers.mp3", "dur": 9.6, "cues": [{"t": 0, "s": "Deployed models run with safety classifiers beside them."}, {"t": 3.47, "s": "On Fable five point two, a classifier can end a reply with the stop reason refusal."}], "stepId": "5.3"},
+      {"id": "6b-tool", "src": "../end-to-end-beamline/assets/narration/6b-tool.mp3", "dur": 9.84, "cues": [{"t": 0, "s": "Here the reasoning works out that it can't know today's weather, so it should call get weather."}, {"t": 5.46, "s": "Every reasoning step attends over the KV cache, Paris included."}], "stepId": "9.3"},
+      {"id": "6c-draft", "src": "../end-to-end-beamline/assets/narration/6c-draft.mp3", "dur": 14.4, "cues": [{"t": 0, "s": "A cheap draft can propose the next token or two, and the next pass of the big model checks them in parallel."}, {"t": 6.22, "s": "In this representative design, the draft comes from the multi-token prediction head."}, {"t": 11.59, "s": "Anthropic doesn't publish how Claude is served."}], "stepId": "10.3"},
+    ],
+    quick: [],
+  };
+
   // Narrated routes follow the written lesson, independently of source clip order.
   // [clip, stepId, start, end, spatialBeat, selectable]. Part cards and recaps are
   // playable but not direct-stop destinations. Every source range is covered once.
@@ -102,6 +115,7 @@
       ['3e', '5.1', 0, 9.36],
       ['3e', '5.2', 9.36, 14.059],
       ['3f', '5.3', 0, 11.186],
+      ['3f-classifiers', '5.3', 0, 9.6, '3f'],
       ['p4', '6.1', 0, 12.152, 'p4', false],
       ['4a', '6.1', 0, 14.869],
       ['4b', '6.2', 0, 6.4], // Best fit: rendering, then tokenization in one cue.
@@ -120,11 +134,11 @@
       ['6a', '8.2', 6, 14.059],
       ['4d', '8.3', 0, 11.421],
       ['6b', '9.1', 0, 8.4],
-      ['6b', '9.2', 8.4, 11.5],
-      ['6b', '9.3', 11.5, 14.712], // No tool-choice sentence exists in this clip.
-      ['6c', '10.1', 0, 9.147],
+      ['6b', '9.2', 8.4, 14.712],
+      ['6b-tool', '9.3', 0, 9.84, '6b'], // Recorded for this stop; 6b has no tool-choice sentence.
+      ['6c', '10.1', 0, 14.712], // Includes the cache-state sentence once heard at 10.3.
       ['6d', '10.2', 0, 3.68],
-      ['6c', '10.3', 9.147, 14.712], // Revisit 6c after the sampler beat.
+      ['6c-draft', '10.3', 0, 14.4, '6c'], // Recorded for this stop.
       ['6d', '10.4', 3.68, 10.219],
       ['6e', '11.1', 0, 3.2], // Best fit: detokenization, then streaming in one cue.
       ['6e', '11.2', 3.2, 6.56],

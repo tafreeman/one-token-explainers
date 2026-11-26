@@ -126,6 +126,21 @@ test('the two audio tracks retain source order, cue timing, local MP3s and only 
   }
 });
 
+test('reader-only recordings are local, well-formed and never shadow a source clip', () => {
+  const stepIds = new Set(stops.map(({ id }) => id));
+  const sourceIds = new Set([...tracks.full, ...tracks.quick].map(({ id }) => id));
+  assert.deepEqual(tracks.supplements.quick, []);
+  assert.deepEqual(tracks.supplements.full.map(({ id }) => id), ['3f-classifiers', '6b-tool', '6c-draft']);
+  for (const { id, src, dur, cues, stepId } of tracks.supplements.full) {
+    assert.ok(!sourceIds.has(id), id + ' must not reuse a source id');
+    assert.ok(stepIds.has(stepId), id);
+    assert.equal(src, '../end-to-end-beamline/assets/narration/' + id + '.mp3');
+    assert.ok(fs.statSync(path.resolve(root, 'one-token', src)).size > 0, id);
+    assert.ok(dur > 0 && cues[0].t === 0, id);
+    assert.ok(cues.every(({ t, s }, i) => s.trim() && t < dur && (!i || t > cues[i - 1].t)), id);
+  }
+});
+
 test('source clip order stays independent of the written narrative route', () => {
   const full = Object.fromEntries(tracks.full.map(({ id, stepId }) => [id, stepId]));
   assert.deepEqual([full['4d'], full.p5], ['8.3', '7.1']); // Beamline source order is unchanged.
@@ -136,7 +151,7 @@ test('source clip order stays independent of the written narrative route', () =>
 test('narrative routes cover every source range exactly once in written stop order', () => {
   const stepIds = new Set(stops.map(({ id }) => id));
   for (const track of ['full', 'quick']) {
-    const clips = tracks[track];
+    const clips = tracks[track].concat(tracks.supplements[track]);
     const byId = new Map(clips.map(clip => [clip.id, clip]));
     const ranges = new Map(clips.map(clip => [clip.id, []]));
     for (const item of tracks.routes[track]) {
@@ -168,7 +183,11 @@ test('route order and cue ownership match the written mechanisms', () => {
   assert.deepEqual(clipsAt('7.4'), ['5b', '5f']);
   assert.deepEqual(clipsAt('12.2'), ['7b', '7c']);
   assert.deepEqual(clipsAt('8.3'), ['4d']);
-  assert.deepEqual(['10.1', '10.2', '10.3', '10.4'].flatMap(clipsAt), ['6c', '6d', '6c', '6d']);
+  assert.deepEqual(['10.1', '10.2', '10.3', '10.4'].flatMap(clipsAt), ['6c', '6d', '6c-draft', '6d']);
+  // Stops whose source audio named another mechanism play recordings made for them.
+  assert.deepEqual(clipsAt('5.3'), ['3f', '3f-classifiers']);
+  assert.deepEqual(clipsAt('9.3'), ['6b-tool']);
+  assert.deepEqual(clipsAt('10.3'), ['6c-draft']);
   assert.deepEqual(['11.1', '11.2', '11.3'].flatMap(clipsAt), ['6e', '6e', '6e']);
 
   const direct = (track, id) => tracks.routes[track].find(item => item.selectable && item.stepId === id);

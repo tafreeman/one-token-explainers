@@ -38,7 +38,7 @@ function fixture({deferSeek = false} = {}) {
 }
 
 const directSegment = (track, id) => tracks.routes[track].find(item => item.stepId === id && item.selectable);
-const sourceClip = (track, id) => tracks[track].find(clip => clip.id === id);
+const sourceClip = (track, id) => tracks[track].concat(tracks.supplements[track]).find(clip => clip.id === id);
 const segmentTime = (item, localT) => item.start + localT * (item.end - item.start);
 const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6,
   message || `${actual} should equal ${expected}`);
@@ -192,8 +192,8 @@ test('segment ends alternate clips and revisit noncontiguous ranges in written o
   get('play-audio').listeners.click();
   const transitions = [
     [14.712, '10.2', '6d', 0],
-    [3.68, '10.3', '6c', 9.147],
-    [14.712, '10.4', '6d', 3.68],
+    [3.68, '10.3', '6c-draft', 0],
+    [14.4, '10.4', '6d', 3.68],
     [10.219, '11.1', '6e', 0],
   ];
   for (const [at, id, clip, seek] of transitions) {

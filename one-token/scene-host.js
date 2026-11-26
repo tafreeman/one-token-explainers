@@ -15,6 +15,9 @@
     const pin = document.getElementById('pin');
     const mobilePin = document.getElementById('mobile-pin');
     const leader = document.getElementById('leader');
+    const leaderCase = document.getElementById('leader-case'), leaderDot = document.getElementById('leader-dot');
+    const leaderParts = [leaderCase, leader, leaderDot].filter(Boolean);
+    const showLeader = visible => { for (const part of leaderParts) part.style.visibility = visible ? 'visible' : 'hidden'; };
     const fallbackStatus = document.getElementById('fallback-status');
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const scenes = {};
@@ -36,7 +39,7 @@
       forgetPin();
       if (pin) pin.hidden = true;
       if (mobilePin) mobilePin.textContent = '';
-      if (leader) leader.style.visibility = 'hidden';
+      showLeader(false);
     }
 
     function placePin({ anchor, label, tokenAnchor, tokenRadius = 0, moving = false }, camera, w, h) {
@@ -46,7 +49,7 @@
       if (!pin || !leader || !label) {
         forgetPin();
         if (pin) pin.hidden = true;
-        if (leader) leader.style.visibility = 'hidden';
+        showLeader(false);
         return;
       }
       const point = anchor.clone().project(camera);
@@ -64,7 +67,7 @@
       if (point.z < -1 || point.z > 1 || x < 1 || x > w - 1 || y < 1 || y > h - 1) {
         forgetPin();
         pin.hidden = true;
-        leader.style.visibility = 'hidden';
+        showLeader(false);
         return;
       }
       pin.hidden = false;
@@ -81,7 +84,7 @@
       const pw = pin.offsetWidth;
       const ph = pin.offsetHeight;
       if (!pw || !ph) {
-        leader.style.visibility = 'hidden';
+        showLeader(false);
         return;
       }
       const gap = 26;
@@ -169,11 +172,11 @@
       pin.style.top = Math.round(top) + 'px';
       if (pin.dataset) pin.dataset.intersectsToken = String(Boolean(tokenRect &&
         left < tokenRect.right && left + pw > tokenRect.left && top < tokenRect.bottom && top + ph > tokenRect.top));
-      leader.style.visibility = 'visible';
-      leader.setAttribute('x1', x.toFixed(1));
-      leader.setAttribute('y1', y.toFixed(1));
-      leader.setAttribute('x2', Math.max(left, Math.min(left + pw, x)).toFixed(1));
-      leader.setAttribute('y2', Math.max(top, Math.min(top + ph, y)).toFixed(1));
+      const ends = {x1: x.toFixed(1), y1: y.toFixed(1),
+        x2: Math.max(left, Math.min(left + pw, x)).toFixed(1), y2: Math.max(top, Math.min(top + ph, y)).toFixed(1)};
+      for (const line of [leaderCase, leader]) if (line) for (const [key, value] of Object.entries(ends)) line.setAttribute(key, value);
+      leaderDot?.setAttribute('cx', ends.x1); leaderDot?.setAttribute('cy', ends.y1);
+      showLeader(true);
       return gliding;
     }
 
