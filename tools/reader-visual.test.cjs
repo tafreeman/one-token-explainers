@@ -123,6 +123,17 @@ test('Semantic colors stay on token, attention, cache, tools and training/fault 
   assert.equal(colorOf('blade'), colors.hardwareFrame, 'cutting blade remains machined pewter');
 });
 
+test('MTP draft labels point at the tower top wherever the tower stands', () => {
+  const {api} = spatial();
+  const towerX = () => api.scene.getObjectByName('61-chamfered-layers').parent.position.x;
+  for (const [id, localT, label] of [['3.2', .9, 'MTP draft head'], ['10.3', .5, 'draft → target verification']]) {
+    const pin = api.update(position(id, localT), 1440 / 900, 1440);
+    assert.equal(pin.label, label, id);
+    const offset = pin.anchor.x - towerX(); // the MTP bar fan spans -0.8..0.82 around the tower axis
+    assert.ok(offset >= -.8 && offset <= .82, `${id} anchor x ${pin.anchor.x} vs tower ${towerX()}`);
+  }
+});
+
 test('Authored assemblies expose named geometry and stay inside the triangle budget', () => {
   const {api} = spatial();
   const token = api.scene.getObjectByName('token-core');

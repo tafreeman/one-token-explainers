@@ -138,6 +138,18 @@
 
 Stop ids here are the reader's own: `stops-manifest.js` and the `data-step` sections in `index.html` list the same 43 ids in the same order. Items 1–5 were checked in the running app (Spatial view, 1440×900): the on-screen plate (`09 / 12` etc.), step name and pin text match the rows above. Audio was checked against the cue text each stop's full route plays.
 
+**Status on this branch.** The findings below describe `4313930`. These are now fixed:
+
+| Item | Fix |
+|---|---|
+| 1. 9.3 audio | New clip `6b-tool` (same Sylvie voice, `eleven_v4`) states the tool choice. 9.2 now owns the whole "raw reasoning" cue, so every source range stays covered once. |
+| 2. 10.3 audio and early draft | New clip `6c-draft` covers draft-then-verify and the MTP source. 10.1 now owns the cache-state sentence, which fits "Memory-bound". The draft is removed from the base `6c` layers, so it appears only at 10.3. The 10.3 pin now anchors to the MTP bars on the tower top, clear of the token. The shared MTP anchor also follows the tower, so 3.2's `MTP draft head` pin no longer points at the empty serving floor. |
+| 3. 5.3 classifiers | `3f` now carries the pin `frozen weights · safety classifiers beside them`. New clip `3f-classifiers` follows the 3f audio. |
+| 4. 11.2 classifier pin | 11.2 now shows `content_block_delta over SSE`, matching its prose. The base `6e` classifier pin now reads `output classifiers · separate safeguard`. |
+| 5. 8.1 pin | `6a` now shows `whole prompt · one parallel pass`, leaving `KV cache` to 8.2. |
+
+The new clips live in `tracks.supplements.full` (`narration-data.js`), so the source copies of the Beamline and Swiss tracks stay byte-for-byte. Items 6 onward are unchanged.
+
 **1. 9.3 Reasoning picks the tool: the full-route audio does not mention a tool choice.**
 Camera, pin and prose all say "reasoning selects get_weather" (`scene-spatial.js:715`, tag `tool-choice` at 777; `index.html:553`). The full-route narration for 9.3 is the tail of the cue "Raw reasoning is not returned…" (`narration-data.js:124`, whose own comment reads "No tool-choice sentence exists in this clip"). The learner hears the previous topic while a green ring appears.
 *Fix:* record a 9.3 sentence in the full track (the quick clip `09-think` 15.6-20.46 already has it), or caption-only the gap and label it. Not applied.

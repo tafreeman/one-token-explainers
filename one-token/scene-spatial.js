@@ -669,7 +669,7 @@ const B = {
   '3c': { cam: [33, 11, 31, 44, 6.5, -3], parkJ: J('ship-post', .8), tower: [X_POST, 1], tags: ['ref', 'cons'], fit: POST_STATION, show: { ghost: 1, cons: 1 } },
   '3d': { cam: [54, 11, 43, 50, 8.6, 0], parkJ: J('ship-post', .9), ph: .6, tower: [X_POST, 1], tags: ['verifier'], fit: POST_STATION, show: { rl: 1 } },
   '3e': { cam: [70, 9, 39, 58, 8, 0], parkJ: J('ship-rel', .4), tower: [[X_POST, X_REL], 1], tags: ['evals'], show: { scan: 1 }, lamps: [0, 6.2] },
-  '3f': { follow: 'tower', off: [8, 12, 40, 0, 7, 0], scrubJ: [J('ship-rel', .55), J('ship-rel', 1)], lamps: L6, tags: [] },
+  '3f': { follow: 'tower', off: [8, 12, 40, 0, 7, 0], scrubJ: [J('ship-rel', .55), J('ship-rel', 1)], lamps: L6, tags: ['ship'] },
   p4: { cam: [93, 24, 60, 93, 4, -3], fov: 30, A: 1.78, parkJ: J('request', 0), tags: ['s6', 's7', 's8', 's9', 's10', 's11'], lamps: L6 },
   '4a': { cam: [104, 9, 22, 110.5, 1.6, -3.2], loopJ: [J('request', 0), J('request', .75), 5.2], ph: .4, tags: ['screen', 'backtrack'], lamps: L6 },
   '4b': { cam: [68, 6, 14, 74, 1, -.6], loopJ: [J('request', .72), J('serve-up', .2), 4], ph: .7, tags: ['intake'], lamps: L6 },
@@ -684,9 +684,9 @@ const B = {
   '5f': { cam: [103, 8, 34, 86, 6.5, 0], loopJ: [J('serve-up', .5), J('serve-up', 1), 3.4], tags: ['layers'], show: { layers: 1 }, lamps: L6 },
   '5g': { cam: [91.5, 17, 12, 86, 13.6, 0], parkJ: J('serve-up', 1), tags: ['lmhead', 'mtp'], show: { logits: 1 }, winner: 1, lamps: L6 },
   p6: { cam: [99, 20, 52, 99, 5, -2], fov: 30, A: 1.78, loopJ: [J('serve-up', 0), J('stream', 1), 7], tags: ['s7', 's8', 's9'], show: { lane: 1 }, lamps: L6 },
-  '6a': { cam: [78, 11, 34, 88, 6.5, 1], loopJ: [J('serve-up', 0), J('serve-up', 1), 3.8], ph: .8, tags: ['kv'], kvFill: true, lamps: L6 },
+  '6a': { cam: [78, 11, 34, 88, 6.5, 1], loopJ: [J('serve-up', 0), J('serve-up', 1), 3.8], ph: .8, tags: ['prefill'], kvFill: true, lamps: L6 },
   '6b': { cam: [100, 5.5, 14, 96, .8, -1.8], parkJ: J('decode', 0), hideBead: true, tags: ['thinking', 'notret'], show: { thinking: 1, logits: .8 }, kv: 15, kvTick: true, lamps: L6 },
-  '6c': { cam: [98, 9, 26, 90, 6, 0], loopJ: [J('decode', 0), J('decode', 1), 2.6], ph: .7, tags: ['kv'], show: { draft: 1, logits: 1, lane: 1 }, kv: 15, kvTick: true, winner: 1, lamps: L6 },
+  '6c': { cam: [98, 9, 26, 90, 6, 0], loopJ: [J('decode', 0), J('decode', 1), 2.6], ph: .7, tags: ['kv'], show: { logits: 1, lane: 1 }, kv: 15, kvTick: true, winner: 1, lamps: L6 },
   '6d': { cam: [88, 6.2, 13.5, 97.5, 1.5, -.2], loopJ: [J('decode', .6), J('stream', .3), 2.8], ph: .7, tags: ['sampler'], show: { lane: 1 }, lamps: L6 },
   '6e': { cam: [106, 5, 17, 110.5, 2, 0], loopJ: [J('stream', .2), J('stream', 1), 3], ph: .95, tags: ['outcls', 'screen'], fit: [[X_STREAM - 3, 0, -2], [X_SCREEN + 4.5, 6, 2]], show: { lane: 1 }, lamps: L6 },
   p7: { cam: [93, 30, 42, 93, 0, -4], fov: 30, A: 1.78, loopJ: [J('tool', 0), J('tool', 1), 6.5], ph: .3, tags: ['s10', 's11'], lamps: L6 },
@@ -717,7 +717,8 @@ Object.assign(B, {
   '6d-tool': {...B['6d'], tags: ['sampler', 'paris-attention'], fit: [[X_SAMPLE - 1.4, 0, -1], [X_SAMPLE + 1.4, 2.4, 1]],
     show: {sampler: 1, lane: 1, parisAttention: 1, toolChoice: 1}},
   '6e-detok': {...B['6e'], cam: [102, 4.4, 11, 103, .9, 0], tags: ['detok'], fit: null, show: {detokenize: 1, lane: 1}},
-  '6e-stream': {...B['6e'], tags: ['outcls', 'screen']},
+  // 11.2's text is the SSE delta stream; output classifiers are a separate safeguard, not a stop on it.
+  '6e-stream': {...B['6e'], tags: ['sse', 'screen']},
   '6e-stop': {...B['6e'], tags: ['stop']},
 });
 B['6d'].show = {sampler: 1, lane: 1};
@@ -744,6 +745,10 @@ const STEP_BEATS = {
 };
 
 /* tag anchors */
+// The MTP draft bars sit on the tower top (HEAD_Y up to ~.55 high, z -1.05). Anchor on the base of the
+// fan's right end, clear of the token where it crests the tower, and
+// on the tower wherever it stands (training hall at 3.2, serving floor at 10.3).
+const MTP_ANCHOR = () => V3(State.tower.x + .65, HEAD_Y + .06, -1.05);
 const TAGS = {
   s1: ['1 Corpus', () => V3(-13, 6.4, -1.6)], s2: ['2 Tokenizer', () => V3(X_TOK, 2.3, 0)], s3: ['3 Pretraining', () => V3(X_TRAIN, 1.2, 3.6)],
   s4: ['4 Post-training', () => V3(X_POST + 7.2, 6.2, 4.1)], s5: ['5 Release gate', () => V3(X_REL, 16.4, 2.8)], s6: ['6 Request', () => V3(X_INTAKE, 1.6, 0)],
@@ -764,9 +769,12 @@ const TAGS = {
   query: ['query', () => Callouts.anchors.query()], mask: ['causal mask', () => Callouts.anchors.mask()],
   blocks: ['compressed blocks', () => Callouts.anchors.blocks()], window: ['window · 128', () => Callouts.anchors.window()], indexer: ['indexer picks top-k', () => Callouts.anchors.indexer()],
   router: ['router', () => Callouts.anchors.router()], shared: ['shared expert', () => Callouts.anchors.shared()], experts: ['6 of 384 routed experts', () => Callouts.anchors.experts()],
-  layers: ['61 layers', () => V3(X_TOWER - 1.65, 9, 1.65)], lmhead: ['LM head · 129,280 scores', () => V3(X_TOWER, HEAD_Y + 2.3, .2)], mtp: ['MTP draft head', () => V3(X_TOWER + .1, HEAD_Y + .9, -1.05)],
+  layers: ['61 layers', () => V3(X_TOWER - 1.65, 9, 1.65)], lmhead: ['LM head · 129,280 scores', () => V3(X_TOWER, HEAD_Y + 2.3, .2)], mtp: ['MTP draft head', MTP_ANCHOR],
   kv: ['KV cache', () => V3(X_TOWER + 4.4, 1.8, 2.7)], thinking: ['illustrative thinking', () => V3(X_TOWER + 7.5, 1, -1.8)], notret: ['raw reasoning encrypted', () => V3(X_STREAM - 2.6, 1.1, -1.8)],
-  sampler: ['sampler', () => V3(X_SAMPLE, 2.05, 0)], outcls: ['output classifiers', () => V3(X_STREAM, 1.35, 0)],
+  sampler: ['sampler', () => V3(X_SAMPLE, 2.05, 0)], outcls: ['output classifiers · separate safeguard', () => V3(X_STREAM, 1.35, 0)],
+  sse: ['content_block_delta over SSE', () => V3(X_STREAM, 1.35, 0)],
+  prefill: ['whole prompt · one parallel pass', () => V3(X_TOWER - 1.65, 7, 1.65)],
+  ship: ['frozen weights · safety classifiers beside them', () => V3(State.tower.x + 1.9, 6, 1.9)],
   bench: ['get_weather · your code', () => V3(X_BENCH, 1.45, Z_BACK - 2.6)], compact: ['compacted history', () => V3(X_INTAKE + 3.2, .9, 0)],
   mix: ['filter · source mix', () => V3(X_GATE, 2.45, 0)],
   vocab: ['fixed vocabulary · 129,280*', () => V3(X_TOK + 3.2, 1.4, -2.8)],
@@ -775,7 +783,8 @@ const TAGS = {
   template: ['tools → system → messages', () => V3(X_INTAKE + .6, 1.45, -1.6)],
   'intake-tokenizer': ['same tokenizer · same ID', () => V3(X_INTAKE + 2.1, 1.4, 0)],
   'tool-choice': ['reasoning selects get_weather', () => V3(X_STREAM - 2.6, 1.6, -1.8)],
-  draft: ['draft → target verification', () => V3(X_TOWER + 4.6, 1.25, 0)],
+  // Drafts come from the MTP head (10.3 prose); the in-flight draft box is too brief to anchor to.
+  draft: ['draft → target verification', MTP_ANCHOR],
   'paris-attention': ['attend to Paris in the prompt', () => V3((X_SAMPLE + X_INTAKE) / 2, 4.4, 2.1)],
   detok: ['tokens → UTF-8 buffer → text', () => V3(X_STREAM, 1.6, 0)],
   stop: ['stop_reason: “tool_use”', () => V3(X_SCREEN + 2.7, 4.2, 0)],
