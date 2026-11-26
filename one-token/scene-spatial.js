@@ -74,6 +74,7 @@ const uIn = (s, J) => clamp((J - s.j0) / (s.j1 - s.j0));
 const uAtY = (k, y) => { const s = SEG[k]; for (let i = 0; i <= 400; i++) { const u = i / 400; if (s.c.getPointAt(u).y >= y) return u; } return 1; };
 scene.fog = new THREE.Fog(HEX.haze, 80, 400);
 const camera = new THREE.PerspectiveCamera(30, 1, .3, 900);
+const fitCamera = new THREE.PerspectiveCamera(30, 1, .3, 900);
 
 // Every solid uses PBR; Basic remains only for unlit text, signal paths and floor markings.
 const lam = c => new THREE.MeshStandardMaterial({ color: c, roughness: .52, metalness: .14, envMapIntensity: .58 });
@@ -728,6 +729,12 @@ for (const key of ['p4', '4a', '6e', '6e-detok', '6e-stream', '6e-stop', 'p7', '
   B[key].show = {...B[key].show, screen: 1};
 B['6b'].hideBead = false; B['6b'].parkToken = [X_TOWER + 3.5, Y0, -1.8];
 B['7e'].hideBead = false; B['7e'].parkToken = [X_INTAKE + 3.2, Y0 + .4, 1];
+// Tower placement describes lifecycle state, not the subject of every shot.
+// Early close-ups give the document, filter and tokenizer the available frame.
+for (const key of ['1a', '1b', '1b-filter', '1c', '1c-vocab', '1d']) B[key].frameTower = false;
+B['1c'].fit = [[X_TOK - 7.2, 0, -1], [X_TOK + 1.7, 2.6, 1.2]];
+B['1c-vocab'].fit = [[X_TOK + 1.6, 0, -4], [X_TOK + 4.8, 2.5, -.8]];
+B['1d'].fit = [[X_TOK - 3.7, 0, -4.4], [X_TOK + 4.8, 2.5, 1]];
 const STEP_BEATS = {
   '1.3': {'1b': '1b-filter'}, '2.2': {'1c': '1c-vocab'}, '3.2': {'2a': '2a-loss'},
   '4.3': {'3c': '3c-cons'}, '4.4': {'3c': '3c-ref'}, '5.2': {'3e': '3e-safeguards'},
@@ -781,14 +788,19 @@ const State = { t: 0, dt: 0, anim: 0, J: 0, beatId: 'hero', prog: 0, tl: 0, v: O
   headHot: 0, winnerHot: 0, screen: {} };
 /* Camera rig and frame clock: the scene is a function of (beat, progress), so the rig carries the
    only memory, easing the eye, target and lens toward each authored pose in real time. */
-const CAM_RATE = 6.5, SHOW_RATE = 8;
-const rig = { ready: false, t: 0, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30,
-  vPos: V3(0, 0, 0), vTgt: V3(0, 0, 0), vFov: 0 };
+const SHOW_RATE = 12;
+const rig = { ready: false, moving: false, t: 0, pos: V3(0, 0, 0), tgt: V3(0, 0, 0), fov: 30,
+  zoom: 1, shiftX: 0, shiftY: 0, towerX: 0,
+  vPos: V3(0, 0, 0), vTgt: V3(0, 0, 0), vFov: 0, vZoom: 0, vShiftX: 0, vShiftY: 0, vTowerX: 0 };
+// World units; well below a pixel at every authored shot distance.
+const TOWER_SETTLE = .002;
 /* Critically damped follow: unlike a plain exponential ease it starts gently, so a stop change
    reads as a camera settling in rather than a lurch. The goal is always the pure pose. */
-const CAM_SMOOTH = .32;
+const CAM_SMOOTH = .18;
 function smoothDamp(cur, goal, vel, dt) {
-  const omega = 2 / CAM_SMOOTH, x = omega * dt, e = 1 / (1 + x + .48 * x * x + .235 * x * x * x);
+  // Exact critical damping: the same elapsed time produces the same pose at any refresh rate.
+  if (!dt) return [cur, vel];
+  const omega = 2 / CAM_SMOOTH, e = Math.exp(-omega * dt);
   const change = cur - goal, temp = (vel + omega * change) * dt;
   return [goal + (change + temp) * e, (vel - omega * temp) * e];
 }
@@ -871,7 +883,7 @@ function interestPoints(b, scale) {
   }
   for (const tag of b.tags || []) if (TAGS[tag]) points.push(TAGS[tag][1]());
   for (const extent of b.fit || []) points.push(V3(...extent));
-  if (b.tower || b === B['5b'] || b === B['5f']) {
+  if ((b.tower && b.frameTower !== false) || b === B['5b'] || b === B['5f']) {
     for (const x of [-1.9, 1.9]) for (const y of [0, TOWER_TOP + 1.2]) for (const z of [-1.9, 1.9]) points.push(V3(State.tower.x + x, y, z));
   }
   return points;
@@ -903,10 +915,12 @@ function update(state, aspect, viewportWidth) {
   S.reducedMotion = !!state.reducedMotion;
   S.anim = u * (b.loopJ?.[2] ?? 4) + .8;
   // Without a frame clock (tests, headless reconstruction) every pose is exact and order-independent.
-  const hasClock = typeof performance !== 'undefined', clock = hasClock ? performance.now() : 0, gap = rig.t ? (clock - rig.t) / 1000 : 0;
+  const hasClock = typeof performance !== 'undefined', clock = hasClock ? performance.now() : 0;
+  const gap = rig.ready ? Math.max(0, (clock - rig.t) / 1000) : 0;
   rig.t = clock;
   const snap = !hasClock || !rig.ready || S.reducedMotion || state.snapCamera;
-  S.dt = snap ? 1 : (gap <= 0 || gap > .25 ? 1 / 60 : clamp(gap, 1 / 240, .05));
+  // The host snaps on restoration; ordinary slow frames still consume their real elapsed time.
+  S.dt = snap ? 1 : rig.moving ? gap : 0;
   S.J = j;
   beamCacheBust = settings.cache === 'miss';
   const segment = segAtJ(j);
@@ -921,6 +935,14 @@ function update(state, aspect, viewportWidth) {
     S.tower.x = Array.isArray(pos) ? lerp(...pos, ease(clamp(u / .7))) : pos;
     S.tower.trained = Array.isArray(trained) ? lerp(...trained, u) : trained;
   }
+  // The tower travels on the camera's curve, so a stage jump never teleports it out of shot.
+  // It converges on the same pure placement, so rewinds still reconstruct exactly.
+  const towerGoal = S.tower.x;
+  if (snap || !rig.ready) { rig.towerX = towerGoal; rig.vTowerX = 0; }
+  else [rig.towerX, rig.vTowerX] = smoothDamp(rig.towerX, towerGoal, rig.vTowerX, S.dt);
+  const towerMoving = !snap && (Math.abs(rig.towerX - towerGoal) > TOWER_SETTLE || Math.abs(rig.vTowerX) > TOWER_SETTLE * 10);
+  if (!towerMoving) { rig.towerX = towerGoal; rig.vTowerX = 0; }
+  S.tower.x = rig.towerX;
 
   let scale = state.opening ? 1.42 : 1;
   if (segment.c) {
@@ -978,7 +1000,12 @@ function update(state, aspect, viewportWidth) {
     S.v.attnS = 0;
   }
   // Layers fade and scale in over ~300 ms instead of popping at the beat boundary.
-  if (!snap) for (const key of SHOW_KEYS) S.v[key] = damp(shownBefore[key], S.v[key], SHOW_RATE, S.dt);
+  let layersMoving = false;
+  if (!snap) for (const key of SHOW_KEYS) {
+    const goal = S.v[key], next = damp(shownBefore[key], goal, SHOW_RATE, S.dt);
+    if (Math.abs(next - goal) < .001) S.v[key] = goal;
+    else { S.v[key] = next; layersMoving = true; }
+  }
 
   trainCorpus.hide(); trainPrompt.hide(); trainResend.hide(); trainAnswer.hide();
   if (S.bead.visible) {
@@ -1068,34 +1095,49 @@ function update(state, aspect, viewportWidth) {
   // Fitting always starts from the same projection, including after resize or
   // leaving the corpus close-up. Do not measure through the previous fit.
   const goalFov = state.opening ? 34 : (b.fov || 30);
-  if (snap || corpusOpening) {
-    // The corpus close-up measures projected extents from the settled pose, so it never lags.
-    rig.pos.copy(target).add(offset); rig.tgt.copy(target); rig.fov = goalFov;
-    rig.vPos.set(0, 0, 0); rig.vTgt.set(0, 0, 0); rig.vFov = 0;
-  } else {
-    smoothDamp3(rig.pos, V3(0, 0, 0).copy(target).add(offset), rig.vPos, S.dt);
-    smoothDamp3(rig.tgt, target, rig.vTgt, S.dt);
-    [rig.fov, rig.vFov] = smoothDamp(rig.fov, goalFov, rig.vFov, S.dt);
-    target.copy(rig.tgt); offset.copy(rig.pos).sub(rig.tgt);
-  }
-  rig.ready = true;
-  camera.zoom = 1;
-  camera.fov = rig.fov;
-  camera.aspect = aspect;
-  camera.position.copy(target).add(offset);
-  camera.lookAt(target);
-  if (state.recap || state.present) camera.setViewOffset(1000 * aspect, 1000, 0, -85, 1000 * aspect, 1000);
-  else camera.clearViewOffset();
-  camera.updateProjectionMatrix();
+  const goalEye = target.clone().add(offset);
+  let goalZoom = 1, goalShiftX = 0, goalShiftY = state.recap || state.present ? -.085 : 0;
   let activeCoverage;
   if (corpusOpening) {
-    const extent = theme.projectedExtent(THREE, Corpus.g, camera);
+    // Measure with a separate canonical lens, never through the in-flight camera.
+    fitCamera.fov = goalFov; fitCamera.aspect = aspect; fitCamera.zoom = 1;
+    fitCamera.clearViewOffset(); fitCamera.position.copy(goalEye); fitCamera.lookAt(target);
+    fitCamera.updateProjectionMatrix();
+    const extent = theme.projectedExtent(THREE, Corpus.g, fitCamera);
     const center = extent.getCenter(new THREE.Vector2());
     const size = extent.getSize(new THREE.Vector2());
-    camera.zoom = Math.min(1.3 / size.y, 1.76 / size.x);
-    camera.setViewOffset(1000 * aspect, 1000, center.x * 500 * aspect * camera.zoom, -center.y * 500 * camera.zoom, 1000 * aspect, 1000);
-    activeCoverage = size.y * camera.zoom / 2;
+    goalZoom = Math.min(1.3 / size.y, 1.76 / size.x);
+    goalShiftX = center.x * .5 * goalZoom; goalShiftY = -center.y * .5 * goalZoom;
+    activeCoverage = size.y * goalZoom / 2;
   }
+  const lens = [['fov', goalFov, 'vFov'], ['zoom', goalZoom, 'vZoom'],
+    ['shiftX', goalShiftX, 'vShiftX'], ['shiftY', goalShiftY, 'vShiftY']];
+  if (!snap) {
+    smoothDamp3(rig.pos, goalEye, rig.vPos, S.dt);
+    smoothDamp3(rig.tgt, target, rig.vTgt, S.dt);
+    for (const [key, goal, velocity] of lens) [rig[key], rig[velocity]] = smoothDamp(rig[key], goal, rig[velocity], S.dt);
+  }
+  // End only below a subpixel error, rather than cutting a flight short at a fixed deadline.
+  const pixelWorld = 2 * Math.max(1, offset.length()) * Math.tan(THREE.MathUtils.degToRad(goalFov) / 2)
+    / (Math.max(1, viewportWidth / aspect) * goalZoom);
+  const still = rig.pos.distanceTo(goalEye) < pixelWorld * .08 && rig.tgt.distanceTo(target) < pixelWorld * .08
+    && rig.vPos.length() < pixelWorld && rig.vTgt.length() < pixelWorld
+    && lens.every(([key, goal, velocity]) => Math.abs(rig[key] - goal) < .00001 && Math.abs(rig[velocity]) < .0001);
+  const moving = !snap && (!still || layersMoving || towerMoving);
+  rig.moving = moving;
+  if (snap || still) {
+    rig.pos.copy(goalEye); rig.tgt.copy(target);
+    rig.vPos.set(0, 0, 0); rig.vTgt.set(0, 0, 0);
+    for (const [key, goal, velocity] of lens) { rig[key] = goal; rig[velocity] = 0; }
+  }
+  rig.ready = true;
+  camera.zoom = rig.zoom; camera.fov = rig.fov; camera.aspect = aspect;
+  camera.position.copy(rig.pos); camera.lookAt(rig.tgt);
+  if (rig.shiftX || rig.shiftY) camera.setViewOffset(1000 * aspect, 1000,
+    rig.shiftX * 1000 * aspect, rig.shiftY * 1000, 1000 * aspect, 1000);
+  else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  offset.copy(rig.pos).sub(rig.tgt);
   scene.fog.near = offset.length() * 1.4;
   scene.fog.far = offset.length() * 4;
 
@@ -1117,7 +1159,7 @@ function update(state, aspect, viewportWidth) {
   lightRig.edge.position.copy(pinState.anchor).add(V3(2.5, 2.8, -3));
   lightRig.active.intensity = qualityTier === 'low' ? 55 : 110;
   lightRig.edge.intensity = qualityTier === 'high' ? 32 : 16;
-  return {...pinState, tokenAnchor: S.bead.visible ? S.bead.pos : null, tokenRadius: .85 * scale};
+  return {...pinState, moving, tokenAnchor: S.bead.visible ? S.bead.pos : null, tokenRadius: .85 * scale};
 }
 
 function simplifiedGeometry(geometry) {

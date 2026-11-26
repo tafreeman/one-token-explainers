@@ -7,14 +7,15 @@ const {createHash} = require('node:crypto');
 const THREE = require('../shared/vendor/three-r160.min.js');
 const {stops} = require('../one-token/stops-manifest.js');
 
-function representation(view = 'spatial', width = 390) {
+function representation(view = 'spatial', width = 390, clock) {
   const drawing = new Proxy({}, {get: (_, key) => key === 'measureText'
     ? text => ({width: text.length * 8})
     : /Gradient$/.test(key) ? () => ({addColorStop() {}}) : () => {}});
   const window = {innerWidth: width};
   const document = {documentElement: {style: {setProperty() {}}},
     createElement: () => ({width: 1, height: 1, getContext: () => drawing})};
-  const context = vm.createContext({window, document, console, innerWidth: width});
+  const context = vm.createContext({window, document, console, innerWidth: width,
+    ...(clock ? {performance: {now: () => clock.now}} : {})});
   const files = ['shared/theme-tokens.js', ...(view === 'spatial'
     ? ['one-token/spatial-models.js', 'one-token/spatial-materials.js'] : []), 'one-token/scene-' + view + '.js'];
   for (const file of files) {
@@ -23,6 +24,65 @@ function representation(view = 'spatial', width = 390) {
   return window[view === 'spatial' ? 'ReaderSpatial' : 'ReaderDiagram'].create(THREE, window.ReaderTheme);
 }
 const spatial = width => representation('spatial', width);
+
+function cameraValues(api) {
+  api.camera.updateMatrixWorld();
+  return [...api.camera.matrixWorld.elements, ...api.camera.projectionMatrix.elements];
+}
+
+test('Spatial camera uses elapsed time, settles exactly, and survives an interrupted flight', () => {
+  const clock = {now: 100};
+  const api = representation('spatial', 1440, clock);
+  const start = position('2.1', {present: true});
+  const end = position('12.1', {present: true});
+  api.update(start, 1.5, 1000);
+  const original = cameraValues(api);
+  clock.now += 5000;
+  let result = api.update(end, 1.5, 1000);
+  assert.deepEqual(cameraValues(api), original, 'idle time before a new flight must not advance the camera');
+  assert.equal(result.moving, true);
+  for (let i = 0; i < 12; i++) { clock.now += 1000 / 60; api.update(end, 1.5, 1000); }
+  const interrupted = cameraValues(api);
+  api.update(start, 1.5, 1000);
+  assert.deepEqual(cameraValues(api), interrupted, 'retargeting must begin at the displayed pose');
+  for (let i = 0; i < 180; i++) {
+    clock.now += 1000 / 60;
+    result = api.update(start, 1.5, 1000);
+    if (!result.moving) break;
+  }
+  assert.equal(result.moving, false, 'the render loop can halt after settling');
+  assert.deepEqual(cameraValues(api), original, 'settling reconstructs the exact authored pose');
+});
+
+test('Spatial camera follows the same flight at 30, 60 and 120 Hz', () => {
+  const samples = [30, 60, 120].map(hz => {
+    const clock = {now: 100};
+    const api = representation('spatial', 1440, clock);
+    api.update(position('7.2', {present: true}), 1.5, 1000);
+    const next = position('7.3', {present: true, camera: 'overhead'});
+    api.update(next, 1.5, 1000);
+    for (let i = 0; i < hz / 2; i++) { clock.now += 1000 / hz; api.update(next, 1.5, 1000); }
+    return cameraValues(api);
+  });
+  for (const values of samples.slice(1)) values.forEach((value, i) =>
+    assert.ok(Math.abs(value - samples[0][i]) < 1e-8, `frame-rate drift at matrix entry ${i}`));
+});
+
+test('Spatial phone opening preserves its complete lens at the start of a lesson transition', () => {
+  const clock = {now: 100};
+  const api = representation('spatial', 390, clock);
+  api.update(position('1.1', {opening: true}), 390 / 210, 390);
+  const opening = cameraValues(api);
+  const next = position('1.1');
+  api.update(next, 390 / 210, 390);
+  assert.deepEqual(cameraValues(api), opening, 'opening zoom and lens shift must not jump');
+  clock.now += 16;
+  assert.equal(api.update(next, 390 / 210, 390).moving, true);
+  const reduced = api.update({...next, reducedMotion: true}, 390 / 210, 390);
+  const exact = spatial(); exact.update(next, 390 / 210, 390);
+  assert.deepEqual(cameraValues(api), cameraValues(exact));
+  assert.equal(reduced.moving, false, 'reduced motion removes the flight');
+});
 
 function position(id, extra = {}) {
   const stop = stops.find(stop => stop.id === id);

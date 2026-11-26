@@ -16,6 +16,10 @@ const step = (page, id) => page.waitForFunction(id => document.body.dataset.step
 const mode = (page, value) => page.waitForFunction(value => document.body.dataset.mode === value, value, {timeout});
 const ready = page => page.waitForFunction(() => document.querySelector('#viewport').dataset.render === 'ready'
   && window.OneToken?.scene.stats().revision === '160', null, {timeout});
+const cameraSettled = (page, afterFrames = -1) => page.waitForFunction(frames => {
+  const stats = window.OneToken.scene.stats();
+  return stats.frames > frames && stats.moving === false;
+}, afterFrames, {timeout});
 
 function collectErrors(page) {
   const errors = [];
@@ -52,6 +56,14 @@ async function gotoStep(page, id) {
   // Hash anchors are also the native route when scripting is unavailable.
   await page.evaluate(id => { location.hash = 'step-' + id; }, id);
   await step(page, id);
+}
+
+async function settledStep(page, id) {
+  const before = await stat(page);
+  const current = await page.locator('body').getAttribute('data-step');
+  await gotoStep(page, id);
+  await cameraSettled(page, current === id ? -1 : before.frames);
+  return (await stat(page)).cameraPose;
 }
 
 async function capture(page, artifacts, name) {
@@ -528,7 +540,7 @@ async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) 
       await clickVisible(page, '#present'); await mode(page, 'present');
       await page.evaluate(() => window.OneToken.scene.resetPerformance?.());
       for (const id of ids) {
-        await gotoStep(page, id); await settle(page, 1050);
+        await settledStep(page, id);
         if (!captureOnly) await checkLayout(page, `spatial ${id} ${viewport.width}`);
         const stats = await stat(page);
         if (!captureOnly) {
@@ -536,16 +548,24 @@ async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) 
           assert.ok(stats.triangles <= 120000, `spatial ${id} triangles ${stats.triangles}`);
           assert.notEqual(await page.locator('#pin').getAttribute('data-intersects-token'), 'true',
             `spatial ${id} label overlaps token`);
+          if (viewport === desktop) {
+            const leader = await page.locator('#leader').evaluate(element => ({
+              visible: getComputedStyle(element).visibility === 'visible',
+              length: Math.hypot(element.x2.baseVal.value - element.x1.baseVal.value,
+                element.y2.baseVal.value - element.y1.baseVal.value)
+            }));
+            assert.ok(leader.visible, `spatial ${id} desktop label leader is visible`);
+            assert.ok(leader.length <= 180, `spatial ${id} desktop leader stays local (${leader.length.toFixed(1)}px)`);
+          }
         }
         await capture(page, artifacts, `spatial-${id}-${viewport.width}x${viewport.height}`);
         reports.push({id, viewport: viewport.width, calls: stats.calls, triangles: stats.triangles,
           quality: stats.qualityTier, p95FrameMs: +Number(stats.p95FrameMs || 0).toFixed(1)});
       }
       if (!captureOnly) {
-        await gotoStep(page, '7.2'); await settle(page, 1050);
-        const before = (await stat(page)).cameraPose;
-        await gotoStep(page, '7.3'); await settle(page, 1050);
-        await gotoStep(page, '7.2'); await settle(page, 1050);
+        const before = await settledStep(page, '7.2');
+        await settledStep(page, '7.3');
+        await settledStep(page, '7.2');
         assert.deepEqual((await stat(page)).cameraPose, before, 'spatial A→B→A restores the exact camera pose');
       }
       assert.deepEqual(errors, [], `spatial visual stops ${viewport.width} console errors`);
@@ -560,7 +580,7 @@ async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) 
       Object.defineProperty(navigator, 'deviceMemory', {get: () => 2});
     });
     await page.goto(url); await ready(page); await switchView(page, 'spatial');
-    await gotoStep(page, '7.3'); await settle(page, 500);
+    await settledStep(page, '7.3');
     const stats = await stat(page);
     assert.equal(stats.qualityTier, 'low', 'low-power devices use the low spatial tier');
     assert.ok(stats.triangles <= 45000, `low-tier triangles ${stats.triangles}`);
@@ -572,10 +592,116 @@ async function visualStops(browser, url, artifacts, {captureOnly = false} = {}) 
   console.log('Reader spatial visual stops', JSON.stringify(reports));
 }
 
+async function cameraNavigation(browser, url) {
+  for (const viewport of [desktop, phone]) {
+    for (const reducedMotion of ['no-preference', 'reduce']) {
+      const label = `${viewport.width} ${reducedMotion}`;
+      const page = await browser.newPage({viewport, reducedMotion, hasTouch: viewport === phone});
+      const errors = collectErrors(page);
+      try {
+        await page.goto(url); await ready(page); await switchView(page, 'spatial');
+        await cameraSettled(page);
+        const opening = await stat(page);
+        await clickVisible(page, '#next'); await step(page, '1.1');
+        await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, opening.frames, {timeout});
+        if (reducedMotion === 'reduce') {
+          assert.equal((await stat(page)).moving, false, label + ' reduced opening snaps');
+        } else {
+          assert.equal((await stat(page)).moving, true, label + ' opening transitions before settling');
+        }
+        await cameraSettled(page, opening.frames);
+        assert.notDeepEqual((await stat(page)).cameraPose, opening.cameraPose, label + ' opening reaches lesson shot');
+        await clickVisible(page, '#present'); await mode(page, 'present'); await cameraSettled(page);
+
+        const canonical = await settledStep(page, '7.2');
+        // Each jump reaches a rendered frame, but interrupts its camera flight.
+        for (const id of ['12.1', '2.1', '10.2', '7.3', '7.2']) {
+          const before = (await stat(page)).frames;
+          await gotoStep(page, id);
+          await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, before, {timeout});
+        }
+        await cameraSettled(page);
+        assert.deepEqual((await stat(page)).cameraPose, canonical, label + ' rapid forward/reverse jumps reach canonical shot');
+
+        const poses = new Map([['director', canonical]]);
+        for (const preset of ['close', 'overhead', 'director']) {
+          const before = (await stat(page)).frames;
+          await page.locator('#camera').selectOption(preset);
+          await cameraSettled(page, before);
+          const pose = (await stat(page)).cameraPose;
+          if (poses.has(preset)) assert.deepEqual(pose, poses.get(preset), label + ' Director restores canonical shot');
+          else poses.set(preset, pose);
+          if (poses.has('overhead')) assert.notDeepEqual(poses.get('close'), poses.get('overhead'), label + ' presets remain distinct');
+          const target = await settledStep(page, '12.1');
+          await settledStep(page, '7.2');
+          // Hide a camera mid-flight, navigate elsewhere in Diagram, then return.
+          const flyingFrom = (await stat(page)).frames;
+          await gotoStep(page, '2.1');
+          await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, flyingFrom, {timeout});
+          await switchView(page, 'diagram');
+          await settledStep(page, '12.1');
+          await switchView(page, 'spatial');
+          await cameraSettled(page);
+          assert.deepEqual((await stat(page)).cameraPose, target,
+            label + ' ' + preset + ' returns from Diagram at the current canonical shot');
+          await settledStep(page, '7.2');
+        }
+        assert.deepEqual(errors, [], label + ' camera navigation console errors');
+      } finally { await page.close(); }
+    }
+  }
+  console.log('Reader opening transitions, rapid reversals, camera presets, and Diagram return shots passed');
+}
+
+async function visibility(browser, url) {
+  const page = await browser.newPage({viewport: desktop});
+  const errors = collectErrors(page);
+  const hidden = value => page.evaluate(value => {
+    window.__readerDocumentHidden = value;
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, value);
+  try {
+    await page.addInitScript(() => {
+      window.__readerDocumentHidden = false;
+      Object.defineProperty(document, 'hidden', {configurable: true, get: () => window.__readerDocumentHidden});
+    });
+    await page.goto(url); await ready(page); await switchView(page, 'spatial');
+    await clickVisible(page, '#present'); await mode(page, 'present');
+    await settledStep(page, '7.2');
+    // Hide during a flight to exercise cancellation of an already queued scene frame.
+    const start = (await stat(page)).frames;
+    await gotoStep(page, '12.1');
+    await page.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, start, {timeout});
+    await hidden(true);
+    const paused = (await stat(page)).frames;
+    await gotoStep(page, '2.1'); await settle(page, 180);
+    assert.equal((await stat(page)).frames, paused, 'hidden updates draw zero scene frames');
+    await hidden(false); await cameraSettled(page, paused);
+    const restored = (await stat(page)).cameraPose;
+    await settledStep(page, '7.2');
+    assert.deepEqual(await settledStep(page, '2.1'), restored, 'visibility restore snaps to the latest hidden update');
+
+    // Inspector uses this same explicit suspension; visibility must never resume it.
+    await page.evaluate(() => window.OneToken.scene.suspend());
+    const suspended = (await stat(page)).frames;
+    await hidden(true); await gotoStep(page, '10.2'); await hidden(false);
+    await settle(page, 180);
+    assert.equal((await stat(page)).suspended, true, 'visibility restoration preserves Inspector suspension');
+    assert.equal((await stat(page)).frames, suspended, 'suspended scene stays idle after visibility restoration');
+    await page.evaluate(() => window.OneToken.scene.resume());
+    await cameraSettled(page, suspended);
+    assert.equal((await stat(page)).suspended, false, 'explicit Inspector resume restores rendering');
+    assert.deepEqual(errors, [], 'visibility console errors');
+  } finally { await page.close(); }
+  console.log('Reader hidden-frame cancellation, latest-state restoration, and independent Inspector suspension passed');
+}
+
 async function verifyReader(browser, base, artifacts) {
   const url = new URL('./', base).href;
   await layouts(browser, url, artifacts);
   await visualStops(browser, url, artifacts);
+  await cameraNavigation(browser, url);
+  await visibility(browser, url);
   await navigation(browser, url, artifacts);
   await narration(browser, url);
   await narrationScroll(browser, url);

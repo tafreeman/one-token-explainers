@@ -18,8 +18,8 @@
     const fallbackStatus = document.getElementById('fallback-status');
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const scenes = {};
-    let renderer, THREE, state, animation, fadeCanvas, fadeCtx, settleUntil = 0;
-    const SETTLE_MS = 900;
+    let renderer, THREE, state, animation, fadeCanvas, fadeCtx;
+    let moving = false, snapNext = false;
     let quality = 1, qualityTier = 'high', appliedSpatialQuality = null;
     let frames = 0, calls = 0, raf = 0, width = 0, height = 0, pixelRatio = 0;
     const spatialFrameCosts = [];
@@ -27,7 +27,7 @@
     let lastFrame = null, lastCameraPose = null;
     let lost = false, suspended = false, failed = false;
 
-    const PIN_STAY = 22, PIN_GLIDE_MS = 260, PIN_FADE_MS = 160;
+    const PIN_STAY = 12, PIN_STAY_FLIGHT = 90, PIN_GLIDE_MS = 260, PIN_FADE_MS = 160;
     let pinSide = -1, pinShown = null, pinFrom = null, pinStart = 0, pinLabel = '';
 
     function forgetPin() { pinSide = -1; pinShown = null; pinFrom = null; }
@@ -39,7 +39,7 @@
       if (leader) leader.style.visibility = 'hidden';
     }
 
-    function placePin({ anchor, label, tokenAnchor, tokenRadius = 0 }, camera, w, h) {
+    function placePin({ anchor, label, tokenAnchor, tokenRadius = 0, moving = false }, camera, w, h) {
       if (mobilePin) {
         mobilePin.textContent = label && label !== '“ Paris”' ? '· ' + label : '';
       }
@@ -70,6 +70,8 @@
       pin.hidden = false;
       const text = pin.querySelector('[data-pin-text]') || pin;
       if (text.textContent !== label) text.textContent = label;
+      // The same callout keeps its side through a camera flight; it may re-seat once the shot lands.
+      const stay = moving && pinLabel === label ? PIN_STAY_FLIGHT : PIN_STAY;
       if (pinLabel !== label) {
         // New label: a short fade says "this is a different callout" without moving anything.
         if (pinLabel && !reduced.matches && pin.animate) pin.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PIN_FADE_MS, easing: 'cubic-bezier(.16, 1, .3, 1)' });
@@ -82,32 +84,60 @@
         leader.style.visibility = 'hidden';
         return;
       }
-      const gap = 22;
+      const gap = 26;
       const pad = 12;
-      // 4-quadrant obstacle-aware solver: push the pin outward away from the
-      // viewport's central 3D mass while keeping it inside the frame.
-      const cx = w * 0.5, cy = h * 0.54;
+      // Favor a short local leader so the label reads with its active part.
       const candidates = [
+        [x - pw / 2, y - ph - gap],
         [x + gap, y - ph - gap],
         [x - gap - pw, y - ph - gap],
+        [x + gap, y - ph / 2],
+        [x - gap - pw, y - ph / 2],
         [x + gap, y + gap],
         [x - gap - pw, y + gap],
-        [pad, pad], [w - pw - pad, pad],
-        [pad, h - ph - pad], [w - pw - pad, h - ph - pad]
+        [x - pw / 2, y + gap]
       ];
+      // Clear larger projected tokens with local alternatives, not corners.
+      if (tokenRect) candidates.push(
+        [x - pw / 2, tokenRect.top - ph - pad],
+        [tokenRect.right + pad, y - ph / 2],
+        [tokenRect.left - pw - pad, y - ph / 2],
+        [x - pw / 2, tokenRect.bottom + pad]
+      );
+      const overlapsToken = (l, t) => tokenRect &&
+        l < tokenRect.right && l + pw > tokenRect.left && t < tokenRect.bottom && t + ph > tokenRect.top;
       let best = candidates[0], bestScore = -1e9, bestIndex = 0;
       for (const [index, [rawL, rawT]] of candidates.entries()) {
         const cl = Math.max(pad, Math.min(w - pw - pad, rawL));
         const ct = Math.max(pad, Math.min(h - ph - pad, rawT));
         const clampPenalty = Math.abs(cl - rawL) + Math.abs(ct - rawT);
-        const bx = cl + pw / 2, by = ct + ph / 2;
-        const distFromCenter = Math.hypot((bx - cx) / Math.max(1, w), (by - cy) / Math.max(1, h)) * 120;
+        const endX = Math.max(cl, Math.min(cl + pw, x));
+        const endY = Math.max(ct, Math.min(ct + ph, y));
+        const length = Math.hypot(endX - x, endY - y);
         const overlapsAnchor = (x >= cl - 8 && x <= cl + pw + 8 && y >= ct - 8 && y <= ct + ph + 8) ? 500 : 0;
-        const topBias = rawT < y ? 14 : 0;
-        const tokenOverlap = tokenRect ? Math.max(0, Math.min(cl + pw, tokenRect.right) - Math.max(cl, tokenRect.left)) *
-          Math.max(0, Math.min(ct + ph, tokenRect.bottom) - Math.max(ct, tokenRect.top)) : 0;
+        const topBias = ct + ph <= y ? 10 : 0;
+        // A clear box can still send its leader across the travelling token.
+        // Ignore a leader that starts inside the token's projected area.
+        let crossesToken = false;
+        if (tokenRect && !(x >= tokenRect.left && x <= tokenRect.right && y >= tokenRect.top && y <= tokenRect.bottom)) {
+          let enter = 0, exit = 1;
+          for (const [start, delta, min, max] of [
+            [x, endX - x, tokenRect.left, tokenRect.right],
+            [y, endY - y, tokenRect.top, tokenRect.bottom]
+          ]) {
+            if (Math.abs(delta) < .001) {
+              if (start < min || start > max) { exit = -1; break; }
+            } else {
+              const a = (min - start) / delta, b = (max - start) / delta;
+              enter = Math.max(enter, Math.min(a, b));
+              exit = Math.min(exit, Math.max(a, b));
+            }
+          }
+          crossesToken = enter <= exit;
+        }
         // Hysteresis: the current side wins near-ties, so the label stops hopping across the anchor.
-        const score = distFromCenter + topBias - clampPenalty * 2.4 - overlapsAnchor - tokenOverlap * 50 + (index === pinSide ? PIN_STAY : 0);
+        const score = topBias - length - clampPenalty * 2 - overlapsAnchor -
+          (overlapsToken(cl, ct) ? 10000 : 0) - (crossesToken ? 250 : 0) + (index === pinSide ? stay : 0);
         if (score > bestScore) {
           bestScore = score;
           best = [cl, ct];
@@ -124,6 +154,15 @@
         left = pinFrom[0] + (left - pinFrom[0]) * e;
         top = pinFrom[1] + (top - pinFrom[1]) * e;
         if (k >= 1) pinFrom = null; else gliding = true;
+      }
+      // Text and viewport dimensions can change during an active glide.
+      left = Math.max(pad, Math.min(w - pw - pad, left));
+      top = Math.max(pad, Math.min(h - ph - pad, top));
+      // Do not sweep an otherwise clear label across the travelling token.
+      if (overlapsToken(left, top) && !overlapsToken(best[0], best[1])) {
+        [left, top] = best;
+        pinFrom = null;
+        gliding = false;
       }
       pinShown = [left, top];
       pin.style.left = Math.round(left) + 'px';
@@ -154,7 +193,7 @@
 
     function draw() {
       raf = 0;
-      if (suspended || lost || !renderer || !state) return;
+      if (suspended || document.hidden || lost || !renderer || !state) return;
       const w = viewport.clientWidth;
       const h = viewport.clientHeight;
       if (!w || !h) return;
@@ -204,8 +243,11 @@
           current.setQuality?.(qualityTier); appliedSpatialQuality = qualityTier;
         }
         const started = performance.now();
-        const snapCamera = view === 'spatial' && performance.now() >= settleUntil;
+        // A representation returns at the current stop, never from its stale hidden camera.
+        const snapCamera = switchingView || resized || snapNext;
         const pinState = current.update({...state, reducedMotion: reduced.matches, snapCamera}, width / height, width);
+        snapNext = false;
+        moving = Boolean(pinState.moving);
         renderer.toneMapping = view === 'spatial' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
         renderer.toneMappingExposure = view === 'spatial' ? (current.exposure ?? 1) : 1;
         renderer.render(current.scene, current.camera);
@@ -237,8 +279,8 @@
       }
       renderedView = view;
       renderedStep = state.stepId;
-      // Keep drawing while the camera and layer fades glide to their new pose.
-      if (view === 'spatial' && !reduced.matches && performance.now() < settleUntil) schedule();
+      // The scene owns convergence; no timed final snap interrupts a camera flight.
+      if (moving && !reduced.matches) schedule();
     }
 
     // Spatial is the heavy view. Several slow draws in a row (a much lower bar on devices
@@ -269,7 +311,7 @@
     }
 
     function schedule() {
-      if (!raf && renderer && state && !suspended && !lost && !failed) raf = requestAnimationFrame(draw);
+      if (!raf && renderer && state && !suspended && !document.hidden && !lost && !failed) raf = requestAnimationFrame(draw);
     }
 
     const host = {
@@ -279,7 +321,6 @@
           next.opening, next.recap, next.present, next.overview, next.narrated, settings.cache, settings.kv, settings.effort].join('|');
         if (key === signature) return;
         signature = key;
-        settleUntil = performance.now() + SETTLE_MS;
         state = { ...next, settings };
         schedule();
       },
@@ -288,12 +329,12 @@
         if (!suspended) schedule();
       },
       suspend() { suspended = true; cancel(); },
-      resume() { suspended = false; schedule(); },
+      resume() { suspended = false; snapNext = true; schedule(); },
       resetPerformance() { spatialFrameCosts.length = 0; },
       stats() {
         const sorted = spatialFrameCosts.slice().sort((a, b) => a - b);
         const p95FrameMs = sorted.length ? sorted[Math.ceil(.95 * sorted.length) - 1] : 0;
-        return { frames, calls, revision, lost, suspended, frame: lastFrame,
+        return { frames, calls, revision, lost, suspended, moving, frame: lastFrame,
           qualityTier, pixelRatio, p95FrameMs, cameraPose: lastCameraPose, triangles: renderer?.info.render.triangles ?? 0,
           buffer: renderer ? [canvas.width, canvas.height] : [0, 0] };
       }
@@ -331,6 +372,7 @@
       });
       canvas.addEventListener('webglcontextrestored', () => {
         lost = false;
+        snapNext = true;
         scenes.spatial?.contextRestored?.(); appliedSpatialQuality = null;
         if (fallbackStatus) fallbackStatus.textContent = 'Lifecycle diagram';
         schedule();
@@ -343,6 +385,11 @@
       });
       document.fonts?.ready.then(schedule);
       window.addEventListener('resize', schedule);
+      document.addEventListener('visibilitychange', () => {
+        // Visibility and Inspector suspension are independent. Audio may continue offscreen.
+        if (document.hidden) { cancel(); animation?.cancel(); if (fadeCanvas) fadeCanvas.style.opacity = '0'; }
+        else { snapNext = true; schedule(); }
+      });
     } catch (error) {
       fallback(error);
     }
