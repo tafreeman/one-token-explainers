@@ -136,8 +136,13 @@ function Install-Dependencies {
         Write-Host '    up to date'
         return
     }
-    npm ci --no-audit --no-fund
-    if ($LASTEXITCODE -ne 0) { throw "npm ci failed with exit code $LASTEXITCODE." }
+    Push-Location $Root
+    try {
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw "npm ci failed with exit code $LASTEXITCODE." }
+    } finally {
+        Pop-Location
+    }
 }
 
 function Wait-ForServer([string]$Url, [System.Diagnostics.Process]$Server) {
