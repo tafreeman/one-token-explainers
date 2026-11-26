@@ -292,7 +292,7 @@ const Tower = (() => {
   // gradient rings
   const rings = [0, 1, 2].map((k) => { const r = new THREE.Mesh(new THREE.TorusGeometry(2.05, .075, 8, 56), M.train); r.name = 'backprop-gradient-' + k; r.rotation.x = Math.PI / 2; g.add(r); return r; });
   const shad = shadow(0, 0, 8, 8, .5, g);
-  const pale = new THREE.Color(colors.hardwarePlinth), graph = new THREE.Color(0x525862), flashC = new THREE.Color(HEX.token), sweepC = new THREE.Color(0xF6EFE2), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
+  const pale = new THREE.Color(colors.hardwarePlinth), graph = new THREE.Color(colors.hardwareSlate), flashC = new THREE.Color(HEX.token), sweepC = new THREE.Color(colors.ground), gradC = new THREE.Color(HEX.train), c = new THREE.Color();
   const tokC = new THREE.Color(HEX.token), inkC = new THREE.Color(HEX.ink2);
   modelKit.mergeStatic(g, rings);
   modelKit.mergeStatic(embedding.g, [embedding.selectedRow, embedding.vector]);
@@ -338,10 +338,10 @@ const Tower = (() => {
 const Cluster = (() => {
   const g = new THREE.Group(); scene.add(g);
   const n = 24, racks = new THREE.InstancedMesh(BOX, lam(0xffffff), n);
-  for (let i = 0; i < n; i++) { dummy.position.set(X_TRAIN - 3.6 + (i % 8) * 1.03, .75, -6.4 - Math.floor(i / 8) * 1.15); dummy.rotation.set(0, 0, 0); dummy.scale.set(.82, 1.5, .78); dummy.updateMatrix(); racks.setMatrixAt(i, dummy.matrix); racks.setColorAt(i, new THREE.Color(0x565C66)); }
+  for (let i = 0; i < n; i++) { dummy.position.set(X_TRAIN - 3.6 + (i % 8) * 1.03, .75, -6.4 - Math.floor(i / 8) * 1.15); dummy.rotation.set(0, 0, 0); dummy.scale.set(.82, 1.5, .78); dummy.updateMatrix(); racks.setMatrixAt(i, dummy.matrix); racks.setColorAt(i, new THREE.Color(colors.hardwareSlate)); }
   g.add(racks); shadow(X_TRAIN, -7.5, 11, 5, .4, g); box(9.6, .06, 4.1, M.plinth, X_TRAIN, .03, -7.55, g);
   box(7, .06, 7, M.plinth, X_TRAIN, .03, 0, g); box(7, .06, 7, M.plinth, X_TOWER, .03, 0, g);
-  const lit = new THREE.Color(colors.cache), dark = new THREE.Color(0x565C66);
+  const lit = new THREE.Color(colors.cache), dark = new THREE.Color(colors.hardwareSlate);
   const br = new THREE.Group(); scene.add(br);
   const tabL = box(.08, .9, .55, M.train, 0, .45, 0, br), tabR = box(.08, .9, .55, M.train, 0, .45, 0, br), bar = box(1, .07, .07, M.train, 0, .9, 0, br);
   return { update(S) {

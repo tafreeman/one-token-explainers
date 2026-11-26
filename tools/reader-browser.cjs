@@ -16,6 +16,8 @@ const step = (page, id) => page.waitForFunction(id => document.body.dataset.step
 const mode = (page, value) => page.waitForFunction(value => document.body.dataset.mode === value, value, {timeout});
 const ready = page => page.waitForFunction(() => document.querySelector('#viewport').dataset.render === 'ready'
   && window.OneToken?.scene.stats().revision === '160', null, {timeout});
+// Text that shares the figure with the 3D callout; the callout must never cover any of it.
+const LABEL_OVERLAYS = '#spoken-caption, .figure-head, .figure-note, figcaption .camera, #explain, #fallback-status';
 const cameraSettled = (page, afterFrames = -1) => page.waitForFunction(frames => {
   const stats = window.OneToken.scene.stats();
   return stats.frames > frames && stats.moving === false;
@@ -88,7 +90,7 @@ async function axe(page, label) {
 }
 
 async function checkLayout(page, label) {
-  const layout = await page.evaluate(() => {
+  const layout = await page.evaluate(overlaySelectors => {
     const bounds = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
     const pin = bounds('#pin');
     return {
@@ -103,9 +105,16 @@ async function checkLayout(page, label) {
       height: innerHeight,
       mode: document.body.dataset.mode,
       mastControls: Array.from(document.querySelectorAll('.mast button, .mast nav a'), element => element.getBoundingClientRect().toJSON()),
-      pin: pin.width && pin.height ? pin : null
+      pin: pin.width && pin.height && !document.querySelector('#pin').hidden ? pin : null,
+      // Every other piece of text that can sit over or beside the figure.
+      overlays: Array.from(document.querySelectorAll(overlaySelectors), element => {
+        const style = getComputedStyle(element), rect = element.getBoundingClientRect();
+        const shown = !element.hidden && style.display !== 'none' && style.visibility !== 'hidden'
+          && Number(style.opacity) > .05 && rect.width > 0 && rect.height > 0;
+        return shown ? {name: element.id ? '#' + element.id : '.' + element.classList[0], ...rect.toJSON()} : null;
+      }).filter(Boolean)
     };
-  });
+  }, LABEL_OVERLAYS);
   assert.ok(layout.documentWidth <= layout.width + 1, label + ' horizontal overflow');
   assert.ok(layout.canvas.width > 100 && layout.canvas.height > 0, label + ' figure collapsed');
   assert.ok(layout.head.bottom <= layout.canvas.top + 1, label + ' canvas overlaps specimen header');
@@ -121,6 +130,9 @@ async function checkLayout(page, label) {
   if (layout.pin) {
     assert.ok(layout.pin.left >= layout.viewport.left - 1 && layout.pin.right <= layout.viewport.right + 1
       && layout.pin.top >= layout.viewport.top - 1 && layout.pin.bottom <= layout.viewport.bottom + 1, label + ' pin outside figure');
+    for (const overlay of layout.overlays) {
+      assert.ok(!intersects(layout.pin, overlay), `${label} callout overlaps ${overlay.name}`);
+    }
   }
 }
 

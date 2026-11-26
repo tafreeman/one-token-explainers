@@ -19,7 +19,7 @@
     cache: 0xCFA03E, tool: 0x22946E, fault: 0xCA4E2E, silhouette: color(css.silhouette),
     // Spatial PBR uses a light warm limestone-to-pewter ramp with crisp gunmetal/slate frames.
     hardwarePale: 0xDDD8CE, hardwareDeck: 0xC6C0B4, hardwarePlinth: 0xB2ACA0,
-    hardwareBody: 0x969186, hardwareFrame: 0x686C72, hardwareGraphite: 0x3D434C
+    hardwareBody: 0x969186, hardwareFrame: 0x686C72, hardwareSlate: 0x525862, hardwareGraphite: 0x3D434C
   });
   // Diagram wireframe plates use the pale architectural paper/stone ramp so floors and edges stay crisp.
   const diagramColors = Object.freeze({

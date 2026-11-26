@@ -49,20 +49,59 @@ function renderedTriangles(api) {
   return triangles;
 }
 
+// The neutral ramp, light to dark. Light limestone housings are a design choice (DESIGN.md), so
+// they separate from the floor by clear value steps and dark frames, not by 3:1 contrast each.
+const RAMP = ['hardwarePale', 'hardwareDeck', 'hardwarePlinth', 'hardwareBody', 'hardwareFrame', 'hardwareSlate', 'hardwareGraphite'];
+const MIN_FLOOR_STEP = 1.25;      // every neutral part reads as distinct from the floor
+const MIN_NEIGHBOR_STEP = 1.2;    // adjacent ramp values differ by a visible step
+const MIN_STRUCTURE_CONTRAST = 3; // frames and darker structure outline the light housings
+
 test('Spatial neutral hardware ramp stays light-to-dark ordered with crisp frame contrast', () => {
   const {colors} = spatial();
-  const keys = ['hardwarePale', 'hardwareDeck', 'hardwarePlinth', 'hardwareBody', 'hardwareFrame', 'hardwareGraphite'];
-  const values = keys.map(key => colors[key]);
+  const values = RAMP.map(key => colors[key]);
   assert.equal(new Set(values).size, values.length);
   const lum = [colors.ground, ...values].map(luminance);
   for (let i = 1; i < lum.length; i++) {
     assert.ok(lum[i - 1] > lum[i], `ramp step ${i} must darken strictly`);
   }
   assert.ok(luminance(colors.hardwarePale) >= 0.6, 'limestone housings remain genuinely light');
-  for (const key of ['hardwareFrame', 'hardwareGraphite']) {
-    assert.ok(contrast(colors.ground, colors[key]) >= 3,
-      `${key} has ${contrast(colors.ground, colors[key]).toFixed(2)}:1 floor contrast`);
+  RAMP.forEach((key, index) => {
+    const floor = contrast(colors.ground, colors[key]);
+    assert.ok(floor >= MIN_FLOOR_STEP, `${key} has only ${floor.toFixed(2)}:1 against the floor`);
+    if (index >= RAMP.indexOf('hardwareFrame')) {
+      assert.ok(floor >= MIN_STRUCTURE_CONTRAST, `${key} has ${floor.toFixed(2)}:1 floor contrast`);
+    }
+    if (index) {
+      const step = contrast(colors[RAMP[index - 1]], colors[key]);
+      assert.ok(step >= MIN_NEIGHBOR_STEP, `${RAMP[index - 1]} -> ${key} step is only ${step.toFixed(2)}:1`);
+    }
+  });
+});
+
+test('Every Spatial material and instance color comes from the theme contract', () => {
+  const {api, colors} = spatial();
+  const palette = new Set(Object.values(colors));
+  // Tower plates blend between contract colors (untrained -> trained, scan sweep, gradient flash).
+  const blended = new Set(['61-chamfered-layers']);
+  const strays = new Map();
+  const note = (hex, where) => { if (!palette.has(hex)) strays.set(hex.toString(16).padStart(6, '0'), where); };
+  for (const stop of stops) {
+    api.update(position(stop.id), 1440 / 900, 1440);
+    api.scene.traverse(object => {
+      for (const material of [].concat(object.material || [])) {
+        if (material.color) note(material.color.getHex(), object.name || material.type);
+        if (material.emissive && material.emissive.getHex()) note(material.emissive.getHex(), (object.name || material.type) + ' emissive');
+      }
+      if (object.instanceColor && !blended.has(object.name)) {
+        const value = new THREE.Color();
+        for (let i = 0; i < object.count; i++) {
+          object.getColorAt(i, value); // r160 fills `value` in place
+          note(value.getHex(), (object.name || 'instanced') + ' @ ' + stop.id);
+        }
+      }
+    });
   }
+  assert.deepEqual([...strays], [], 'off-contract colors (hex -> first object)');
 });
 
 test('Semantic colors stay on token, attention, cache, tools and training/fault assemblies', () => {
