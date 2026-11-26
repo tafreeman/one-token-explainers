@@ -1616,6 +1616,17 @@ function resolveStoryConcept(){
 }
 addEventListener('hashchange',resolveStoryConcept);
 if(location.hash.startsWith('#concept='))addEventListener('load',resolveStoryConcept,{once:true});
+if(window.SuiteLinks){
+  const storySuiteState=()=>{
+    const stopIdx=opened&&pos>=0&&items[pos]?items[pos].s.i:(active>=0?active:-1);
+    if(stopIdx<0)return {};
+    const stopNum=stopIdx+1;
+    const stepKey=SuiteLinks.stageFromStop(stopNum);
+    return {stage:stepKey.split('.')[0],step:stepKey,pos:'step-'+stopNum,label:'Stop '+stopNum};
+  };
+  SuiteLinks.mountSuiteMenu(document.querySelector('.suite-home'),{currentPage:'story',getState:storySuiteState});
+  SuiteLinks.mountReturnChip(document.getElementById('storyReturnSlot'),'story');
+}
 window.__journey={get state(){return {active,opened,pos}},refresh:refreshHost};
 
 window.__tokenJourney = { DBG, setRM, setMode, jumpShot, layout: () => { needLayout = true; kick(); } };

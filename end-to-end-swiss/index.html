@@ -2556,16 +2556,17 @@ function resolveSwissConcept(){
 }
 const toBeam=$('#toBeamline');
 if(toBeam&&window.SuiteLinks){
+  const swissSuiteState=()=>{
+    const stage=gS>0.05?Math.max(1,Math.min(12,Math.round(gS)||1)):0;
+    return stage?{stage,step:gS.toFixed(1),pos:gS.toFixed(1),label:'Stage '+String(stage).padStart(2,'0')}:{};
+  };
   const syncBeamHref=()=>{
-    const beat=SuiteLinks.swissToBeamlineBeat(gS);
-    const p=new URLSearchParams();
-    if(beat&&beat!=='hero') p.set('beat',beat);
-    if(forceRM) p.set('rm','1');
-    toBeam.href='../end-to-end-beamline/index.html'+(p.toString()?'?'+p.toString():'');
+    toBeam.href=SuiteLinks.editionHref('swiss','beamline',{...swissSuiteState(),rm:forceRM});
   };
   toBeam.addEventListener('pointerdown',syncBeamHref);
   toBeam.addEventListener('focus',syncBeamHref);
   toBeam.addEventListener('click',syncBeamHref);
+  SuiteLinks.mountSuiteMenu($('.suite-home'),{currentPage:'swiss',getState:swissSuiteState});
   SuiteLinks.mountReturnChip($('#swissMastRight'),'swiss');
 }
 addEventListener('hashchange',resolveSwissConcept);

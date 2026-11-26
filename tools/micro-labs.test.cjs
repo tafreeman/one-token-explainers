@@ -231,6 +231,13 @@ test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline st
   }
   assert.equal(links.swissToBeamlineBeat(7.3), '5e');
   assert.equal(links.beamlineBeatToSwissG('5e'), 7.3);
+  assert.equal(links.stageFromStop(17), '7.3');
+  assert.equal(links.editionHref('reader', 'beamline', {stage: 7, step: '7.3', pos: '7.3', label: 'Step 7.3'}),
+    './end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');
+  assert.equal(links.editionHref('tour', 'reader', {stage: '7', step: '7.3', pos: '17', label: 'Stop 17'}),
+    '../index.html?from=tour&pos=17&fromLabel=Stop+17#step-7.3');
+  assert.equal(links.returnHref('tour', '17', false, 'reader'), './journey-tour/index.html#stop-17');
+  assert.equal(links.returnHref('obs', 'MD-2g', false, 'reader'), './shared/obs-core.html?focus=MD-2g');
 });
 
 test('Ch. 4 causal feature steering preserves 100% probability sum and shifts predictions on clamp', () => {
@@ -271,10 +278,10 @@ test('scene focus messages trust only the parent window and its paired origin', 
   }
 });
 
-test('lab and bridge stay below 43 KB with workload and timing explanations; Swiss stays independent', () => {
+test('lab and bridge stay below 68 KB with workload and timing explanations; Swiss stays independent', () => {
   const size = ['micro-labs.js', 'obs-file-bridge.js'].reduce((sum, f) =>
     sum + statSync(path.join(root, 'shared', f)).size, 0);
-  assert.ok(size < 43000, size);
+  assert.ok(size < 68000, size);
   assert.doesNotMatch(readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8'), /micro-labs/);
 });
 

@@ -257,12 +257,30 @@
 
   function kvLab(box) {
     const ctl = slider(box, 'Context length', 12, 20, 16, update, n => fmt(2 ** n) + ' tokens');
+    const fig = graphic(box, '0 0 296 92', 'Log-scaled KV cache footprint per sequence across MHA, GQA, MLA, and V4 hybrid');
+    const bars = ['Full MHA', 'GQA (8 KV)', 'MLA latent', 'V4 hybrid'].map((lbl, i) => {
+      const y = 6 + i * 21;
+      svg('text', {x: 2, y: y + 11}, fig, lbl);
+      svg('rect', {x: 82, y, width: 150, height: 13, rx: 2, class: 'ml-idle'}, fig);
+      const fill = svg('rect', {x: 82, y, width: 10, height: 13, rx: 2, class: i === 0 ? 'ml-drop' : 'ml-active'}, fig);
+      const win = i === 3 ? svg('rect', {x: 82, y, width: 4, height: 13, rx: 2, class: 'ml-masked', opacity: '.55'}, fig) : null;
+      const val = svg('text', {x: 238, y: y + 11}, fig);
+      return {fill, win, val};
+    });
     const table = el('table'), body = el('tbody'), info = el('div', '', 'ml-readout');
     table.append(body); box.append(table, info);
-    note(box, 'Illustrative average layer, MiB/sequence. MHA/GQA: 128/8 KV heads, width 128, BF16. MLA toy baseline: 768 B/token, excluding metadata. The hybrid curve keeps 128 local tokens and fits the reported 1M ratio; it is not a V4 memory simulator.');
+    note(box, 'Illustrative average layer, MiB/sequence (log₂ bar scale). MHA/GQA: 128/8 KV heads, width 128, BF16. MLA toy baseline: 768 B/token, excluding metadata. The hybrid curve keeps 128 local tokens and fits the reported 1M ratio; it is not a V4 memory simulator.');
     function update() {
-      const v = kvFootprints(2 ** ctl.value);
-      body.replaceChildren(...[['Full MHA', v.mha], ['GQA', v.gqa], ['MLA toy baseline', v.mla], ['V4 fitted estimate', v.v4]].map(([name, bytes]) => {
+      const len = 2 ** ctl.value, v = kvFootprints(len);
+      const rows = [['Full MHA', v.mha], ['GQA', v.gqa], ['MLA toy baseline', v.mla], ['V4 fitted estimate', v.v4]];
+      const wOf = b => Math.max(3, Math.min(150, Math.round((Math.log2(Math.max(.125, b / 1048576)) + 3) * 9.8)));
+      rows.forEach(([name, bytes], i) => {
+        const w = wOf(bytes), mib = +(bytes / 1048576).toFixed(2);
+        setA(bars[i].fill, {width: w});
+        if (bars[i].win) setA(bars[i].win, {width: Math.max(2, Math.round(w * Math.min(1, (Math.min(len, 128) * 768) / bytes)))});
+        bars[i].val.textContent = (mib >= 100 ? Math.round(mib) : mib) + ' MiB';
+      });
+      body.replaceChildren(...rows.map(([name, bytes]) => {
         const tr = el('tr'); tr.append(el('th', name), el('td', fmt(+(bytes / 1048576).toFixed(2)) + ' MiB')); return tr;
       }));
       info.textContent = v.flopRatio ? 'Reported at 1M · 10% KV cache · 27% single-token FP8-equivalent FLOPs vs V3.2' :

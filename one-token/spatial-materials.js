@@ -5,17 +5,18 @@
   const environments = new WeakMap();
 
   function create(THREE, theme, renderer) {
+    const hw = Boolean(renderer && !renderer.userData?.software);
     function canvasTexture(size, draw, color = false) {
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
       const context = canvas.getContext('2d'); draw(context, size);
       const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-      if (renderer) texture.anisotropy = renderer.userData?.software ? 1 : Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      if (renderer) texture.anisotropy = hw ? Math.min(16, renderer.capabilities.getMaxAnisotropy()) : 1;
       return texture;
     }
 
-    const brushed = canvasTexture(128, (g, size) => {
+    const brushed = canvasTexture(hw ? 256 : 128, (g, size) => {
       g.fillStyle = '#b8b8b8'; g.fillRect(0, 0, size, size);
       for (let y = 0; y < size; y++) {
         const value = 128 + ((y * 73) % 47);
@@ -26,22 +27,25 @@
     });
     brushed.repeat.set(1, 8);
 
-    const mineral = canvasTexture(128, (g, size) => {
+    const mineral = canvasTexture(hw ? 256 : 128, (g, size) => {
       g.fillStyle = '#b0b0b0'; g.fillRect(0, 0, size, size);
-      for (let i = 0; i < 900; i++) {
+      const count = hw ? 2400 : 900;
+      for (let i = 0; i < count; i++) {
         const x = (i * 47) % size, y = (i * 83) % size, v = 112 + (i * 29) % 80;
         g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x, y, 1, 1);
       }
     });
     mineral.repeat.set(3, 3);
 
-    const floorMap = canvasTexture(512, (g, size) => {
+    const floorMap = canvasTexture(hw ? 1024 : 512, (g, size) => {
       g.fillStyle = theme.css.ground; g.fillRect(0, 0, size, size);
-      g.strokeStyle = theme.css.line; g.globalAlpha = .42; g.lineWidth = 1.5;
-      g.strokeRect(.75, .75, size - 1.5, size - 1.5);
+      g.strokeStyle = theme.css.line; g.globalAlpha = .44; g.lineWidth = hw ? 2.4 : 1.5;
+      const inset = hw ? 1.2 : .75;
+      g.strokeRect(inset, inset, size - inset * 2, size - inset * 2);
       g.globalAlpha = .16;
-      for (let i = 0; i < 420; i++) {
-        const x = (i * 197) % size, y = (i * 313) % size, r = 1 + (i % 2.5);
+      const flecks = hw ? 960 : 420, scale = size / 512;
+      for (let i = 0; i < flecks; i++) {
+        const x = (i * 197 * scale) % size, y = (i * 313 * scale) % size, r = (1 + (i % 2.5)) * scale;
         g.fillStyle = i % 3 ? theme.css['hardware-deck'] : theme.css['hardware-plinth'];
         g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
       }

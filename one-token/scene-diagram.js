@@ -94,12 +94,15 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   }
   function rack(){
     const G=new THREE.Group();
-    G.add(at(box(0.14,12.6,0.14),-0.25,6.3,-1.65),at(box(0.14,12.6,0.14),-0.25,6.3,1.65));
+    G.add(at(box(0.14,12.8,0.14),-0.25,6.4,-1.68),at(box(0.14,12.8,0.14),-0.25,6.4,1.68),at(box(0.14,12.8,0.14),1.88,6.4,-1.68),at(box(0.14,12.8,0.14),1.88,6.4,1.68));
+    G.add(at(box(2.4,0.12,3.46,MAT.ink,MAT.edge),0.82,12.86,0));
     const sg=bg(2.3,0.06,3.3),SM=[];for(let k=0;k<12;k++) SM.push(mT(0.75,1+k,0));G.add(instFill(sg,SM),mergedEdges(sg,SM));
-    const cg=bg(0.12,0.68,2.5),BM=[],GM=[],DM=[];
+    // Paged block divider down the center of each shelf
+    const divPts=[];for(let k=0;k<12;k++){divPts.push(V(-0.2,1.04+k,0),V(1.85,1.04+k,0));}G.add(segs(divPts,MAT.ghost));
+    const cg=bg(0.14,0.68,2.5),BM=[],GM=[],DM=[];
     for(let k=0;k<12;k++){
       for(let s=0;s<3;s++) BM.push(mT(0.05+s*0.4,1.4+k,0));
-      GM.push(mT(1.25,1.4+k,0));
+      GM.push(mT(1.28,1.4+k,0));
       for(let s=0;s<4;s++) DM.push(mT(0.25+s*0.4,1.4+k,0));
     }
     const base=instFill(cg,BM,MAT.cache),baseE=mergedEdges(cg,BM),grow=instFill(cg,GM,MAT.cache),growE=mergedEdges(cg,GM);
@@ -148,7 +151,13 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const zs=[-4.2,-1.4,1.4,4.2],cnt=[9,11,7,8],SX=-8.5,PT=0.14,PS=0.24,FX=-1.4,CX=6.2;
     const pg=bg(2.6,PT,1.9),M=[];zs.forEach((z,s)=>{for(let k=0;k<cnt[s];k++) M.push(mT(SX,0.12+k*PS,z));});
     G.add(instFill(pg,M),mergedEdges(pg,M));
+    // Printed text-line markings on top of each source document stack
+    const docLines=[];zs.forEach((z,s)=>{const yTop=0.12+(cnt[s]-1)*PS+PT/2+0.01;for(let l=-2;l<=2;l++) docLines.push(V(SX-0.95,yTop,z+l*0.28),V(SX+(l===2?0.35:0.95),yTop,z+l*0.28));});
+    G.add(segs(docLines,MAT.ghost));
     G.add(at(box(0.24,6.2,0.24),FX,3.1,-5.1),at(box(0.24,6.2,0.24),FX,3.1,5.1),at(box(0.24,0.24,10.44),FX,6.3,0));
+    // Angled deduplication reject chute + bin beneath the filter sieve
+    const chute=box(1.5,0.08,2.2);chute.position.set(FX+0.68,-0.35,0);chute.rotation.z=-0.38;G.add(chute);
+    G.add(at(box(1.9,0.18,2.5,null,MAT.ghostDash),FX+1.35,-0.95,0));
     const gp=[];for(let i=1;i<8;i++){const z=-5+i*1.25;gp.push(V(FX,0,z),V(FX,6.2,z));}for(let j=1;j<5;j++){const y=j*1.24;gp.push(V(FX,y,-5),V(FX,y,5));}G.add(segs(gp));
     const cg=bg(3.2,PT,2.4),CM=[];for(let k=0;k<12;k++) CM.push(mT(CX,0.12+k*PS,0));
     const clean=instFill(cg,CM),cleanE=mergedEdges(cg,CM);G.add(clean,cleanE);
@@ -157,7 +166,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const hk=k=>{let n=3;for(let j=0;j<k;j++) if(!DUP.includes(j)) n++;return n;};
     function mpos(k,t){const [a,b,c]=sch(k);if(t<a) return null;const p0=V(SX,0.12+cnt[k%4]*PS+0.1,zs[k%4]),p1=V(FX,2.2+(k%3)*0.9,0);
       if(t<b){const u=ease((t-a)/(b-a));return {p:p0.lerp(p1,u).add(V(0,Math.sin(u*Math.PI)*1.2,0)),s:1};}
-      if(DUP.includes(k)){const u=ease((t-b)/(c-b));if(u>=1) return null;return {p:V(FX+0.7,lerp(p1.y,-1.2,u),0),s:1-0.7*u};}
+      if(DUP.includes(k)){const u=ease((t-b)/(c-b));if(u>=1) return null;return {p:V(FX+0.3+u*1.05,lerp(p1.y,-0.88,u),0),s:1-0.65*u};}
       const p2=V(CX,0.12+hk(k)*PS,0);if(t<c){const u=ease((t-b)/(c-b));return {p:p1.lerp(p2,u).add(V(0,Math.sin(u*Math.PI)*0.8,0)),s:1};}
       return null;}
     const TK=2,[ta,,tc]=sch(TK),s2=V(SX,0.12+cnt[2]*PS+0.14,zs[2]),rest=V(CX+2.7,0.45,0);
@@ -167,13 +176,13 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       shape:shp([[0,CUBE],[0.06,V(1.5,0.26,0.7)],[tc,V(1.5,0.26,0.7)],[0.64,CUBE]]),
       cams:[{t:0,c:cam(-10,0,-5.6,9.6,7.6,5.6,-26,22)}],
       labels:[
-        ['dedupe · quality · PII filters',V(FX,7.0,0),0.12,1],
-        ['filtered training mix',V(CX,3.9,0),0.4,1],
-        ['books',V(SX,0.12+cnt[2]*PS+0.9,zs[2]),0,0.6],
-        ['near-duplicates dropped',V(FX+0.9,-0.8,0),0.26,0.72],
-        ['web',V(SX,0.12+cnt[0]*PS+0.55,zs[0]),0,0.6],
-        ['code',V(SX,0.12+cnt[1]*PS+0.55,zs[1]),0,0.6],
-        ['papers + math',V(SX,0.12+cnt[3]*PS+0.55,zs[3]),0,0.6]
+        ['dedupe · quality · PII filters',V(FX,7.0,0),0.34,0.68],
+        ['filtered training mix',V(CX,3.9,0),0.66,1],
+        ['books',V(SX,0.12+cnt[2]*PS+0.9,zs[2]),0,0.36],
+        ['near-duplicates dropped',V(FX+1.35,-0.95,0),0.36,0.68],
+        ['web',V(SX,0.12+cnt[0]*PS+0.55,zs[0]),0,0.36],
+        ['code',V(SX,0.12+cnt[1]*PS+0.55,zs[1]),0,0.36],
+        ['papers + math',V(SX,0.12+cnt[3]*PS+0.55,zs[3]),0,0.36]
       ]
     };
   });
@@ -181,28 +190,33 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   // 02 TOKENS (includes '␣Eiffel' matching “…the Eiffel Tower is in Paris.”)
   station(1,G=>{
     const BX=-2.4;blade(G,BX);
+    // Graduated BPE caliper ticks on cutter header
+    const bpeTicks=[];for(let i=-3;i<=3;i++) bpeTicks.push(V(BX+0.51,2.8,i*0.28),V(BX+0.51,3.1,i*0.28));G.add(segs(bpeTicks,MAT.edge));
     const W=[0.95,1.45,1.45,0.72,0.72,1.65,0.46],WORDS=['the','␣Eiffel','␣Tower','␣is','␣in','','“.”'],TI=5;
     const C=cutter(G,{BX,W,gap:0.14,ti:TI,row0:-1.8});
-    const cOf=t=>lin(t,0.06,0.4)*1.22;
+    const cOf=t=>lin(t,0.03,0.35)*1.22;
     const cg=bg(0.3,0.3,0.3),VM=[];for(let c=0;c<28;c++) for(let r=0;r<9;r++) VM.push(mT(-1.8+c*0.42,2.4+r*0.42,-4.6));
     const wall=instFill(cg,VM),wallE=mergedEdges(cg,VM,MAT.ghost);G.add(wall,wallE);
-    const cell=V(-1.8+17*0.42,2.4+5*0.42,-4.6),cellB=at(box(0.34,0.34,0.34,MAT.ink),cell.x,cell.y,cell.z);G.add(cellB);
+    // Architectural vocabulary matrix frame + coordinate crosshair on ID 12842
+    G.add(at(box(12.1,4.05,0.12,null,MAT.edge),3.87,4.08,-4.66));
+    const cell=V(-1.8+17*0.42,2.4+5*0.42,-4.6),cellB=at(box(0.38,0.38,0.38,MAT.ink),cell.x,cell.y,cell.z);G.add(cellB);
+    const xhair=segs([V(-2.15,cell.y,-4.42),V(9.9,cell.y,-4.42),V(cell.x,2.08,-4.42),V(cell.x,6.08,-4.42)],MAT.ghostDash);G.add(xhair);
     const slotP=V(C.slot[TI],0.5,0);const conn=polyline([slotP.clone().add(V(0,0.55,0)),cell]);G.add(conn);
     const IX=3.0,IZ=4.4;G.add(at(box(2.6,0.08,2.6),IX,0.04,IZ));
     const ig=[];for(let k=1;k<4;k++){const d=-1.3+k*0.65;ig.push(V(IX+d,0.09,IZ-1.3),V(IX+d,0.09,IZ+1.3),V(IX-1.3,0.09,IZ+d),V(IX+1.3,0.09,IZ+d));}G.add(segs(ig));
     const patches=[0,1,2,3].map(k=>{const b=box(0.6,0.08,0.6);b.position.set(IX-0.975+k*0.65,0.12,IZ-0.325);G.add(b);return b;});
     return {
-      update(t){const c=cOf(t);C.update(c);cellB.visible=t>0.42&&t<0.9;conn.visible=t>0.42&&t<0.9;
-        const u=seg(t,0.66,0.86);patches.forEach((b,k)=>{const p0=V(IX-0.975+k*0.65,0.12,IZ-0.325),p1=V(6.4+k*0.55,1.1,IZ);b.position.copy(p0.lerp(p1,u));b.scale.set(lerp(1,0.37,u),lerp(1,22,u),lerp(1,0.37,u));});},
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:C.tokPos(0)},{t:0.4,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.5,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.9,p:slotP},{t:1,p:V(12,0.45,0)}]),
-      shape:t=>{if(t<0.06) return CUBE.clone().lerp(C.tokShape(0),ease(t/0.06));if(t<0.9) return C.tokShape(cOf(t));return C.tokShape(2).lerp(CUBE,ease((t-0.9)/0.1));},
+      update(t){const c=cOf(t);C.update(c);const vocOn=t>0.35&&t<0.9;cellB.visible=vocOn;conn.visible=vocOn;xhair.visible=vocOn;
+        const u=seg(t,0.64,0.84);patches.forEach((b,k)=>{const p0=V(IX-0.975+k*0.65,0.12,IZ-0.325),p1=V(6.4+k*0.55,1.1,IZ);b.position.copy(p0.lerp(p1,u));b.scale.set(lerp(1,0.37,u),lerp(1,22,u),lerp(1,0.37,u));});},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.04,p:C.tokPos(0)},{t:0.35,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.5,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.9,p:slotP},{t:1,p:V(12,0.45,0)}]),
+      shape:t=>{if(t<0.04) return CUBE.clone().lerp(C.tokShape(0),ease(t/0.04));if(t<0.9) return C.tokShape(cOf(t));return C.tokShape(2).lerp(CUBE,ease((t-0.9)/0.1));},
       cams:[{t:0,c:cam(-11.2,0,-4.9,10.2,6.9,5.2,-24,20)}],
       labels:[
-        ['byte-level BPE',V(BX,3.7,0),0.04,0.42],
-        ['vocabulary · 129,280 tokens*',V(-1.8,6.4,-4.6),0.4,0.68],
-        ['ID 12842 (illustrative)',cell.clone().add(V(0.3,0.1,0)),0.44,0.68],
-        ['image → patches → vectors',V(IX+2.2,2.4,IZ),0.66,0.95],
-        ...[0,1,2,3,4,6].map(i=>[WORDS[i],t=>{const p=C.piece(i,cOf(t));return p?p.add(V(0,0.8+(i%2)*0.32,0)):V(-99,-99,0);},0.2,0.68])
+        ['byte-level BPE',V(BX,3.7,0),0.04,0.36],
+        ['vocabulary · 129,280 tokens*',V(-1.8,6.4,-4.6),0.36,0.68],
+        ['ID 12842 (illustrative)',cell.clone().add(V(0.3,0.1,0)),0.42,0.68],
+        ['image → patches → vectors',V(IX+2.2,2.4,IZ),0.68,0.98],
+        ...[0,1,2,3,4,6].map(i=>[WORDS[i],t=>{const p=C.piece(i,cOf(t));return p?p.add(V(0,0.8+(i%2)*0.32,0)):V(-99,-99,0);},0.18,0.66])
       ]
     };
   });
@@ -213,29 +227,29 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const fg=bg(0.62,0.16,0.62),FM=[];for(let a=0;a<10;a++) for(let b=0;b<10;b++){const x=-4.95+a*1.1,z=-4.95+b*1.1;if(Math.abs(x)<3.4&&Math.abs(z)<3.4) continue;FM.push(mT(x,0.08,z));}
     G.add(instFill(fg,FM),mergedEdges(fg,FM,MAT.ghost));
     const B=[];for(let k=0;k<8;k++){if(k===5){B.push(null);continue;}const b=box(0.42,0.42,0.42);G.add(b);B.push(b);}
-    const bpos=(k,t)=>{const p0=V(-11+k*0.62,0.21,0),p1=V(-1.75+k*0.5,0.95,0),p2=V(-1.75+k*0.5,T.top-0.25,0);if(t<0.05) return p0;if(t<0.15) return p0.lerp(p1,seg(t,0.05,0.15));return p1.lerp(p2,seg(t,0.15,0.36));};
+    const bpos=(k,t)=>{const p0=V(-11+k*0.62,0.21,0),p1=V(-1.75+k*0.5,0.95,0),p2=V(-1.75+k*0.5,T.top-0.25,0);if(t<0.04) return p0;if(t<0.12) return p0.lerp(p1,seg(t,0.04,0.12));return p1.lerp(p2,seg(t,0.12,0.29));};
     const ring=torus(0.8,0.06);ring.rotation.x=Math.PI/2;ring.position.set(0,T.top+0.9,0);G.add(ring);
     const GX=3.3,gl=polyline([V(GX,T.top,0),V(GX,0.9,0)]);G.add(gl);
     const pulses=[0,1,2].map(()=>{const b=box(0.22,0.22,0.22,MAT.ink,null);G.add(b);return b;});
     const ruler=box(1,0.12,0.36);G.add(ruler);
     const tk=[];for(let k=0;k<=16;k++){const x=-5+k*0.7;tk.push(V(x,0.12,4.6),V(x,0.5,4.6));}const ticksL=segs(tk,MAT.edge);G.add(ticksL);
-    const Lr=t=>lerp(0.7,11.2,seg(t,0.82,0.95));
+    const Lr=t=>lerp(0.7,11.2,seg(t,0.76,0.94));
     return {
-      update(t){B.forEach((b,k)=>{if(!b) return;b.visible=t<0.38;b.position.copy(bpos(k,t));});
-        T.solid(t<0.15?0:61*lin(t,0.15,0.36));
-        ring.visible=t>0.34;const gv=t>0.38&&t<0.8;gl.visible=gv;pulses.forEach((p,k)=>{p.visible=gv;const f=((t-0.38)*7+k/3)%1;p.position.set(GX,T.top-f*(T.top-0.9),0);});
-        const L=Lr(t);ruler.visible=t>0.76;ruler.scale.x=L;ruler.position.set(-5+L/2,0.06,4.6);ticksL.visible=t>0.76;ticksL.geometry.setDrawRange(0,2*(1+Math.floor(L/0.7+0.001)));},
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.05,p:bpos(5,0)},{t:0.36,f:t=>bpos(5,t)},{t:0.4,p:V(0,T.top+0.9,0)},{t:0.76,p:V(0,T.top+0.9,0)},{t:0.82,p:V(-4.6,0.5,4.6)},{t:0.95,f:t=>V(-5+Lr(t),0.5,4.6)},{t:1,p:V(12,0.45,0)}]),
-      shape:shp([[0,CUBE],[0.05,V(0.62,0.62,0.62)],[0.36,V(0.62,0.62,0.62)],[0.4,CUBE]]),
-      cams:[{t:0,c:cam(-11.6,0,-5.6,5.6,15,5.6,-28,16)},{t:0.36,c:cam(-5.6,0,-5.6,5.6,15.4,5.6,-28,16)},{t:0.78,c:cam(-6,0,-3.5,7,8,5.2,-24,20)}],
+      update(t){B.forEach((b,k)=>{if(!b) return;b.visible=t<0.32;b.position.copy(bpos(k,t));});
+        T.solid(t<0.10?0:61*lin(t,0.10,0.28));
+        ring.visible=t>0.27;const gv=t>0.50&&t<0.76;gl.visible=gv;pulses.forEach((p,k)=>{p.visible=gv;const f=((t-0.50)*7+k/3)%1;p.position.set(GX,T.top-f*(T.top-0.9),0);});
+        const L=Lr(t);ruler.visible=t>0.74;ruler.scale.x=L;ruler.position.set(-5+L/2,0.06,4.6);ticksL.visible=t>0.74;ticksL.geometry.setDrawRange(0,2*(1+Math.floor(L/0.7+0.001)));},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.04,p:bpos(5,0)},{t:0.29,f:t=>bpos(5,t)},{t:0.33,p:V(0,T.top+0.9,0)},{t:0.74,p:V(0,T.top+0.9,0)},{t:0.77,p:V(-4.3,0.5,4.6)},{t:0.95,f:t=>V(-5+Lr(t),0.5,4.6)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.04,V(0.62,0.62,0.62)],[0.29,V(0.62,0.62,0.62)],[0.33,CUBE]]),
+      cams:[{t:0,c:cam(-11.6,0,-5.6,5.6,15,5.6,-28,16)},{t:0.29,c:cam(-5.6,0,-5.6,5.6,15.4,5.6,-28,16)},{t:0.76,c:cam(-6,0,-3.5,7,8,5.2,-24,20)}],
       labels:[
-        ['tower · 61 layers*',V(-3.2,9.5,0),0.08,0.4],
-        ['loss = −log p(“ Paris”)',V(0.9,T.top+1.5,0),0.36,0.62],
-        ['gradients flow through active computation',V(GX+0.3,8,0),0.42,0.8],
-        ['1,048,576 · YaRN ×16*',t=>V(-5+Lr(t),0.9,4.6),0.86,1],
-        ['65,536',V(-5,0.9,4.6),0.8,1],
-        ['causal mask: position n sees ≤ n',V(-3.2,5.0,0),0.14,0.36],
-        ['accelerator cluster',V(-5,0.2,5),0,0.3]
+        ['tower · 61 layers*',V(-3.2,9.5,0),0.05,0.29],
+        ['loss = −log p(“ Paris”)',V(0.9,T.top+1.5,0),0.29,0.52],
+        ['gradients flow through active computation',V(GX+0.3,8,0),0.52,0.76],
+        ['1,048,576 · YaRN ×16*',t=>V(-5+Lr(t),0.9,4.6),0.76,1],
+        ['65,536',V(-5,0.9,4.6),0.76,0.88],
+        ['causal mask: position n sees ≤ n',V(-3.2,5.0,0),0.12,0.29],
+        ['accelerator cluster',V(-5,0.2,5),0,0.24]
       ]
     };
   });
@@ -257,20 +271,19 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const feed=polyline([V(6.4,3.4,-8.2),V(6.4,6.1,-5.25)],MAT.dash);G.add(feed);
     return {
       update(t){sft.forEach((b,k)=>{const a=0.03+k*0.04,u=seg(t,a,a+0.09);b.visible=u<0.999;b.position.set(lerp(-11,PX,u),lerp(0.1+k*0.2,0.9,u),lerp(3.2,0,u));});
-        curves.forEach((c,k)=>{const pass=PASS.includes(k),g=t>0.52;const r=seg(t,0.28+k*0.012,0.42+k*0.012);if(g&&!pass){solid[k].visible=false;dashed[k].visible=true;}else{dashed[k].visible=false;reveal(solid[k],r);}
+        curves.forEach((c,k)=>{const pass=PASS.includes(k),g=t>0.42;const r=seg(t,0.22+k*0.01,0.34+k*0.01);if(g&&!pass){solid[k].visible=false;dashed[k].visible=true;}else{dashed[k].visible=false;reveal(solid[k],r);}
           graders[k].userData.mesh.material=(g&&pass)?MAT.ink:MAT.paper;});
-        feed.visible=t>0.54&&t<0.82;tether.visible=t>0.7;},
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(-11,1.15,3.2)},{t:0.16,p:V(PX,1.0,0)},{t:0.28,p:A.clone()},{t:0.3,p:A.clone()},{t:0.46,f:t=>curves[2].getPoint(lin(t,0.3,0.46))},{t:0.5,p:gp(2).add(V(0,0.95,0))},{t:0.74,p:gp(2).add(V(0,0.95,0))},{t:0.86,p:V(7.6,0.45,0)},{t:1,p:V(12,0.45,0)}]),
-      shape:shp([[0,CUBE],[0.06,V(0.55,0.55,0.55)],[0.3,V(0.55,0.55,0.55)],[0.5,V(0.6,0.6,0.6)],[0.86,CUBE]]),
+        feed.visible=t>0.51&&t<0.77;tether.visible=t>0.74;},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(-11,1.15,3.2)},{t:0.16,p:V(PX,1.0,0)},{t:0.24,p:A.clone()},{t:0.26,p:A.clone()},{t:0.42,f:t=>curves[2].getPoint(lin(t,0.26,0.42))},{t:0.46,p:gp(2).add(V(0,0.95,0))},{t:0.74,p:gp(2).add(V(0,0.95,0))},{t:0.86,p:V(7.6,0.45,0)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.06,V(0.55,0.55,0.55)],[0.26,V(0.55,0.55,0.55)],[0.46,V(0.6,0.6,0.6)],[0.86,CUBE]]),
       cams:[{t:0,c:cam(-12.2,0,-8.6,7.6,15,5.8,-30,20)}],
       labels:[
-        ['SFT · worked demonstrations',V(-11,2.0,3.2),0,0.24],
-        ['policy samples a group of 8 (illustrative)',V(0.6,T.top+3.3,0),0.28,0.52],
-        ['verifiers: tests pass · answer matches',V(6.4,8.0,-5.25),0.46,0.74],
-        ['constitution → AI feedback',V(6.4,3.7,-8.2),0.54,0.82],
-        ['frozen reference model',V(-10.5,R.top*0.6+0.7,-5.5),0.7,1],
-        ['KL penalty',V(-7.2,T.top*0.82,-2.8),0.72,1],
-        ['filled = above the group mean',V(6.4,7.6,5.6),0.52,0.74]
+        ['SFT · worked demonstrations',V(-11,2.0,3.2),0,0.28],
+        ['policy samples a group of 8 (illustrative)',V(0.6,T.top+3.3,0),0.29,0.43],
+        ['verifiers: tests pass · answer matches',V(6.4,8.0,-5.25),0.43,0.52],
+        ['constitution → AI feedback',V(6.4,3.7,-8.2),0.52,0.76],
+        ['frozen reference model',V(-10.5,R.top*0.6+0.7,-5.5),0.76,1],
+        ['KL penalty',V(-7.2,T.top*0.82,-2.8),0.76,1]
       ]
     };
   });
@@ -302,7 +315,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const BX=-0.6;blade(G,BX);
     const W=[...Array(8).fill(0.48),0.62,0.36,0.52,1.0,0.44,1.0,0.7,0.62,0.32],TI=13;
     const C=cutter(G,{BX,W,gap:0.07,ti:TI,row0:0.0,hideRib:true});
-    const cOf=t=>lin(t,0.32,0.62)*1.22;
+    const cOf=t=>lin(t,0.48,0.72)*1.22;
     const R0=BX-C.total;
     const slabs=[['tools',4.4,R0,2.1],['system',3.1,R0+2.2,2.1],['messages',1.8,R0+4.37,C.total-4.37]].map(([name,y,x0,len],idx)=>{
       const b=box(1,0.9,0.22);
@@ -316,7 +329,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       }
       return {name,b,dbl,pre:V(-9.4,y,0),post:V(x0+len/2,0.95,0),len};
     });
-    const slabAt=(s,t)=>{const u=seg(t,0.1,0.3);return {p:s.pre.clone().lerp(s.post,u),len:lerp(3.0,s.len,u)};};
+    const slabAt=(s,t)=>{const u=seg(t,0.08,0.28);return {p:s.pre.clone().lerp(s.post,u),len:lerp(3.0,s.len,u)};};
     const slotP=V(C.slot[TI],0.5,0);
     const px=C.slot[7]+0.24;
     const brMiss=polyline([V(0,1.45,0),V(0,1.62,0),V(px,1.62,0),V(px,1.45,0)],MAT.ghostDash);G.add(brMiss);
@@ -329,32 +342,32 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     // Prefill sweep indicator across either uncached suffix (hit) or entire stack (miss)
     const suf0=C.slot[8]-W[8]/2, rowEnd=C.slot[W.length-1]+W[W.length-1]/2;
     const sweep=box(0.08,1.25,1.3,MAT.ink,null);G.add(sweep);
-    const msgTok=t=>{const pre=V(-8.9,1.8,0.14),post=C.ribStart();return pre.lerp(post,seg(t,0.1,0.3));};
+    const msgTok=t=>{const pre=V(-8.9,1.8,0.14),post=C.ribStart();return pre.lerp(post,seg(t,0.08,0.28));};
     return {
       update(t){
         const hit=CACHE_MODE==='hit';
         slabs.forEach(s=>{
           const a=slabAt(s,t);
-          s.b.visible=t<0.32;
+          s.b.visible=t<0.48;
           s.b.position.copy(a.p);
           s.b.scale.x=a.len;
           if(s.dbl){
-            s.dbl.visible=hit&&t<0.32;
+            s.dbl.visible=hit&&t<0.48;
             s.dbl.position.copy(a.p);
             s.dbl.scale.x=a.len;
           }
         });
         C.rib.visible=false;
         C.update(cOf(t));
-        if(t>=0.32&&cOf(t)<1){
+        if(t>=0.48&&cOf(t)<1){
           const len=Math.max(0.001,C.total*(1-Math.min(cOf(t),1)));
           C.rib.visible=true;C.rib.scale.x=len;C.rib.position.set(BX-len/2,0.95,0);
         }
-        brHit.visible=hit&&t>0.62;
-        brMiss.visible=!hit&&t>0.62;
+        brHit.visible=hit&&t>0.74;
+        brMiss.visible=!hit&&t>0.74;
         // Animate prefill sweep: fast-forward to suffix on hit, full prompt stack on miss
-        const su=lin(t,0.68,0.92);
-        const swOn=t>0.68&&t<0.93;
+        const su=lin(t,0.77,0.94);
+        const swOn=t>0.77&&t<0.95;
         sweep.visible=swOn;
         if(swOn){
           const x0=hit?suf0:0;
@@ -369,16 +382,16 @@ const lerp=(a,b,u)=>a+(b-a)*u;
           b.userData.mesh.material=passed?MAT.ink:MAT.paper;
         });
       },
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.08,p:V(-8.9,1.8,0.14)},{t:0.3,f:t=>msgTok(t)},{t:0.32,f:()=>C.ribStart()},{t:0.7,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.88,p:slotP},{t:1,p:V(12,0.45,0)}]),
-      shape:t=>{if(t<0.08) return CUBE.clone().lerp(V(0.9,0.5,0.24),ease(t/0.08));if(t<0.32) return V(0.9,0.5,0.24);if(t<0.88) return C.tokShape(cOf(t));return C.tokShape(2).lerp(CUBE,ease((t-0.88)/0.12));},
-      cams:[{t:0,c:cam(-11.6,0,-1,1.2,5.2,1,-20,22)},{t:0.34,c:cam(-11.6,0,-1.2,11,4,1.2,-20,22)},{t:0.62,c:cam(-1.4,0,-1.2,11,3.2,1.2,-20,22)}],
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(-8.9,1.8,0.14)},{t:0.28,f:t=>msgTok(t)},{t:0.48,f:()=>C.ribStart()},{t:0.74,f:t=>C.tokPos(cOf(t))||slotP.clone()},{t:0.9,p:slotP},{t:1,p:V(12,0.45,0)}]),
+      shape:t=>{if(t<0.06) return CUBE.clone().lerp(V(0.9,0.5,0.24),ease(t/0.06));if(t<0.48) return V(0.9,0.5,0.24);if(t<0.9) return C.tokShape(cOf(t));return C.tokShape(2).lerp(CUBE,ease((t-0.9)/0.1));},
+      cams:[{t:0,c:cam(-11.6,0,-1,1.2,5.2,1,-20,22)},{t:0.48,c:cam(-11.6,0,-1.2,11,4,1.2,-20,22)},{t:0.74,c:cam(-1.4,0,-1.2,11,3.2,1.2,-20,22)}],
       labels:[
-        ['render order = cache order',V(R0+2,2.2,0),0.14,0.34],
-        ['same tokenizer as training',V(BX,3.7,0),0.32,0.62],
-        [()=>CACHE_MODE==='hit'?'eligible prefix read · $0.20 / MTok (doubled)':'eligible prefix write · $10 / MTok (5m)',V(px/2,2.7,0),0.62,1],
-        ['prefix: tools + system',V(px/2,2.1,0),0.62,1],
-        ['same ID as in stage 2',slotP.clone().add(V(0.4,1.6,0)),0.58,0.86],
-        ...slabs.map(s=>[s.name,t=>slabAt(s,t).p.add(V(0,0.75,0)),0,0.32])
+        ['render order = cache order',V(R0+2,2.2,0),0.28,0.48],
+        ['same tokenizer as training',V(BX,3.7,0),0.48,0.74],
+        [()=>CACHE_MODE==='hit'?'eligible prefix read · $0.20 / MTok (doubled)':'eligible prefix write · $10 / MTok (5m)',V(px/2,2.7,0),0.74,1],
+        ['prefix: tools + system',V(px/2,2.1,0),0.74,1],
+        ['same ID as in stage 2',slotP.clone().add(V(0.4,1.6,0)),0.64,0.74],
+        ...slabs.map(s=>[s.name,t=>slabAt(s,t).p.add(V(0,0.75,0)),0,0.28])
       ]
     };
   });
@@ -387,59 +400,98 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   station(6,G=>{
     const T=tower();G.add(T.G);
     const LA=10, LM=17, yA=T.layerY(LA), yM=T.layerY(LM);
-    const layerIdx7=t=>t<0.44?LA:t<0.48?lerp(LA,LM,seg(t,0.44,0.48)):LM;
+    // Align exactly with stops-manifest.js Stage 7 boundaries: 7.1=0.06, 7.2=0.248, 7.3=0.436, 7.4=0.624, 7.5=0.812
+    const layerIdx7=t=>t<0.41?LA:t<0.435?lerp(LA,LM,seg(t,0.41,0.435)):LM;
     const act=at(box(5.5,0.1,5.5),0,yA,0);G.add(act);
     const EX=-9,EZ=-4.4,EG=new THREE.Group();G.add(EG);
     EG.add(at(box(3.2,6,1.4),EX,3,EZ));
-    const rl=[];for(let k=1;k<24;k++){const y=k*0.25;rl.push(V(EX-1.6,y,EZ+0.71),V(EX+1.6,y,EZ+0.71));}EG.add(segs(rl));
-    const row=box(3.2,0.24,1.4);G.add(row);
+    // 2D embedding matrix grid: row rulings + hidden-channel column rulings
+    const rl=[];for(let k=1;k<24;k++){const y=k*0.25;rl.push(V(EX-1.6,y,EZ+0.71),V(EX+1.6,y,EZ+0.71));}
+    for(let c=-3;c<=3;c++) rl.push(V(EX+c*0.42,0.02,EZ+0.71),V(EX+c*0.42,5.98,EZ+0.71));
+    EG.add(segs(rl));
+    const row=new THREE.Group();
+    row.add(box(3.2,0.24,1.4));
+    const rowCells=[];for(let c=-5;c<=5;c++) rowCells.push(V(c*0.26,-0.12,0.71),V(c*0.26,0.12,0.71));
+    row.add(segs(rowCells,MAT.edge));
+    G.add(row);
     const AZ=3.2,AG=new THREE.Group();G.add(AG);
+    // Context sequence rail beneath compressed blocks, local window, and masked future
+    AG.add(at(polyline([V(-13.1,yA-0.38,AZ),V(5.2,yA-0.38,AZ)],MAT.ghost),0,0,0));
     const blocks=[-12.2,-10.6,-9.0,-7.4].map((x,k)=>{
       const sel=k===0||k===2;
       const b=box(1.3,0.7,0.7,MAT.ink,MAT.edge);
+      // Multi-slice compression ribs showing 4:1 compressed history summary
+      const ribs=segs([V(-0.32,-0.35,0.36),V(-0.32,0.35,0.36),V(0,-0.35,0.36),V(0,0.35,0.36),V(0.32,-0.35,0.36),V(0.32,0.35,0.36)],MAT.ghost);
+      b.add(ribs);
       at(b,x,yA,AZ);AG.add(b);
       return {x,sel,b};
     });
     const win=[-6.1,-5.4,-4.7,-4.0,-3.3];
     const winBoxes=win.map(x=>{const b=at(box(0.56,0.56,0.56),x,yA,AZ);AG.add(b);return b;});
     [3.4,4.1,4.8].forEach(x=>AG.add(at(hollowTile(0.56,0.56,0.56),x,yA,AZ)));
+    // RoPE rotary phase ring around the query origin
+    const ropePts=[];for(let a=0;a<=32;a++){const th=a/32*Math.PI*2;ropePts.push(V(Math.cos(th)*0.85,yA+0.28,Math.sin(th)*0.85));}
+    AG.add(polyline(ropePts,MAT.cacheLine));
     const src=V(0,yA+0.3,0);
     const sparseTargets=[...blocks.filter(o=>o.sel).map(o=>V(o.x,yA+0.36,AZ)),...win.map(x=>V(x,yA+0.3,AZ))];
     const arcs=sparseTargets.map((p,k)=>{const l=curveLine(bez(src,p,2.2+k*0.14),MAT.attention);AG.add(l);return l;});
     const denseTargets=blocks.filter(o=>!o.sel).map(o=>V(o.x,yA+0.36,AZ));
     const denseArcs=denseTargets.map((p,k)=>{const l=curveLine(bez(src,p,2.6+k*0.22),MAT.attention);AG.add(l);return l;});
     const attentionSignals=connectionSignals(AG,arcs.length+denseArcs.length,colors.attention);
-    AG.add(at(box(0.08, 1.1, 0.98, MAT.fault), 2.95, yA + 0.22, AZ));
+    // Stepped Causal Mask barrier + top stop-bracket over future tokens
+    AG.add(at(box(0.14, 1.28, 1.08, MAT.fault), 2.95, yA + 0.26, AZ));
+    AG.add(at(box(2.15, 0.08, 0.72, MAT.fault), 3.98, yA + 0.86, AZ));
     AG.add(polyline([V(0.3,yA+0.25,0.4),V(3.1,yA+0.25,AZ)],MAT.ghostDash));
     const MG=new THREE.Group();G.add(MG);
     const epos=a=>{const ang=a/384*Math.PI*2;return V(Math.cos(ang)*4.95,yM,Math.sin(ang)*4.95);};
     const dial=[];for(let a=0;a<384;a++){const ang=a/384*Math.PI*2,c=Math.cos(ang),s=Math.sin(ang),r0=a%32===0?4.4:4.68;dial.push(V(c*r0,yM,s*r0),V(c*5.24,yM,s*5.24));}MG.add(segs(dial,MAT.ghost));
     const SEL=[27,120,189,264,303,357];
-    const sel=SEL.map(a=>{const b=box(0.42,0.42,0.42,MAT.ink);b.position.copy(epos(a));MG.add(b);return b;});
-    MG.add(at(box(0.9,0.9,0.9,MAT.ink),0,yM,-3.4));
+    // Stepped FFN expert housings (narrow waist + wider intermediate slab) + upper weighted-sum merge collar
+    const sel=SEL.map(a=>{
+      const g=new THREE.Group();
+      g.add(box(0.36,0.52,0.36,MAT.ink),box(0.56,0.22,0.56,MAT.paper,MAT.edge));
+      g.position.copy(epos(a));MG.add(g);return g;
+    });
+    const sharedExp=new THREE.Group();
+    sharedExp.add(box(0.72,0.92,0.72,MAT.ink),box(0.98,0.34,0.98,MAT.cache,MAT.edge));
+    at(sharedExp,0,yM,-3.4);MG.add(sharedExp);
     const router=torus(0.55,0.07);router.rotation.x=Math.PI/2;router.position.y=yM;MG.add(router);
-    const elines=SEL.map(a=>{const p=epos(a);p.y+=0.5;const l=polyline([V(0,yM,0),p]);MG.add(l);return l;});
-    MG.add(polyline([V(0,yM,0),V(0,yM,-3.4)]));
+    const mergeCollar=torus(0.42,0.05);mergeCollar.rotation.x=Math.PI/2;mergeCollar.position.y=yM+1.15;MG.add(mergeCollar);
+    const elines=SEL.map(a=>{const p=epos(a);p.y+=0.35;const l=polyline([V(0,yM,0),p]);MG.add(l);return l;});
+    const mlines=SEL.map(a=>{const p=epos(a);p.y+=0.48;const l=curveLine(bez(p,V(0,yM+1.15,0),0.65),MAT.cacheLine);MG.add(l);return l;});
+    MG.add(polyline([V(0,yM,0),V(0,yM,-3.4)]),curveLine(bez(V(0,yM+0.48,-3.4),V(0,yM+1.15,0),0.7),MAT.cacheLine));
+    // 4-stream mHC conduits + mixing collars revealed during Step 7.4 (0.624..0.812)
+    const MHC=new THREE.Group();G.add(MHC);
+    const mhcPts=[];
+    for(const [dx,dz] of [[-0.36,-0.36],[0.36,-0.36],[-0.36,0.36],[0.36,0.36]]) mhcPts.push(V(dx,0.8,dz),V(dx,T.top+0.2,dz));
+    MHC.add(segs(mhcPts,MAT.attention));
+    for(let cy=2.4;cy<T.top-0.4;cy+=2.2) MHC.add(at(box(0.92,0.08,0.92,MAT.cache,MAT.edge),0,cy,0));
     const yH=T.top+0.5,NB=36,H=[],H2=[];for(let k=0;k<NB;k++){const r=Math.abs(Math.sin(k*12.9898)*43758.5453)%1;H.push(0.12+r*0.55);}H[23]=3.0;H[9]=2.1;H[30]=1.5;H[15]=1.05;
     for(let k=0;k<18;k++){const r=Math.abs(Math.sin(k*78.233)*12345.678)%1;H2.push(0.08+r*0.35);}H2[7]=1.4;H2[12]=0.8;
     const bgeo=bg(0.2,1,0.2),bars=new THREE.InstancedMesh(bgeo,MAT.ink,NB),mtp=new THREE.InstancedMesh(bgeo,MAT.mid,18);bars.frustumCulled=false;mtp.frustumCulled=false;G.add(bars,mtp);
+    const normCrown=torus(0.68,0.055);normCrown.rotation.x=Math.PI/2;normCrown.position.y=T.top+0.26;G.add(normCrown);
     const m4=new THREE.Matrix4(),sc=V(),q=new THREE.Quaternion();
     function setBars(u){for(let k=0;k<NB;k++){const h=Math.max(0.02,H[k]*u);m4.compose(V(-4.2+k*0.24,yH+h/2,0),q,sc.set(1,h,1));bars.setMatrixAt(k,m4);}bars.instanceMatrix.needsUpdate=true;for(let k=0;k<18;k++){const h=Math.max(0.02,H2[k]*u);m4.compose(V(-2.1+k*0.24,yH+h/2,-1.4),q,sc.set(1,h,1));mtp.setMatrixAt(k,m4);}mtp.instanceMatrix.needsUpdate=true;}
     const topBar=V(-4.2+23*0.24,yH+3.0+0.6,0);
     return {
       update(t){
-        EG.visible=t<0.23;
-        row.visible=t<0.19;const ru=seg(t,0.06,0.16);row.position.set(lerp(EX,-4.4,ru),3.6,lerp(EZ,-1.2,ru));
-        // Synchronize cutaway top, act highlight plate, MG ring, and HUD on exact layer 18 (index 17) during Step 7.3
-        const li=layerIdx7(t);
+        const in71=activeStepId?activeStepId==='7.1':(t<0.235);
+        const in72=activeStepId?activeStepId==='7.2':(t>=0.235&&t<0.436);
+        const in73=activeStepId?activeStepId==='7.3':(t>=0.436&&t<0.624);
+        const in74=activeStepId?activeStepId==='7.4':(t>=0.624&&t<0.812);
+        const in75=activeStepId?activeStepId==='7.5':(t>=0.812);
+        EG.visible=in71;
+        row.visible=in71&&t<0.21;const ru=seg(t,0.04,0.16);row.position.set(lerp(EX,-4.4,ru),3.6,lerp(EZ,-1.2,ru));
+        // Synchronize cutaway top, act highlight plate, MG ring, mHC conduits, and LM head with stops-manifest.js
+        const li=in72?LA:in73?LM:layerIdx7(t);
         let k=61;
-        if(t>=0.18&&t<0.24) k=lerp(61,LA+1,seg(t,0.18,0.24));
-        else if(t>=0.24&&t<=0.66) k=li+1;
-        else if(t>0.66&&t<0.84) k=lerp(LM+1,61,lin(t,0.66,0.82));
+        if(in72) k=LA+1;
+        else if(in73) k=LM+1;
+        else if(in74) k=Math.round(lerp(LM+1,61,lin(t,0.624,0.78)));
         T.solid(k);
         act.position.y=T.layerY(li);
-        act.visible=t>0.2&&t<0.68;
-        AG.visible=t>0.2&&t<0.48;
+        act.visible=in72||in73;
+        AG.visible=in72;
         const dense=KV_MODE==='dense';
         blocks.forEach(o=>{
           const active=dense||o.sel;
@@ -447,32 +499,34 @@ const lerp=(a,b,u)=>a+(b-a)*u;
           o.b.userData.edge.material=active?MAT.edge:MAT.ghost;
         });
         winBoxes.forEach(b=>{b.userData.mesh.material=dense?MAT.ink:MAT.paper;});
-        arcs.forEach((l,j)=>reveal(l,seg(t,0.26+j*0.012,0.36+j*0.012)));
-        denseArcs.forEach((l,j)=>{if(dense) reveal(l,seg(t,0.26+j*0.014,0.36+j*0.014));else l.visible=false;});
-        attentionSignals([...arcs,...denseArcs],lin(t,0.34,0.46));
-        MG.visible=t>0.44&&t<0.7;
-        sel.forEach(b=>{b.position.y=yM+0.5*seg(t,0.5,0.54);});
-        elines.forEach(l=>reveal(l,seg(t,0.52,0.58)));
-        bars.visible=mtp.visible=t>0.8;setBars(seg(t,0.82,0.9));
+        arcs.forEach((l,j)=>reveal(l,in72?seg(t,0.20+j*0.004,0.242+j*0.004):0));
+        denseArcs.forEach((l,j)=>{if(dense&&in72) reveal(l,seg(t,0.20+j*0.005,0.242+j*0.005));else l.visible=false;});
+        attentionSignals([...arcs,...denseArcs],lin(t,0.248,0.436));
+        MG.visible=in73;
+        sel.forEach(b=>{b.position.y=yM+0.35*seg(t,0.434,0.46);});
+        elines.forEach(l=>reveal(l,in73?seg(t,0.42,0.435):0));
+        mlines.forEach(l=>reveal(l,in73?seg(t,0.434,0.46):0));
+        MHC.visible=in74;
+        normCrown.visible=bars.visible=mtp.visible=in75;setBars(in75?seg(t,0.79,0.812):0);
       },
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(EX+1.75,3.6,EZ)},{t:0.16,p:V(-2.6,3.6,-1.2)},{t:0.21,p:V(0,yA,0)},{t:0.44,p:V(0,yA,0)},{t:0.48,p:V(0,yM,0)},{t:0.66,p:V(0,yM,0)},{t:0.82,p:V(0,T.top+0.1,0)},{t:0.86,p:topBar},{t:0.94,p:topBar},{t:0.97,p:V(6,T.top-1,0)},{t:1,p:V(12,0.45,0)}]),
-      shape:shp([[0,CUBE],[0.16,CUBE],[0.21,V(0.42,1.5,0.42)],[0.82,V(0.42,1.5,0.42)],[0.86,V(0.7,0.7,0.7)],[0.97,CUBE]]),
-      cams:[{t:0,c:cam(-11,0,-5.6,3.4,T.top+0.4,3.4,-30,18)},{t:0.22,c:cam(-13,yA-1.6,-0.8,5.4,yA+3.4,3.8,-26,24)},{t:0.48,c:cam(-5.6,yM-0.6,-5.6,5.6,yM+1.6,5.6,-30,34)},{t:0.68,c:cam(-3,0,-3,3,T.top+1,3,-30,16)},{t:0.84,c:cam(-4.6,T.top-4,-2.6,4.6,T.top+4.3,2.6,-28,16)}],
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:V(EX+1.75,3.6,EZ)},{t:0.16,p:V(-2.6,3.6,-1.2)},{t:0.22,p:V(0,yA,0)},{t:0.41,p:V(0,yA,0)},{t:0.435,p:V(0,yM,0)},{t:0.615,p:V(0,yM,0)},{t:0.79,p:V(0,T.top+0.1,0)},{t:0.812,p:topBar},{t:0.94,p:topBar},{t:0.97,p:V(6,T.top-1,0)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.16,CUBE],[0.22,V(0.42,1.5,0.42)],[0.79,V(0.42,1.5,0.42)],[0.812,V(0.7,0.7,0.7)],[0.97,CUBE]]),
+      cams:[{t:0,c:cam(-11,0,-5.6,3.4,T.top+0.4,3.4,-30,18)},{t:0.23,c:cam(-13,yA-1.6,-0.8,5.4,yA+3.4,3.8,-26,24)},{t:0.434,c:cam(-5.6,yM-0.6,-5.6,5.6,yM+2.0,5.6,-30,34)},{t:0.622,c:cam(-3.4,0,-3.4,3.4,T.top+1,3.4,-30,16)},{t:0.81,c:cam(-4.6,T.top-4,-2.6,4.6,T.top+4.3,2.6,-28,16)}],
       labels:[
-        ['embedding table · 129,280 × 7,168*',V(EX,6.6,EZ),0,0.21],
-        ['E[12842] → float[7,168]',V(-3.6,4.3,-1.2),0.08,0.21],
-        [()=>KV_MODE==='dense'?'dense: attend stored history':'CSA: selected + recent KV',V(-9.6,yA-1.0,AZ),0.22,0.46],
-        ['RMSNorm, then attention',V(0.6,yA+1.9,0),0.22,0.46],
-        ['router · top-6 of 384* (layer 18)',V(0.8,yM+0.9,0),0.48,0.66],
-        ['6 routed experts (filled)',epos(120).add(V(0.3,0.9,0)),0.52,0.66],
-        ['× 61 layers, each with its own weights',V(3.2,9.5,0),0.68,0.82],
-        ['LM head → 129,280 logits',V(-4.6,yH+0.7,0),0.84,1],
-        ['p(“ right”) = 0.31 (illustrative)',topBar.clone().add(V(0.4,0.4,0)),0.86,1],
-        [()=>KV_MODE==='dense'?'all historical KV slabs attended':'older context, compressed',V(-11.4,yA+1.1,AZ),0.24,0.46],
-        ['DeepSeek-V4-Pro · 128-token window',V(-4.7,yA+1.0,AZ),0.26,0.46],
-        ['future: masked',V(4.1,yA+1.0,AZ),0.26,0.46],
-        ['shared expert · always on',V(0.2,yM+0.9,-3.4),0.5,0.66],
-        ['MTP head: token after next',V(-2.4,yH+1.6,-1.4),0.86,1]
+        ['embedding table · 129,280 × 7,168*',V(EX,6.6,EZ),0,0.22],
+        ['E[12842] → float[7,168]',V(-3.6,4.3,-1.2),0.06,0.23],
+        [()=>KV_MODE==='dense'?'dense: attend stored history':'CSA: selected + recent KV',V(-9.6,yA-1.0,AZ),0.24,0.43],
+        ['RMSNorm + RoPE, then attention',V(0.6,yA+1.9,0),0.24,0.43],
+        ['router · top-6 of 384* (layer 18)',V(0.8,yM+1.4,0),0.434,0.62],
+        ['6 routed experts + weighted sum',epos(120).add(V(0.3,0.9,0)),0.48,0.62],
+        ['4-stream mHC × 61 layers*',V(3.2,9.5,0),0.622,0.805],
+        ['LM head → 129,280 logits',V(-4.6,yH+0.7,0),0.81,1],
+        ['p(“ right”) = 0.31 (illustrative)',topBar.clone().add(V(0.4,0.4,0)),0.81,1],
+        [()=>KV_MODE==='dense'?'all historical KV slabs attended':'older context, compressed',V(-11.4,yA+1.1,AZ),0.28,0.43],
+        ['DeepSeek-V4-Pro · 128-token window',V(-4.7,yA+1.0,AZ),0.31,0.43],
+        ['future: masked',V(4.1,yA+1.15,AZ),0.34,0.43],
+        ['shared expert · always on',V(0.2,yM+1.1,-3.4),0.46,0.62],
+        ['MTP head: token after next',V(-2.4,yH+1.6,-1.4),0.84,1]
       ]
     };
   });
@@ -511,7 +565,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     };
   });
 
-  // 09 THINK (cleaned unused `last` variable)
+  // 09 THINK (aligned with 9.1=0.06, 9.2=0.373, 9.3=0.687)
   station(8,G=>{
     const TX=-5.5,T=tower();T.G.position.x=TX;G.add(T.G);
     const K=rack();K.G.position.x=0.2;G.add(K.G);K.set(36,0);
@@ -520,24 +574,31 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const tiles=[...Array(28)].map((_,k)=>{const b=hollowTile(0.42,0.42,0.42);b.position.copy(pos(k));G.add(b);return b;});
     const fly=hollowTile(0.42,0.42,0.42);G.add(fly);
     const slotW=K.tokSlot.clone().add(V(0.2,0,0));
-    const read=curveLine(bez(V(TX,T.top,0),slotW.clone().add(V(0,0.4,0)),2.4));G.add(read);
+    const read=curveLine(bez(V(TX,T.top,0),slotW.clone().add(V(0,0.4,0)),2.4),MAT.attention);G.add(read);
     const div=at(box(0.08,1.6,1.9),12.25,0.8,0);G.add(div);
+    const toolPick=at(box(1.45,0.52,0.52,MAT.tool,MAT.edge),13.3,0.42,0);G.add(toolPick);
     return {
-      update(t){const N=EFF[EFFORT],n=N*lin(t,0.16,0.8),c=Math.floor(n),f=n-c;tiles.forEach((b,k)=>{b.visible=k<Math.min(c,N);});
-        const inFlight=c<N&&t>0.16&&t<0.8;fly.visible=inFlight;if(inFlight){const p0=V(TX,T.top+0.4,0),p1=pos(c);const u=ease(f);fly.position.copy(p0.lerp(p1,u)).add(V(0,Math.sin(u*Math.PI)*2.0,0));}
-        read.visible=inFlight&&f<0.45;div.visible=t>0.8;},
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.1,p:slotW},{t:0.92,p:slotW},{t:1,p:V(12,0.45,0)}]),
+      update(t){const N=EFF[EFFORT],n=Math.max(t>=0.05?3:0,N*lin(t,0.05,0.68)),c=Math.floor(n),f=n-c;tiles.forEach((b,k)=>{b.visible=k<Math.min(c,N);});
+        const inFlight=c<N&&t>0.05&&t<0.68;fly.visible=inFlight;if(inFlight){const p0=V(TX,T.top+0.4,0),p1=pos(c);const u=ease(f);fly.position.copy(p0.lerp(p1,u)).add(V(0,Math.sin(u*Math.PI)*2.0,0));}
+        read.visible=(inFlight&&f<0.55)||t>=0.68;div.visible=t>=0.36;toolPick.visible=t>=0.68;},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:slotW},{t:0.92,p:slotW},{t:1,p:V(12,0.45,0)}]),
       shape:()=>SLICE.clone(),
-      cams:[{t:0,c:cam(-8.7,0,-2,12.5,14,2,-26,20)}],
-      labels:[[()=>`illustrative thinking · effort ${EFFORT}`,V(7.6,1.7,0),0.16,0.86],['attention selects cached history',V(0.8,13.7,0),0.2,0.8],['raw reasoning encrypted · optional readable summary',V(10.4,2.6,0),0.8,1]]
+      cams:[{t:0,c:cam(-8.7,0,-2,14.2,14,2,-26,20)}],
+      labels:[
+        [()=>`illustrative thinking · effort ${EFFORT}`,V(7.6,1.7,0),0.05,0.37],
+        ['raw reasoning encrypted · optional readable summary',V(10.4,2.6,0),0.37,0.68],
+        ['reasoning selects get_weather · attends KV',V(12.8,1.8,0),0.68,1]
+      ]
     };
   });
 
-  // 10 DECODE
+  // 10 DECODE (aligned with 10.1=0.06, 10.2=0.295, 10.3=0.53, 10.4=0.765)
   station(9,G=>{
     const TX=-6,T=tower();T.G.position.x=TX;G.add(T.G);
     const K=rack();K.G.position.x=-0.8;G.add(K.G);
     const NB=16,bgeo=bg(0.18,1,0.18),bars=new THREE.InstancedMesh(bgeo,MAT.ink,NB);bars.frustumCulled=false;G.add(bars);
+    // Top-p sampling bracket above the active vocabulary probability bars
+    const sampBr=polyline([V(TX-2.1,T.top+2.55,0),V(TX-2.1,T.top+2.75,0),V(TX+1.75,T.top+2.75,0),V(TX+1.75,T.top+2.55,0)],MAT.cacheLine);G.add(sampBr);
     const m4=new THREE.Matrix4(),sc=V(),q=new THREE.Quaternion(),yH=T.top+0.5;
     const W=[2.0,0.8,0.9,0.5,0.5,1.1,0.8],PARTS=['get_weather','({"','city','": ','"','Paris','"})'],TI=5;
     const slot=[];let x=3.4;W.forEach(w=>{slot.push(x+w/2);x+=w+0.1;});
@@ -546,27 +607,24 @@ const lerp=(a,b,u)=>a+(b-a)*u;
     const ghosts=W.map(w=>{const b=hollowTile(w,1,1);G.add(b);return b;});
     const picker=box(0.24,0.24,0.24,MAT.ink,null);G.add(picker);
     const slotW=K.tokSlot.clone().add(V(-0.8,0,0));
-    const copy=curveLine(bez(V(TX,T.top+0.2,0),slotW.clone().add(V(0,0.4,0)),2.2));G.add(copy);
+    const copy=curveLine(bez(V(TX,T.top+0.2,0),slotW.clone().add(V(0,0.4,0)),2.2),MAT.attention);G.add(copy);
     const peak=k=>(k*5+3)%NB;
-    function setBars(t){let tick=Math.floor((t-0.1)/0.1);tick=clamp(tick,0,6);const ph=clamp(((t-0.1)%0.1)/0.1,0,1);for(let j=0;j<NB;j++){let h=0.12+(Math.abs(Math.sin((j+1)*(tick+3)*7.13))%1)*0.5;if(j===peak(tick)) h=1.8;h*=0.35+0.65*ease(ph*2);m4.compose(V(TX-2.0+j*0.24,yH+h/2,0),q,sc.set(1,h,1));bars.setMatrixAt(j,m4);}bars.instanceMatrix.needsUpdate=true;}
+    function setBars(t){let tick=Math.floor(Math.max(0,t-0.06)/0.11);tick=clamp(tick,0,6);const ph=clamp(((Math.max(0,t-0.06))%0.11)/0.11,0,1);for(let j=0;j<NB;j++){let h=0.12+(Math.abs(Math.sin((j+1)*(tick+3)*7.13))%1)*0.5;if(j===peak(tick)) h=1.8;h*=0.5+0.5*ease(ph*2);m4.compose(V(TX-2.0+j*0.24,yH+h/2,0),q,sc.set(1,h,1));bars.setMatrixAt(j,m4);}bars.instanceMatrix.needsUpdate=true;}
     return {
-      update(t){bars.visible=t>0.1&&t<0.86;setBars(t);
+      update(t){bars.visible=t>=0.05&&t<0.9;sampBr.visible=t>=0.28&&t<0.53;setBars(t);
         tiles.forEach((b,k)=>{if(!b) return;const a=tk(k),u=seg(t,a,a+0.04);b.visible=t>a;b.position.set(slot[k],lerp(3.2,0.5,u),0);});
-        ghosts.forEach((b,k)=>{const prev=k-1;b.visible=prev>=0&&t>tk(prev)+0.04&&t<tk(k)&&k<W.length;b.position.set(slot[k],0.5,0);});
-        let pk=-1;for(let k=0;k<W.length;k++){if(t>tk(k)-0.035&&t<tk(k)) pk=k;}picker.visible=pk>=0;if(pk>=0){const tick=clamp(Math.floor((tk(pk)-0.1)/0.1),0,6);const p0=V(TX-2.0+peak(tick)*0.24,yH+2.0,0),p1=V(slot[pk],1.2,0);const u=lin(t,tk(pk)-0.035,tk(pk));picker.position.copy(p0.lerp(p1,u)).add(V(0,Math.sin(u*Math.PI)*1.5,0));}
-        const grown=clamp(Math.floor((t-0.14)/0.1)+1,0,7);K.set(36,t<0.14?0:grown);copy.visible=t>0.5&&t<0.6;},
-      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.1,p:slotW},{t:0.54,p:slotW},{t:0.6,p:V(TX,T.top+0.6,0)},{t:0.66,p:V(slot[TI],0.5,0)},{t:0.9,p:V(slot[TI],0.5,0)},{t:1,p:V(12,0.45,0)}]),
-      shape:shp([[0,CUBE],[0.1,SLICE],[0.54,SLICE],[0.6,V(0.6,0.6,0.6)],[0.66,V(1.1,1,1)],[0.9,V(1.1,1,1)],[1,CUBE]]),
+        ghosts.forEach((b,k)=>{const prev=k-1;b.visible=(prev>=0&&t>tk(prev)+0.04&&t<tk(k)&&k<W.length)||(t>=0.52&&t<0.72&&(k===4||k===5));b.position.set(slot[k],0.5,0);});
+        let pk=-1;for(let k=0;k<W.length;k++){if(t>tk(k)-0.035&&t<tk(k)) pk=k;}picker.visible=pk>=0||(t>=0.29&&t<0.36);if(picker.visible){const usePk=pk>=0?pk:2;const tick=clamp(Math.floor((tk(usePk)-0.06)/0.11),0,6);const p0=V(TX-2.0+peak(tick)*0.24,yH+2.0,0),p1=V(slot[usePk],1.2,0);const u=pk>=0?lin(t,tk(pk)-0.035,tk(pk)):0.45;picker.position.copy(p0.lerp(p1,u)).add(V(0,Math.sin(u*Math.PI)*1.5,0));}
+        const grown=clamp(Math.floor((t-0.14)/0.1)+1,0,7);K.set(36,t<0.14?0:grown);copy.visible=(t>=0.05&&t<0.28)||(t>=0.74&&t<0.9);},
+      tok:track([{t:0,p:V(-12,0.45,0)},{t:0.06,p:slotW},{t:0.62,p:slotW},{t:0.7,p:V(TX,T.top+0.6,0)},{t:0.76,p:V(slot[TI],0.5,0)},{t:0.92,p:V(slot[TI],0.5,0)},{t:1,p:V(12,0.45,0)}]),
+      shape:shp([[0,CUBE],[0.06,SLICE],[0.62,SLICE],[0.7,V(0.6,0.6,0.6)],[0.76,V(1.1,1,1)],[0.92,V(1.1,1,1)],[1,CUBE]]),
       cams:[{t:0,c:cam(-9.2,0,-2,11.4,15.8,2,-24,18)}],
       labels:[
-        [t=>PARTS.filter((_,k)=>t>tk(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.6,0),0.16,1],
-        ['one pass up the tower per new token',V(TX,T.top+3.6,0),0.06,0.28],
-        ['prompt supplies the illustrated city name',V(-3.2,T.top+1.6,0),0.72,0.86],
-        ['“Paris” ≠ “ Paris”: different IDs',V(4.4,-0.9,0),0.74,0.92],
-        ['stop_reason "tool_use"',V(4.4,-0.9,0),0.88,1],
-        ['often memory-bound: weights + selected cached history',V(-0.6,13.8,0),0.06,0.29],
-        ['MTP draft, verified next step',V(4.4,-0.9,0),0.52,0.74],
-        ['sampler · temperature, top_p, top_k fixed',V(TX-2.2,T.top+2.7,0),0.29,0.52]
+        ['often memory-bound: weights + selected cached history',V(-0.6,13.8,0),0.05,0.29],
+        ['sampler · selects from probability distribution',V(TX-1.2,T.top+3.1,0),0.29,0.52],
+        ['MTP draft, verified next step',V(5.2,2.1,0),0.52,0.76],
+        ['“Paris” ≠ “ Paris”: different IDs',V(slot[TI],2.3,0),0.76,1],
+        [t=>PARTS.filter((_,k)=>t>tk(k)+0.02).join('')||'…',V(slot[0]-W[0]/2,2.6,0),0.36,0.52]
       ]
     };
   });
@@ -688,7 +746,12 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
   /* ---------- token + line ---------- */
   MAT.token.depthTest=false;MAT.tokEdge.depthTest=false;
-  const TOKEN=new THREE.Group();const tokM=new THREE.Mesh(bg(1,1,1),MAT.token);tokM.renderOrder=20;const tokE=new THREE.LineSegments(eg(bg(1,1,1)),MAT.tokEdge);tokE.renderOrder=21;TOKEN.add(tokM,tokE);scene.add(TOKEN);
+  const TOKEN=new THREE.Group();const tokM=new THREE.Mesh(bg(1,1,1),MAT.token);tokM.renderOrder=20;const tokE=new THREE.LineSegments(eg(bg(1,1,1)),MAT.tokEdge);tokE.renderOrder=21;
+  // Internal registration ticks so when TOKEN elongates into float[7,168] or a KV slice it reads as a segmented tensor
+  const tokTicksPts=[];
+  for(const y of [-0.25,0,0.25]) tokTicksPts.push(V(-0.5,y,0.502),V(0.5,y,0.502),V(0.502,y,-0.5),V(0.502,y,0.5));
+  const tokTicks=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(tokTicksPts),MAT.tokEdge);
+  tokTicks.renderOrder=21;TOKEN.add(tokM,tokE,tokTicks);scene.add(TOKEN);
   const lineS=polyline([V(LINE0,0.01,0),V(LINE0+0.01,0.01,0)],MAT.edge),lineD=polyline([V(LINE0,0.01,0),V(LINE1,0.01,0)],MAT.ghostDash);scene.add(lineS,lineD);
   const tickPts=[];for(let i=0;i<=12;i++){const x=i===0?LINE0:i===12?LINE1:i*SP-SP/2;tickPts.push(V(x,0.01,-0.5),V(x,0.01,0.5));}scene.add(segs(tickPts,MAT.edge));
   function setLine(x){x=clamp(x,LINE0+0.01,LINE1);const a=lineS.geometry.attributes.position;a.setX(1,x);a.needsUpdate=true;lineS.geometry.computeBoundingSphere();const b=lineD.geometry.attributes.position;b.setX(0,x);b.needsUpdate=true;lineD.computeLineDistances();lineD.geometry.computeBoundingSphere();}
@@ -728,14 +791,17 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   const openingClose = cam(-10, 0, -5.3, 8, 6.5, 5.3, -38, 24);
   const overview = cam(-14, -1, -6, LINE1, 17, 6, -73, 27);
 
+  let activeStepId = '';
   function update(state, aspect, viewportWidth) {
     const settings = state.settings || {};
-    const nextSettings = [settings.kv, settings.cache, settings.effort, !!state.reducedMotion].join('|');
+    const stepHint = (!state.opening && !state.recap && !state.overview && state.stepId) ? String(state.stepId) : '';
+    const nextSettings = [settings.kv, settings.cache, settings.effort, !!state.reducedMotion, stepHint].join('|');
     if (settingsKey !== nextSettings) {
       KV_MODE = settings.kv === 'dense' ? 'dense' : 'sparse';
       CACHE_MODE = settings.cache === 'miss' ? 'miss' : 'hit';
       EFFORT = Object.hasOwn(EFF, settings.effort) ? settings.effort : 'high';
       reducedMotion = !!state.reducedMotion;
+      activeStepId = stepHint;
       ST.forEach(station => { station._t = -1; });
       settingsKey = nextSettings;
     }

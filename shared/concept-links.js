@@ -7,13 +7,59 @@
   const map = (typeof window !== 'undefined' && window.ConceptMap) || require('./concept-map.js');
 
   const PAGES = {
-    reader:   { dir: '',                    name: 'One Token',   file: '../index.html' },
-    swiss:    { dir: 'end-to-end-swiss',    name: 'Swiss',       file: '../end-to-end-swiss/index.html' },
-    beamline: { dir: 'end-to-end-beamline', name: 'Beamline',    file: '../end-to-end-beamline/index.html' },
-    story:    { dir: 'journey-story',       name: 'Story',       file: '../journey-story/index.html' },
-    tour:     { dir: 'journey-tour',        name: 'Guided Tour', file: '../journey-tour/index.html' },
-    obs:      { dir: 'shared',              name: 'Observatory', file: '../shared/obs-core.html' }
+    reader:   { dir: '',                    name: 'One Token',   sub: '12 stages · 2D + 3D',       file: '../index.html',                     rootFile: './index.html' },
+    swiss:    { dir: 'end-to-end-swiss',    name: 'Swiss',       sub: 'Editorial poster + scrub',  file: '../end-to-end-swiss/index.html',    rootFile: './end-to-end-swiss/index.html' },
+    beamline: { dir: 'end-to-end-beamline', name: 'Beamline',    sub: '3D rail · Watch & Study',   file: '../end-to-end-beamline/index.html', rootFile: './end-to-end-beamline/index.html' },
+    story:    { dir: 'journey-story',       name: 'Story',       sub: '6 chapters + cutaways',     file: '../journey-story/index.html',       rootFile: './journey-story/index.html' },
+    tour:     { dir: 'journey-tour',        name: 'Guided Tour', sub: '30-stop 3D walk',           file: '../journey-tour/index.html',        rootFile: './journey-tour/index.html' },
+    obs:      { dir: 'shared',              name: 'Observatory', sub: '31-part 3D studio',         file: '../shared/obs-core.html',           rootFile: './shared/obs-core.html' }
   };
+
+  const EDITION_ORDER = ['reader', 'swiss', 'beamline', 'story', 'tour', 'obs'];
+
+  // Complete 12-stage + sub-step bridge across all six surfaces.
+  const STAGE_TARGETS = {
+    '1':    { reader: '1.1',  swiss: 1.0,  beam: '1a', story: 'ch1',     tour: 1,  obsRealm: 'TRAINING',  obsFocus: 'TR-1' },
+    '2':    { reader: '2.1',  swiss: 2.0,  beam: '1c', story: 'step-3',  tour: 3,  obsRealm: 'TRAINING',  obsFocus: 'TR-2' },
+    '3':    { reader: '3.1',  swiss: 3.0,  beam: '2a', story: 'ch2',     tour: 5,  obsRealm: 'TRAINING',  obsFocus: 'TR-3' },
+    '4':    { reader: '4.1',  swiss: 4.0,  beam: '3a', story: 'ch3',     tour: 9,  obsRealm: 'TRAINING',  obsFocus: 'TR-5' },
+    '5':    { reader: '5.1',  swiss: 5.0,  beam: '3e', story: 'step-12', tour: 12, obsRealm: 'TRAINING',  obsFocus: 'TR-6' },
+    '6':    { reader: '6.1',  swiss: 6.0,  beam: '4a', story: 'ch5',     tour: 22, obsRealm: 'INFERENCE', obsFocus: 'IN-1,IN-2' },
+    '7':    { reader: '7.1',  swiss: 7.0,  beam: '5a', story: 'step-13', tour: 13, obsRealm: 'MODEL',     obsFocus: 'MD-1' },
+    '7.1':  { reader: '7.1',  swiss: 7.0,  beam: '5a', story: 'step-13', tour: 13, obsRealm: 'MODEL',     obsFocus: 'MD-1' },
+    '7.2':  { reader: '7.2',  swiss: 7.2,  beam: '5d', story: 'step-15', tour: 15, obsRealm: 'MODEL',     obsFocus: 'MD-2b,MD-2c,MD-2d' },
+    '7.3':  { reader: '7.3',  swiss: 7.3,  beam: '5e', story: 'step-17', tour: 17, obsRealm: 'MODEL',     obsFocus: 'MD-2g,MD-2h' },
+    '7.4':  { reader: '7.4',  swiss: 7.4,  beam: '5b', story: 'step-16', tour: 16, obsRealm: 'MODEL',     obsFocus: 'MD-2e,MD-2f,MD-2i' },
+    '7.5':  { reader: '7.5',  swiss: 7.6,  beam: '5g', story: 'step-19', tour: 19, obsRealm: 'MODEL',     obsFocus: 'MD-3,MD-4' },
+    '8':    { reader: '8.1',  swiss: 8.0,  beam: '6a', story: 'step-24', tour: 24, obsRealm: 'INFERENCE', obsFocus: 'IN-6' },
+    '9':    { reader: '9.1',  swiss: 9.0,  beam: '6b', story: 'step-25', tour: 25, obsRealm: 'INFERENCE', obsFocus: 'IN-7' },
+    '10':   { reader: '10.2', swiss: 10.2, beam: '6c', story: 'step-25', tour: 25, obsRealm: 'INFERENCE', obsFocus: 'IN-8' },
+    '11':   { reader: '11.1', swiss: 11.0, beam: '6e', story: 'step-26', tour: 26, obsRealm: 'INFERENCE', obsFocus: 'IN-9,IN-10' },
+    '12':   { reader: '12.1', swiss: 12.1, beam: '7a', story: 'ch6',     tour: 27, obsRealm: 'INFERENCE', obsFocus: 'IN-11' },
+    '12.2': { reader: '12.2', swiss: 12.2, beam: '7c', story: 'step-30', tour: 30, obsRealm: 'INFERENCE', obsFocus: 'IN-11,IN-12' }
+  };
+
+  function stageFromStop(stopNum) {
+    const n = Number(stopNum);
+    if (!Number.isFinite(n) || n < 1) return '';
+    if (n <= 2) return '1';
+    if (n <= 4) return '2';
+    if (n <= 8) return '3';
+    if (n <= 11) return '4';
+    if (n === 12) return '5';
+    if (n === 13) return '7.1';
+    if (n <= 15) return '7.2';
+    if (n === 16) return '7.4';
+    if (n === 17) return '7.3';
+    if (n === 18) return '7.4';
+    if (n <= 21) return '7.5';
+    if (n <= 23) return '6';
+    if (n === 24) return '8';
+    if (n === 25) return '10';
+    if (n === 26) return '11';
+    if (n <= 29) return '12';
+    return '12.2';
+  }
 
   // Canonical 7 cross-explainer concepts mapped to native targets in each format.
   // Note: prefill-decode and mcp-loop link Swiss/Beamline lifecycle sections into
@@ -149,9 +195,53 @@
     return m ? resolve(m[1]) : null;
   }
 
-  function returnHref(from, pos, rm) {
+  function fileFrom(currentPage, targetPage) {
+    const page = PAGES[targetPage];
+    if (!page) return null;
+    return currentPage === 'reader' ? page.rootFile : page.file;
+  }
+
+  function resolveStageTarget(state = {}) {
+    const step = String(state.step || '').trim();
+    if (step && Object.hasOwn(STAGE_TARGETS, step)) return STAGE_TARGETS[step];
+    const stageKey = String(state.stage || (step ? step.split('.')[0] : '') || '').trim();
+    return Object.hasOwn(STAGE_TARGETS, stageKey) ? STAGE_TARGETS[stageKey] : null;
+  }
+
+  function editionHref(fromPage, targetPage, state = {}) {
+    const base = fileFrom(fromPage, targetPage);
+    if (!base) return null;
+    const p = new URLSearchParams();
+    if (state.rm) p.set('rm', '1');
+    const target = resolveStageTarget(state);
+    if (fromPage && fromPage !== targetPage && Object.hasOwn(PAGES, fromPage) && target) {
+      p.set('from', fromPage);
+      if (state.pos != null && state.pos !== '') p.set('pos', String(state.pos));
+      if (state.label) p.set('fromLabel', String(state.label));
+    }
+    let hash = '';
+    if (targetPage === 'reader') {
+      if (target) hash = '#step-' + target.reader;
+    } else if (targetPage === 'swiss') {
+      if (target) p.set('g', Number(target.swiss).toFixed(1));
+    } else if (targetPage === 'beamline') {
+      if (target) p.set('beat', target.beam);
+    } else if (targetPage === 'story') {
+      if (target) hash = '#' + target.story;
+    } else if (targetPage === 'tour') {
+      if (target) hash = '#stop-' + target.tour;
+    } else if (targetPage === 'obs') {
+      p.set('realm', target ? target.obsRealm : 'MODEL');
+      if (target && target.obsFocus) p.set('focus', target.obsFocus);
+    }
+    const qs = p.toString();
+    return base + (qs ? '?' + qs : '') + hash;
+  }
+
+  function returnHref(from, pos, rm, currentPage) {
     const page = PAGES[from];
     if (!page) return null;
+    const base = fileFrom(currentPage, from);
     const p = new URLSearchParams();
     if (rm) p.set('rm', '1');
     let hash = '';
@@ -170,19 +260,24 @@
       if (n >= 1 && n <= 30) hash = '#stop-' + n;
     } else if (from === 'story') {
       if (pos && /^(ch[1-6]|step-\d+)$/.test(String(pos))) hash = '#' + pos;
+    } else if (from === 'obs') {
+      if (pos && /^(TR|MD|IN)-[0-9a-z]+$/i.test(String(pos))) p.set('focus', String(pos));
+      else p.set('realm', (pos && /^(ALL|TRAINING|MODEL|INFERENCE)$/.test(String(pos))) ? String(pos) : 'MODEL');
     }
     const qs = p.toString();
-    return page.file + (qs ? '?' + qs : '') + hash;
+    return base + (qs ? '?' + qs : '') + hash;
   }
 
   function mountReturnChip(container, currentPage) {
     if (typeof document === 'undefined' || !container) return null;
+    const existing = container.querySelector('.suite-return');
+    if (existing) return existing;
     const qs = new URLSearchParams(location.search);
     const from = qs.get('from');
     if (!from || from === currentPage || !Object.hasOwn(PAGES, from)) return null;
     const pos = qs.get('pos') || '';
     const rm = qs.get('rm') === '1';
-    const href = returnHref(from, pos, rm);
+    const href = returnHref(from, pos, rm, currentPage);
     if (!href) return null;
     const customLabel = qs.get('fromLabel');
     const stageText = customLabel ? ' · ' + customLabel :
@@ -198,6 +293,96 @@
     return link;
   }
 
+  function mountSuiteMenu(anchorEl, opts = {}) {
+    if (typeof document === 'undefined' || !anchorEl || !anchorEl.parentNode) return null;
+    const currentPage = opts.currentPage || '';
+    const getState = typeof opts.getState === 'function' ? opts.getState : () => ({});
+    const details = document.createElement('details');
+    details.className = 'suite-menu';
+    const summary = document.createElement('summary');
+    summary.className = 'suite-menu-btn';
+    summary.title = 'Switch between all 6 views at this stage';
+    const lbl = document.createElement('span');
+    lbl.className = 'suite-menu-lbl';
+    lbl.textContent = '6 views';
+    const chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    chev.setAttribute('viewBox', '0 0 12 12');
+    chev.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'm2.5 4.5 3.5 3.5 3.5-3.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    chev.appendChild(path);
+    summary.append(lbl, chev);
+
+    const panel = document.createElement('div');
+    panel.className = 'suite-menu-panel';
+    const syncNote = document.createElement('p');
+    syncNote.className = 'suite-menu-sync';
+    syncNote.textContent = 'Switch edition at this point';
+    const list = document.createElement('div');
+    list.className = 'suite-menu-list';
+    const links = new Map();
+
+    for (const key of EDITION_ORDER) {
+      const ed = PAGES[key];
+      const isCurrent = key === currentPage;
+      const item = document.createElement(isCurrent ? 'span' : 'a');
+      item.className = 'suite-menu-item';
+      if (isCurrent) item.setAttribute('aria-current', 'page');
+      else item.href = editionHref(currentPage, key, {});
+      const top = document.createElement('span');
+      top.className = 'suite-menu-top';
+      const title = document.createElement('strong');
+      title.textContent = ed.name;
+      top.appendChild(title);
+      if (isCurrent) {
+        const badge = document.createElement('em');
+        badge.className = 'suite-menu-now';
+        badge.textContent = 'Current';
+        top.appendChild(badge);
+      }
+      const sub = document.createElement('span');
+      sub.className = 'suite-menu-sub';
+      sub.textContent = ed.sub;
+      item.append(top, sub);
+      list.appendChild(item);
+      if (!isCurrent) links.set(key, item);
+    }
+    panel.append(syncNote, list);
+    details.append(summary, panel);
+    anchorEl.after(details);
+
+    function refresh() {
+      const rm = new URLSearchParams(location.search).get('rm') === '1';
+      const st = { rm, ...(getState() || {}) };
+      syncNote.textContent = st.label ? 'Synced · ' + st.label : 'Switch edition (keeps place)';
+      for (const [key, a] of links) {
+        a.href = editionHref(currentPage, key, st);
+      }
+      const rect = summary.getBoundingClientRect();
+      panel.classList.toggle('align-right', rect.left > window.innerWidth * 0.55);
+    }
+    details.addEventListener('toggle', () => { if (details.open) refresh(); });
+    summary.addEventListener('pointerdown', refresh);
+    summary.addEventListener('focus', refresh);
+    document.addEventListener('pointerdown', e => {
+      if (details.open && !details.contains(e.target)) details.open = false;
+    });
+    details.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && details.open) {
+        e.preventDefault();
+        e.stopPropagation();
+        details.open = false;
+        summary.focus({ preventScroll: true });
+      }
+    });
+    return { element: details, refresh };
+  }
+
   function pulseTarget(el) {
     if (!el || typeof document === 'undefined') return;
     if (document.documentElement.classList.contains('rm')) return;
@@ -207,8 +392,9 @@
   }
 
   const api = Object.freeze({
-    PAGES, CONCEPTS, ALIASES, map, resolve, urlFor, parseConceptHash,
-    swissToBeamlineBeat, beamlineBeatToSwissG, returnHref, mountReturnChip, pulseTarget
+    PAGES, EDITION_ORDER, STAGE_TARGETS, CONCEPTS, ALIASES, map, resolve, urlFor, parseConceptHash,
+    swissToBeamlineBeat, beamlineBeatToSwissG, stageFromStop, editionHref,
+    returnHref, mountReturnChip, mountSuiteMenu, pulseTarget
   });
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

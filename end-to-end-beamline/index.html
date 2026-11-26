@@ -1700,6 +1700,24 @@ document.addEventListener('visibilitychange', () => { last = performance.now(); 
     return true;
   }
   addEventListener('hashchange', resolveBeamConcept);
+  if (window.SuiteLinks) {
+    const beamSuiteState = () => {
+      const g = SuiteLinks.beamlineBeatToSwissG(activeId);
+      if (!g) return {};
+      const stage = Math.max(1, Math.min(12, Math.round(g)));
+      const step = (g > 7.05 && g < 7.95) ? g.toFixed(1) : String(stage);
+      return { stage, step, pos: activeId, label: 'Beat ' + activeId };
+    };
+    const toSwiss = document.getElementById('toSwiss');
+    if (toSwiss) {
+      const syncSwiss = () => { toSwiss.href = SuiteLinks.editionHref('beamline', 'swiss', { ...beamSuiteState(), rm: RM }); };
+      toSwiss.addEventListener('pointerdown', syncSwiss);
+      toSwiss.addEventListener('focus', syncSwiss);
+      toSwiss.addEventListener('click', syncSwiss);
+    }
+    SuiteLinks.mountSuiteMenu(document.querySelector('.suite-home'), { currentPage: 'beamline', getState: beamSuiteState });
+    SuiteLinks.mountReturnChip(document.getElementById('beamReturnSlot'), 'beamline');
+  }
   if (!resolveBeamConcept() && qs.get('beat')) { jumpTo(qs.get('beat'), true); }
   requestAnimationFrame(t => { measure(); last = t; snapNext = true; scheduleFrame(); });
 })();

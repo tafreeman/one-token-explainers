@@ -700,7 +700,16 @@ function free(id=null,fly=true){mode='free';chosen=id;setLocation('#explore'+(id
 CHAPTER_NAMES.forEach((name,i)=>{const b=btn(String(i+1),()=>move(starts[i]));b.setAttribute('aria-label','Chapter '+(i+1)+' · '+name);b.append(node('span',name));rail.append(b)});
 document.getElementById('allParts').onclick=()=>allDialog.showModal();document.getElementById('readTour').onclick=()=>reading.showModal();document.querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 for(const s of STOPS){const article=node('article');article.append(node('h3',(s.i+1)+'. '+s.title));const body=node('div');body.innerHTML=s.body;article.append(body);document.getElementById('readingBody').append(article)}
-if (window.SuiteLinks) SuiteLinks.mountReturnChip(document.getElementById('tourActions'), 'tour');
+if (window.SuiteLinks) {
+  const tourSuiteState = () => {
+    if (mode !== 'stop') return {};
+    const stopNum = index + 1;
+    const stepKey = SuiteLinks.stageFromStop(stopNum);
+    return { stage: stepKey.split('.')[0], step: stepKey, pos: String(stopNum), label: 'Stop ' + stopNum };
+  };
+  SuiteLinks.mountSuiteMenu(document.querySelector('.suite-home'), { currentPage: 'tour', getState: tourSuiteState });
+  SuiteLinks.mountReturnChip(document.getElementById('tourActions'), 'tour');
+}
 function bindHash(){
   if(window.SuiteLinks){
     const hit=SuiteLinks.parseConceptHash(location.hash);
