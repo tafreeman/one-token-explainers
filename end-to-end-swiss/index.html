@@ -2557,8 +2557,10 @@ function resolveSwissConcept(){
 const toBeam=$('#toBeamline');
 if(toBeam&&window.SuiteLinks){
   const swissSuiteState=()=>{
-    const stage=gS>0.05?Math.max(1,Math.min(12,Math.round(gS)||1)):0;
-    return stage?{stage,step:gS.toFixed(1),pos:gS.toFixed(1),label:'Stage '+String(stage).padStart(2,'0')}:{};
+    if(gS<=0.004) return {};
+    const stage=gS>=11.996?12:(clamp(Math.floor(gS),0,11)+1);
+    const step=stepLabelAt(gS)||(stage+(gS>=11.996?'.4':'.1'));
+    return {stage,step,pos:String(+gS.toFixed(3)),label:'Stage '+String(stage).padStart(2,'0')+' ('+step+')'};
   };
   const syncBeamHref=()=>{
     toBeam.href=SuiteLinks.editionHref('swiss','beamline',{...swissSuiteState(),rm:forceRM});

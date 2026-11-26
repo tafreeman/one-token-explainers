@@ -229,8 +229,21 @@ test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline st
     const url = links.urlFor('tour', slug, {from: 'swiss', pos: 7.3});
     assert.match(url, /^\.\.\/journey-tour\/index\.html\?.*#concept=/);
   }
-  assert.equal(links.swissToBeamlineBeat(7.3), '5e');
-  assert.equal(links.beamlineBeatToSwissG('5e'), 7.3);
+  assert.equal(links.stepToSwissG('1.1'), 0.06);
+  assert.equal(links.stepToSwissG('7.2'), 6.248);
+  assert.equal(links.stepToSwissG('7.3'), 6.436);
+  assert.equal(links.stepToSwissG('12.1'), 11.06);
+  assert.equal(links.stepToSwissG('12.2'), 11.295);
+  for (let stage = 1; stage <= 12; stage++) {
+    const href = links.editionHref('reader', 'swiss', {stage, step: stage + '.1', pos: stage + '.1'});
+    const g = Number(new URL(href, 'https://example.test/').searchParams.get('g'));
+    assert.equal(Math.floor(g), stage - 1, `Swiss stage ${stage} must map to zero-based index ${stage - 1}`);
+  }
+  assert.equal(links.swissToBeamlineBeat(6.436), '5e');
+  assert.equal(links.beamlineBeatToSwissG('5e'), 6.436);
+  assert.equal(links.beamlineBeatToStep('5g'), '7.5');
+  assert.equal(links.editionHref('beamline', 'reader', {stage: 7, step: links.beamlineBeatToStep('5g'), pos: '5g', label: 'Beat 5g'}),
+    '../index.html?from=beamline&pos=5g&fromLabel=Beat+5g#step-7.5');
   assert.equal(links.stageFromStop(17), '7.3');
   assert.equal(links.editionHref('reader', 'beamline', {stage: 7, step: '7.3', pos: '7.3', label: 'Step 7.3'}),
     './end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');

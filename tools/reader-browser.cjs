@@ -523,15 +523,18 @@ async function fallbacks(browser, url, artifacts) {
     await trackAnimationFrames(recovery);
     await recovery.goto(url);
     await ready(recovery);
-    await gotoStep(recovery, '7.2');
+    await settledStep(recovery, '7.2');
     const before = await stat(recovery);
     await recovery.evaluate(() => {
-      window.__readerLoseContext = document.querySelector('#scene').getContext('webgl2').getExtension('WEBGL_lose_context');
+      const canvas = document.querySelector('#scene');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      window.__readerLoseContext = gl.getExtension('WEBGL_lose_context');
       window.__readerLoseContext.loseContext();
     });
     await recovery.waitForFunction(() => window.OneToken.scene.stats().lost);
     assert.equal(await recovery.locator('#viewport').getAttribute('data-render'), 'lost');
     await capture(recovery, artifacts, 'context-lost');
+    await recovery.waitForTimeout(150);
     await recovery.evaluate(() => window.__readerLoseContext.restoreContext());
     await ready(recovery);
     await recovery.waitForFunction(frames => window.OneToken.scene.stats().frames > frames, before.frames);

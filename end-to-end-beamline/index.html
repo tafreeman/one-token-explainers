@@ -1319,11 +1319,9 @@ for (const [beat, labs] of Object.entries(studyLabs)) {
 const toSwiss = $('#toSwiss');
 if (toSwiss && window.SuiteLinks) {
   const syncSwissHref = () => {
-    const g = SuiteLinks.beamlineBeatToSwissG(State.beatId);
-    const p = new URLSearchParams();
-    if (g > 0) p.set('g', g.toFixed(1));
-    if (RM) p.set('rm', '1');
-    toSwiss.href = '../end-to-end-swiss/index.html' + (p.toString() ? '?' + p.toString() : '');
+    const step = SuiteLinks.beamlineBeatToStep(State.beatId);
+    const st = step ? { stage: Number(step.split('.')[0]), step, pos: State.beatId, label: 'Beat ' + State.beatId, rm: RM } : { rm: RM };
+    toSwiss.href = SuiteLinks.editionHref('beamline', 'swiss', st);
   };
   toSwiss.addEventListener('pointerdown', syncSwissHref);
   toSwiss.addEventListener('focus', syncSwissHref);
@@ -1702,11 +1700,11 @@ document.addEventListener('visibilitychange', () => { last = performance.now(); 
   addEventListener('hashchange', resolveBeamConcept);
   if (window.SuiteLinks) {
     const beamSuiteState = () => {
-      const g = SuiteLinks.beamlineBeatToSwissG(activeId);
-      if (!g) return {};
-      const stage = Math.max(1, Math.min(12, Math.round(g)));
-      const step = (g > 7.05 && g < 7.95) ? g.toFixed(1) : String(stage);
-      return { stage, step, pos: activeId, label: 'Beat ' + activeId };
+      const beat = activeId || State.beatId;
+      const step = SuiteLinks.beamlineBeatToStep(beat);
+      if (!step) return {};
+      const stage = Number(step.split('.')[0]);
+      return { stage, step, pos: beat, label: 'Beat ' + beat };
     };
     const toSwiss = document.getElementById('toSwiss');
     if (toSwiss) {

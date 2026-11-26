@@ -250,10 +250,10 @@
 
     // Compile every program the spatial hall can show (hidden stages included) in the
     // background, so a stage's first appearance mid-scroll doesn't stall a frame and the
-    // camera doesn't jump to catch up. three r160 skips visible=false in compileAsync, so
-    // reveal all renderables while queuing programs.
+    // camera doesn't jump to catch up. Skip software CPU rasterizers (SwiftShader/WARP),
+    // where compiling all hidden stages upfront saturates CPU worker threads.
     function warmShaders(current) {
-      if (!renderer.compileAsync || !current.scene || !current.camera) return;
+      if (software || !renderer.compileAsync || !current.scene || !current.camera) return;
       const prior = renderer.toneMapping;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       try {
@@ -475,6 +475,7 @@
       canvas.addEventListener('webglcontextrestored', () => {
         lost = false;
         snapNext = true;
+        width = 0; height = 0; pixelRatio = 0;
         scenes.spatial?.contextRestored?.(); appliedSpatialQuality = null;
         if (fallbackStatus) fallbackStatus.textContent = 'Lifecycle diagram';
         schedule();
