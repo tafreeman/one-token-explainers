@@ -337,7 +337,8 @@
       stats() {
         const sorted = spatialFrameCosts.slice().sort((a, b) => a - b);
         const p95FrameMs = sorted.length ? sorted[Math.ceil(.95 * sorted.length) - 1] : 0;
-        return { frames, calls, revision, lost, suspended, moving, frame: lastFrame,
+        // step/view name what the last frame actually drew, which can trail the page's step.
+        return { frames, calls, revision, lost, suspended, moving, step: renderedStep ?? null, view: renderedView ?? null, frame: lastFrame,
           qualityTier, pixelRatio, p95FrameMs, cameraPose: lastCameraPose, triangles: renderer?.info.render.triangles ?? 0,
           buffer: renderer ? [canvas.width, canvas.height] : [0, 0] };
       }
