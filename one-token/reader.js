@@ -572,8 +572,12 @@
       else pause();
       return;
     }
-    if (event.target.closest('input, select, button, a, summary, textarea, [contenteditable]')) return;
-    switch (event.key) {
+    // Fields keep their own arrow keys. Buttons and links have none, so stepping still works while
+    // one holds focus, as Present's Play does on entry; Space stays theirs to activate.
+    if (event.target.closest('input, select, textarea, [contenteditable]')) return;
+    if (event.key === ' ' && event.target.closest('button, a, summary')) return;
+    const presenterKey = state.present && (event.key === 'PageDown' || event.key === 'PageUp');
+    switch (presenterKey ? (event.key === 'PageDown' ? 'ArrowRight' : 'ArrowLeft') : event.key) {
       case 'ArrowRight': move(state.opening ? 0 : state.index + 1); break;
       case 'ArrowLeft': move(state.overview ? stops.length - 1 : state.index - 1); break;
       case 'Home': move(0); break;
