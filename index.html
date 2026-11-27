@@ -101,10 +101,11 @@ h1,h2,h3{ font-family:var(--display); font-optical-sizing:auto; text-wrap:balanc
 .hero{ min-height:calc(90svh - 44px); display:grid; align-content:center; padding-block:44px; box-sizing:border-box }
 .hero-grid{ display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:clamp(24px,4vw,64px); align-items:center }
 .sentence{ font-family:var(--display); font-weight:600; font-size:clamp(1.7rem,3vw,2.65rem); letter-spacing:-.02em; line-height:1.3; display:flex; flex-wrap:wrap; align-items:center; gap:0 .28em; margin:26px 0; color:#374350 }
-.slot{ display:inline-flex; align-items:center; justify-content:center; width:2.15em; height:1.08em; border-radius:999px; border:2px solid #2b5b84; background:rgba(43,91,132,.1); color:#24506f; font-size:1em; line-height:1; box-sizing:border-box; transition:background-color .3s var(--ease), border-color .3s var(--ease) }
+.slot{ display:inline-flex; align-items:center; justify-content:center; width:2.15em; height:1.08em; border-radius:999px; border:2px solid #B8320D; background:rgba(255,74,28,.14); color:#7a2108; font-size:1em; line-height:1; box-sizing:border-box; transition:background-color .3s var(--ease), border-color .3s var(--ease) }
 .slot > span{ font-size:1em; line-height:1; transition:opacity .25s ease }
-/* The hero word is the token, boxed in its capsule. Once the reader scrolls or the tour plays, the capsule stays behind as an empty socket and the travelling token (#thread) lifts out of it. */
-html.tok-lifted #a-hero{ border-style:dashed; border-color:rgba(43,91,132,.5); background:transparent }
+/* The hero word is the token, boxed in its capsule in the drawing's token orange. Once the reader scrolls or the tour plays, the capsule stays behind as an empty socket and the travelling token (#thread) lifts out of it. */
+#a-hero{ background:#FF4A1C; color:#16181A }
+html.tok-lifted #a-hero{ border-style:dashed; border-color:rgba(184,50,13,.55); background:transparent }
 html.tok-lifted #a-hero > span{ opacity:0 }
 html.js #a-outro > span{ visibility:hidden }
 html.rm .slot, html.rm .slot > span, html.rm #thread{ transition:none }
@@ -322,12 +323,13 @@ html.rm #thread.dip{ animation:tdip .42s ease both }
 .other-ways a:hover,.other-ways a:focus-visible{ color:#79551d; text-decoration:underline }
 .other-ways li span{ color:#445063; font-size:.9rem; line-height:1.45 }
 
-/* thread (warm brass & architectural slate) */
+/* thread: every form of the travelling token (pill on light scenes, dot on dark, ring on blueprint) keeps the drawing's token colour,
+   #FF4A1C edged #B8320D (theme-tokens token/mark), so it reads as the same object as the token block in the 3D drawing. Ink on the orange is 5.3:1. */
 #thread{ position:fixed; left:0; top:0; width:0; height:0; z-index:5; pointer-events:none; will-change:transform }
 #thread > div{ position:absolute; will-change:opacity,transform }
-.t-pill{ left:-36px; top:-17px; width:72px; height:34px; border-radius:17px; background:linear-gradient(135deg,#2b5b84,#376879); color:#fff; font:600 16px/34px var(--display); text-align:center; letter-spacing:-.01em; box-shadow:0 10px 22px -10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25) }
-.t-dot{ left:-7px; top:-7px; width:14px; height:14px; border-radius:50%; background:radial-gradient(circle at 38% 35%,#fff8ec 0 28%,#e6bf80 60%,#987237 100%); box-shadow:0 4px 12px -2px rgba(0,0,0,.42), 0 0 0 2px rgba(255,255,255,.24) }
-.t-ring{ left:-15px; top:-15px; width:30px; height:30px; border-radius:50%; box-sizing:border-box; border:2.5px solid transparent; background:linear-gradient(rgba(18,58,99,.78),rgba(18,58,99,.78)) padding-box,linear-gradient(135deg,#e6bf80,#4ea5b8) border-box; box-shadow:0 4px 12px -2px rgba(0,0,0,.42) }
+.t-pill{ left:-36px; top:-17px; width:72px; height:34px; box-sizing:border-box; border-radius:17px; border:1.5px solid #B8320D; background:linear-gradient(135deg,#FF6236,#FF4A1C); color:#16181A; font:600 16px/31px var(--display); text-align:center; letter-spacing:-.01em; box-shadow:0 10px 22px -10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.3) }
+.t-dot{ left:-7px; top:-7px; width:14px; height:14px; border-radius:50%; background:radial-gradient(circle at 38% 35%,#ffe3d6 0 26%,#FF4A1C 62%,#B8320D 100%); box-shadow:0 4px 12px -2px rgba(0,0,0,.42), 0 0 0 2px rgba(255,255,255,.24) }
+.t-ring{ left:-15px; top:-15px; width:30px; height:30px; border-radius:50%; box-sizing:border-box; border:2.5px solid transparent; background:linear-gradient(rgba(18,58,99,.78),rgba(18,58,99,.78)) padding-box,linear-gradient(135deg,#FF7A52,#FF4A1C) border-box; box-shadow:0 4px 12px -2px rgba(0,0,0,.42) }
 .t-ring::after{ content:"sat"; position:absolute; right:36px; top:6px; font:500 12px/1 var(--mono); color:#fff; letter-spacing:.02em; opacity:var(--lab,1) }
 #thread{ transition:opacity .3s ease }
 html.tok-docked #thread{ opacity:0 }
@@ -557,6 +559,11 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
   .state-preview .chapter .stage-wrap{ height:52svh; min-height:340px }
   .release-beat{ min-height:44svh; padding-bottom:44px }
   .braid-scrub-row{ grid-template-columns:1fr; gap:6px }
+  /* Phones: the five station pills ride one swipeable row instead of wrapping to three, so the Training Line card fits on screen */
+  .braid-toolbar{ padding-inline:0 }
+  .braid-stations{ flex:1 1 100%; min-width:0; flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:none; padding-inline:16px; scroll-padding-inline:16px }
+  .braid-stations::-webkit-scrollbar{ display:none }
+  .braid-stations > .stage-pill{ flex:none }
 }
 
 /* Stage-lock playback bar: holds viewport in place while active 3D stage plays */
@@ -586,7 +593,11 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
 /* Narration captions */
 .narr-cap{ position:fixed; z-index:60; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); max-width:min(44rem,calc(100vw - 32px)); padding:8px 14px; border-radius:6px; background:rgba(14,18,24,.93); color:#f4f1e8; font:500 15px/1.45 var(--sans); text-align:center; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.25) }
 .narr-cap[hidden]{ display:none!important }
-@media (max-width:819px){ .narr-cap{ left:var(--gutL); right:var(--gutR); transform:none; max-width:none; bottom:calc(76px + env(safe-area-inset-bottom,0px)) } }
+@media (max-width:819px){ .narr-cap{ left:var(--gutL); right:var(--gutR); transform:none; max-width:none; bottom:calc(76px + env(safe-area-inset-bottom,0px)); padding:7px 12px; font-size:14px; line-height:1.4 } }
+/* Phones, Training Line stations: the narration takes the card's own caption line (hidden while touring) instead of floating over the token readout below it */
+.braid-readout-row{ position:relative }
+.braid-tour-line{ position:absolute; left:0; right:0; top:0; margin:0; max-width:68ch; padding-left:12px; box-shadow:inset 3px 0 0 #B8320D; font-size:14.5px; line-height:1.5; font-weight:500; color:var(--c-ink) }
+.braid-tour-line[hidden], body:not(.tour-spot) .braid-tour-line{ display:none }
 
 /* Narrated tour: primary Play/Pause + sound toggle in the bar, a dock for Back-to-tour / Go deeper, spotlight while playing */
 .tour-play{
@@ -625,7 +636,7 @@ html.on-dark .tour-mute[aria-pressed="true"]{ background:#c9a15a; border-color:#
 .tour-play:focus-visible,.tour-mute:focus-visible,.tour-return:focus-visible,.tour-deeper:focus-visible{ outline:3px solid #e6bf80; outline-offset:2px }
 .tour-dock{
   position:fixed; z-index:62; left:50%; transform:translateX(-50%); display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
-  bottom:calc(86px + env(safe-area-inset-bottom,0px)); max-width:calc(100vw - 28px);
+  bottom:calc(48px + var(--cap-h,38px) + env(safe-area-inset-bottom,0px)); max-width:calc(100vw - 28px);
 }
 .tour-dock[hidden],.tour-return[hidden],.tour-deeper[hidden]{ display:none !important }
 .tour-return,.tour-deeper{
@@ -638,7 +649,16 @@ html.on-dark .tour-mute[aria-pressed="true"]{ background:#c9a15a; border-color:#
 .tour-deeper{ background:#141c27; border:2px dashed #e6bf80; color:#f7f5ee }
 .tour-deeper:hover{ background:#223045; border-style:solid }
 .tour-return svg,.tour-deeper svg{ width:16px; height:16px; flex:none }
-@media (max-width:819px){ .tour-dock{ bottom:calc(150px + env(safe-area-inset-bottom,0px)) } .tour-play{ padding:4px 12px 4px 10px } .tour-mute{ width:44px; height:44px } .tour-play{ min-height:44px } }
+@media (max-width:819px){
+  .tour-dock{ bottom:calc(86px + var(--cap-h,38px) + env(safe-area-inset-bottom,0px)) }
+  .tour-play{ padding:4px 12px 4px 10px; min-height:44px } .tour-mute{ width:44px; height:44px }
+  /* While the tour plays it drives the page, so the bottom rail steps aside and the caption and dock drop into its place; the rail returns on pause */
+  #rail{ transition:opacity .25s var(--ease), visibility 0s, background-color .3s ease, border-color .3s ease, box-shadow .3s ease }
+  body.tour-playing #rail{ opacity:0; visibility:hidden; pointer-events:none; transition:opacity .25s var(--ease), visibility 0s linear .25s }
+  body.tour-playing .narr-cap{ bottom:calc(12px + env(safe-area-inset-bottom,0px)) }
+  body.tour-playing .tour-dock{ bottom:calc(22px + var(--cap-h,38px) + env(safe-area-inset-bottom,0px)) }
+  html.rm #rail{ transition:none }
+}
 @media (max-width:420px){ .tour-play-time{ display:none } }
 /* the floating caption already narrates the station while the tour runs */
 body.tour-spot .braid-live-caption{ visibility:hidden }
@@ -775,6 +795,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
         </div>
         <div class="braid-readout-row">
           <p class="braid-live-caption" id="trainLineCap" aria-live="polite">Station 1 · Raw web, code, book, and math documents pass through deduplication and quality filters; near-duplicates drop down the reject chute.</p>
+          <p class="braid-tour-line" id="trainTourCap" aria-live="polite" hidden></p>
           <div class="braid-live-meta">
             <span>Token: <strong id="trainLineTok" data-math-val>“ sat” in raw text</strong></span>
             <span>Weights: <strong id="trainLineWeights" data-math-val>uninitialized θ₀</strong></span>
@@ -1914,6 +1935,14 @@ function stepFromTrainingPose(g) {
   if (clamped < 4.68) return '5.2';
   return '5.3';
 }
+/* On phones the station pills scroll sideways in one row: keep the current station's pill in view. Scrolls only the row, never the page. */
+let stripIdx = -1;
+function centerStationPill(i) {
+  const b = trainStnBtns[i], strip = b?.parentElement;
+  if (!strip || strip.scrollWidth <= strip.clientWidth + 1) return;
+  const left = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft - (strip.clientWidth - b.offsetWidth) / 2;
+  strip.scrollTo({ left: Math.max(0, left), behavior: RM ? 'auto' : 'smooth' });
+}
 function applyTrainingPose(g, syncSlider = true) {
   const safeG = clamp(g, 0.08, 4.90);
   trainProgress = (safeG - 0.08) / (4.90 - 0.08);
@@ -1926,6 +1955,7 @@ function applyTrainingPose(g, syncSlider = true) {
     openingSlot.dataset.localT = clamp(safeG - Math.floor(safeG), 0, 0.92).toFixed(3);
   }
   trainStnBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === stnIdx)));
+  if (stnIdx !== stripIdx) { stripIdx = stnIdx; centerStationPill(stnIdx); }
   trainRail?.style.setProperty('--tp', trainProgress.toFixed(3));
   if (syncSlider && trainRange) trainRange.value = String(Math.round(trainProgress * 100));
   if (trainPctOut) trainPctOut.value = meta.label;
@@ -2342,6 +2372,9 @@ function update(dt) {
     }
     busy = true;
   }
+  /* Phones: the tour parks a long card with its heading just under the sticky drawing, above the scroll focus line, so the chapter
+     follows the narrated step rather than the scroll, at the mid-step pose a centred card would give. */
+  const tourNarr = window.__storyNarrState, tourStop = mobile && tourNarr?.on && tourNarr.stop != null ? STOPS[tourNarr.stop] : null;
   for (const c of chapters) {
     const chIdx = c.num - 1;
     const lockedThisCh = stageLock.active && stageLock.gate?.kind === 'chapter' && stageLock.gate.chIdx === chIdx;
@@ -2350,14 +2383,20 @@ function update(dt) {
     let idx = Math.min(c.n - 1, Math.max(0, c.stepEdges.findLastIndex(top => top <= focusY)));
     const within = clamp((focusY - c.stepEdges[idx]) / Math.max(1, c.stepEdges[idx + 1] - c.stepEdges[idx]));
     let pt = (idx + within) / c.n;
-    if (lockedThisCh) {
+    if (tourStop && tourStop.ch === chIdx) {
+      idx = tourStop.step;
+      pt = (idx + 0.5) / c.n;
+    } else if (lockedThisCh) {
       pt = clamp(stageLock.u * 0.996, 0, 0.996);
       idx = Math.min(c.n - 1, Math.floor(pt * c.n));
     } else if (heldThisCh) {
       pt = clamp(stageLock.holdU, 0, 0.996);
       idx = Math.min(c.n - 1, Math.floor(pt * c.n));
     }
-    if (idx !== c.idx) { c.steps.forEach((s, i) => s.classList.toggle('is-active', i === idx && pt > 0 && pt < 1)); if (RM && c.idx !== -1) { c.stage.classList.remove('fade'); void c.stage.offsetWidth; c.stage.classList.add('fade'); }
+    // Re-mark when the chapter is entered or left too, not only on a step change: the first step keeps idx 0 from before the chapter starts.
+    const inside = pt > 0 && pt < 1;
+    if (idx !== c.idx || inside !== c.inside) { c.inside = inside; c.steps.forEach((s, i) => s.classList.toggle('is-active', i === idx && inside)); }
+    if (idx !== c.idx) { if (RM && c.idx !== -1) { c.stage.classList.remove('fade'); void c.stage.offsetWidth; c.stage.classList.add('fade'); }
       if (c === ch4 && c.idx !== -1) { const md = c.steps[idx].dataset.mode; if (md) setMode(md); else if (c.steps[c.idx] && c.steps[c.idx].dataset.mode && idx < c.idx) setMode('train'); }
       c.idx = idx; }
     const target = RM ? Math.min(1, (idx + 1) / c.n - 0.0005) : pt;
@@ -2980,14 +3019,28 @@ const JourneyTourEngine = (() => {
     if (needLayout) layout();
     const maxY = Math.max(0, doc.scrollHeight - vh);
     let y = 0;
-    if (st.kind === 'station') y = gateLockScrollY(STAGE_GATES[0]) ?? 0;
+    if (st.kind === 'station') y = mobile ? phoneStationY() : (gateLockScrollY(STAGE_GATES[0]) ?? 0);
     else if (st.kind === 'release') y = gateLockScrollY(STAGE_GATES[4]) ?? (releaseGateEl ? absTop(releaseGateEl) : 0);
     else if (st.kind === 'outro') { const g = $('.outro-grid'); y = g ? absTop(g) - 72 : maxY; }
     else if (st.kind === 'stop') {
-      const s = STOPS[st.stop], ch = chapters[s.ch], el = ch.steps[s.step];
-      y = absTop(el) + el.offsetHeight / 2 - vh * ch.focusF;
+      const s = STOPS[st.stop], ch = chapters[s.ch], el = ch.steps[s.step], sw = ch.wrapEl;
+      /* Phones: a centred card is taller than the gap under the sticky drawing, which would hide its heading, so the heading
+         sits just below the drawing instead. The chapter loop holds the narrated step active at this scroll. */
+      if (mobile && sw) y = absTop(el) - ((parseFloat(getComputedStyle(sw).top) || 0) + sw.offsetHeight) + 8;
+      else y = absTop(el) + el.offsetHeight / 2 - vh * ch.focusF;
     }
     return clamp(Math.round(y), 0, maxY);
+  }
+  /* Phones: the Training Line card sits between the top bar and the bottom rail (hidden while playing), with the narration in its
+     own caption line. When it is taller than that gap its bottom, the token readout, stays in view and the title slides under the bar. */
+  function phoneStationY() {
+    const card = $('#training-line-band .braid-card');
+    if (!card) return gateLockScrollY(STAGE_GATES[0]) ?? 0;
+    const rr = S.status === 'playing' ? null : document.getElementById('rail')?.getBoundingClientRect();
+    const top = ($('.studio-bar')?.getBoundingClientRect().bottom || 0) + 8;
+    const bottom = (rr && rr.height > 0 ? rr.top : vh - 12) - 8;
+    const h = card.offsetHeight, room = bottom - top;
+    return absTop(card) - (h <= room ? top + (room - h) / 2 : bottom - h);
   }
   function nearestIndex() {
     if (scrollY < vh * 0.4) return 0;
@@ -3065,15 +3118,23 @@ const JourneyTourEngine = (() => {
   /* ---- presentation ---- */
   const cueAt = (st, t) => { let s = st.cues[0]?.s || ''; for (const q of st.cues) if (t >= q.t) s = q.s; return s; };
   const cueStart = (st, t) => { let s = 0; for (const q of st.cues) if (t >= q.t - 0.05) s = q.t; return s; };
+  /* On phones a station's narration goes in the Training Line card's own caption line; everywhere else it floats at the bottom. */
+  const bandCap = document.getElementById('trainTourCap');
   function caption(st, t) {
-    const s = cueAt(st, t);
-    if (cap.textContent !== s) cap.textContent = s;
-    cap.hidden = !s;
+    const s = cueAt(st, t), inBand = !!bandCap && mobile && st.kind === 'station';
+    const el = inBand ? bandCap : cap, off = inBand ? cap : bandCap;
+    let changed = false;
+    if (el.textContent !== s) { el.textContent = s; changed = true; }
+    if (el.hidden !== !s) { el.hidden = !s; changed = true; }
+    if (off && !off.hidden) { off.hidden = true; changed = true; }
+    // the Back to tour / Go deeper dock stacks just above the caption, however many lines it wraps to
+    if (changed) dock.style.setProperty('--cap-h', (cap.hidden ? 0 : cap.offsetHeight) + 'px');
   }
   const stepCard = st => { const s = STOPS[st.stop]; return chapters[s.ch].steps[s.step]?.querySelector('.card'); };
   const hasDeep = st => st.kind === 'stop' && !!stepCard(st)?.querySelector('.card-deep-toggle,.learning-toggle,details.micro-lab,code.eq');
   function applyMode() {
     const playing = S.status === 'playing', heldHere = S.status === 'paused' && S.reason !== 'user';
+    document.body.classList.toggle('tour-playing', playing);
     syncNarr({ on: playing || heldHere });
     setTourSpotlight(playing || heldHere);
     ui();
@@ -3157,7 +3218,7 @@ const JourneyTourEngine = (() => {
   function finish() {
     stopTimer(); stopAudio(); cancelTween(); S.status = 'finished'; S.reason = null; S.t = 0;
     syncNarr({ on: false, stop: null, u: 0, introU: null, releaseSweepU: null });
-    cap.hidden = true; applyMode();
+    cap.hidden = true; if (bandCap) bandCap.hidden = true; applyMode();
     emit('tour:finale', { total: stops.length, id: 'outro', index: stops.length - 1 });
   }
   function pause(reason = 'manual') {

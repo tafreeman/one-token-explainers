@@ -230,8 +230,34 @@ async function verifyReducedMotionAndPhone(browser, base) {
     assert(mute && mute.x + mute.width <= 390, 'mute fits the phone bar');
     await waitId(page, 'step-1');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no horizontal overflow while touring');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('rail')).visibility), 'hidden', 'the bottom rail steps aside while the tour plays');
+    // Phone station: the narration takes the card's own caption line, so nothing floats over the Token / Weights readout.
+    await clearSettle(page);
+    await page.evaluate(() => window.JourneyTour.goTo('station-2', {play: false}));
+    await settle(page);
+    const stn = await page.evaluate(() => {
+      const R = el => el.getBoundingClientRect(), line = document.getElementById('trainTourCap'), meta = R(document.querySelector('.braid-live-meta'));
+      const card = R(document.querySelector('#training-line-band .braid-card')), rail = R(document.getElementById('rail'));
+      return {line: !line.hidden && line.textContent.length > 0, float: document.getElementById('narrCap').hidden, lineClear: R(line).bottom <= meta.top + 2,
+        metaClear: meta.bottom <= rail.top, cardTop: card.top, rail: getComputedStyle(document.getElementById('rail')).visibility};
+    });
+    assert(stn.line && stn.float, 'station narration sits in the card, the floating caption is off: ' + JSON.stringify(stn));
+    assert(stn.lineClear && stn.metaClear && stn.cardTop >= 0, 'the narration line and the token readout are both clear: ' + JSON.stringify(stn));
+    assert.equal(stn.rail, 'visible', 'the rail is back while the tour is paused');
+    // Phone chapter stop: the card heading sits under the sticky drawing, above the caption and dock, and the narrated step is the active one.
+    await clearSettle(page);
+    await page.evaluate(() => window.JourneyTour.goTo('step-3', {play: false}));
+    await settle(page);
+    const stop = await page.evaluate(() => {
+      const card = document.querySelectorAll('#ch1 .step')[2].querySelector('.card'), h3 = card.querySelector('h3').getBoundingClientRect();
+      const stage = document.querySelector('#ch1 .stage-wrap').getBoundingClientRect(), cap = document.getElementById('narrCap'), dock = document.getElementById('tourDock');
+      const floor = Math.min(cap.hidden ? innerHeight : cap.getBoundingClientRect().top, dock.hidden ? innerHeight : dock.getBoundingClientRect().top);
+      return {active: card.parentElement.classList.contains('is-active'), h3Top: Math.round(h3.top), h3Bottom: Math.round(h3.bottom), stage: Math.round(stage.bottom), floor: Math.round(floor)};
+    });
+    assert(stop.active, 'the narrated step is active');
+    assert(stop.h3Top >= stop.stage - 1 && stop.h3Bottom <= stop.floor, 'the heading is clear of the drawing and the caption: ' + JSON.stringify(stop));
     assert.deepEqual(phone.errors, []);
-    console.log('Tour: reduced motion returns instantly; phone bar and spotlight fit');
+    console.log('Tour: reduced motion returns instantly; phone bar and spotlight fit; phone narration clears the Training Line readout and card headings');
   } finally { await phone.page.close(); }
 }
 
