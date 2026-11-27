@@ -118,3 +118,28 @@ The server recognizes the unchanged prefix, "sat" included, and reuses its cache
 
 **31 · Outro**
 Thirty stops, one token. From a page of training text to the answer on your screen, it is the same tower, used two ways.
+
+## Extras (Journey tour only, 2026-11-27)
+
+Added so the root Journey tour is narrated from start to finish. Same voice and model, one take each. Listed under `extras` in `manifest.json`.
+
+**tl-1 · Station 1, corpus**
+Station one, the corpus. Web pages, code, books and math pour in, and the duplicates drop out.
+
+**tl-2 · Station 2, tokenizer**
+Station two, the tokenizer. The sentence is cut into pieces, and "sat" becomes a single number in the vocabulary.
+
+**tl-3 · Station 3, pretraining**
+Station three, pretraining. Streams of tokens climb the tower, and every wrong guess nudges the weights.
+
+**tl-4 · Station 4, post-training**
+Station four, post-training. Specialists practise on problems with checkable answers, and learn from their best attempts.
+
+**tl-5 · Station 5, freeze**
+Station five. Benchmarks and red teams sign off, and the weights freeze before any prompt arrives.
+
+**Release gate**
+Post-training is done. The weights pass the release gate and freeze. From here on, the model only answers.
+
+**20b · Weights stay fixed; activations change** (replaces 20 on the Journey tour)
+During inference, the weights stay fixed. Only the activations and the attention cache change as "sat" passes through. Nothing is learned.

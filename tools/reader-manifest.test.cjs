@@ -11,7 +11,7 @@ const { CONCEPTS } = require('../shared/concept-links.js');
 const { stops, tracks, stages } = manifest;
 
 const ids = (markup, pattern) => Array.from(markup.matchAll(pattern), (match) => match[1]);
-const lesson = () => read('index.html');
+const lesson = () => read('one-token/index.html');
 const swiss = read('end-to-end-swiss/index.html');
 const beamline = read('end-to-end-beamline/index.html');
 const beamlineBeats = ids(beamline, /data-beat="([a-z0-9]+)"/g);
@@ -197,13 +197,13 @@ test('browser scripts expose the same data without fetching a manifest', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(context.window.ReaderManifest)), manifest);
 });
 
-test('one-token/index.html redirects cleanly to the promoted root reader', () => {
-  const stub = read('one-token/index.html');
+test('journey-story/index.html redirects cleanly to the promoted root Journey hub', () => {
+  const stub = read('journey-story/index.html');
   assert.match(stub, /url=\.\.\/index\.html/);
   assert.match(stub, /location\.replace\(new URL\('\.\.\/index\.html'/);
-  const rootHtml = lesson();
+  const rootHtml = read('index.html');
   assert.ok(!/(?:href|src)="\.\.\//.test(rootHtml), 'root index.html must not contain ../ asset links');
-  assert.ok(rootHtml.includes('./shared/obs-core.html?realm=MODEL'));
+  assert.ok(lesson().includes('../shared/obs-core.html?realm=MODEL'));
 });
 
 // Existing recording drift to reconcile with any targeted re-recording (audit W1/W5).

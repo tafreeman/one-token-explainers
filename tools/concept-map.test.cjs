@@ -42,7 +42,7 @@ test('every lesson tag points at a real lesson step or stage', () => {
 });
 
 test('Inspect panels, lesson buttons and concept links agree with the map', () => {
-  const html = read('index.html');
+  const html = read('one-token/index.html');
   for (const [slug, concept] of Object.entries(map.CONCEPTS)) {
     const stop = stops.find(s => s.conceptSlug === slug);
     assert.equal(stop.id, concept.step, slug + ' lives on its mapped step');
@@ -57,7 +57,7 @@ test('Inspect panels, lesson buttons and concept links agree with the map', () =
 });
 
 test('the concept map loads before concept-links on every page that uses it', () => {
-  for (const file of ['index.html', 'end-to-end-swiss/index.html', 'end-to-end-beamline/index.html', 'journey-story/index.html', 'journey-tour/index.html', 'shared/obs-core.html']) {
+  for (const file of ['index.html', 'one-token/index.html', 'end-to-end-swiss/index.html', 'end-to-end-beamline/index.html', 'journey-tour/index.html', 'shared/obs-core.html']) {
     const html = read(file);
     assert.ok(html.indexOf('concept-map.js') > 0 && html.indexOf('concept-map.js') < html.indexOf('concept-links.js'), file);
   }

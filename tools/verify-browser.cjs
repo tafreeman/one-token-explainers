@@ -8,6 +8,8 @@ const {pathToFileURL} = require('node:url');
 const {chromium} = require('playwright');
 const {createApp} = require('../server');
 const {verifyReader, verifyReaderWarp} = require('./reader-browser.cjs');
+const {verifyLearning} = require('./learning-browser.cjs');
+const {verifyTour} = require('./tour-browser.cjs');
 
 const root = path.resolve(__dirname, '..');
 const axePath = require.resolve('axe-core/axe.min.js');
@@ -16,14 +18,14 @@ const warp = process.argv.includes('--warp');
 // 24-thread workstation; CI's 4-vCPU runner passes its own calibrated WARP_P95_BUDGET_MS.
 const WARP_P95_BUDGET_MS = Number(process.env.WARP_P95_BUDGET_MS) || 160;
 const WARP_TRIALS = 5;
-// --only=layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors runs a subset; default runs every section.
+// --only=learning,reader,tour,layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors runs a subset; default runs every section.
 const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
 const only = onlyArg ? new Set(onlyArg.slice(7).split(',')) : null;
 const runs = section => !only || only.has(section);
 const pages = [
   ['Swiss', 'end-to-end-swiss/', 'window.THREE && document.querySelector("#heroCanvas").width > 300'],
   ['Beamline', 'end-to-end-beamline/', 'document.documentElement.dataset.ready === "1"'],
-  ['Story', 'journey-story/', 'window.__ready'],
+  ['Story', '', 'window.__ready'],
   ['Tour', 'journey-tour/', 'window.__ready'],
   ['Observatory', 'shared/obs-core.html', 'window.__ready'],
 ];
@@ -78,7 +80,9 @@ async function keyboard(browser, base, local) {
   const pageErrors = [];
   page.on('pageerror', e => pageErrors.push(e.message));
   try {
-    const address = route => local ? pathToFileURL(path.join(root, route, 'index.html')).href : base + route + '/';
+    const address = route => local
+      ? (route === 'journey-story' ? pathToFileURL(path.join(root, 'index.html')).href : pathToFileURL(path.join(root, route, 'index.html')).href)
+      : (route === 'journey-story' ? base : base + route + '/');
     if (local) await page.context().setOffline(true);
     await ready(page, address('journey-tour') + '?rm=1#stop-6', 'window.__ready');
     let canvas = page.frameLocator('#tourStage').locator('#threeCanvas');
@@ -124,7 +128,9 @@ async function focusOrder(browser, base, local = false) {
     return null;
   };
   try {
-    const address = route => local ? pathToFileURL(path.join(root, route, 'index.html')).href : base + route + '/';
+    const address = route => local
+      ? (route === 'journey-story' ? pathToFileURL(path.join(root, 'index.html')).href : pathToFileURL(path.join(root, route, 'index.html')).href)
+      : (route === 'journey-story' ? base : base + route + '/');
     if (local) await page.context().setOffline(true);
     // Story drawer: Tab reaches the docked router lab's summary and slider and never leaves the panel.
     await ready(page, address('journey-story') + '?rm=1&state=ch4-room-router', 'window.__ready');
@@ -309,10 +315,10 @@ async function swissFullLessons(browser, base, artifacts, local=false) {
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     try{
       if(local) await page.context().setOffline(true);
-      const landing=local?pathToFileURL(path.join(root,'index.html')).href:base;
+      const landing=local?pathToFileURL(path.join(root,'one-token/index.html')).href:base+'one-token/';
       await page.goto(landing+'?rm=1');
-      assert.equal(await page.locator('.other-presentations li a').count(),5,'root reader exposes all five classic/deep-dive views');
-      assert(!page.url().includes('end-to-end-swiss'),'homepage serves unified reader without redirecting to Swiss');
+      assert.equal(await page.locator('.other-presentations li a').count(),5,'reader exposes all five classic/deep-dive views');
+      assert(!page.url().includes('end-to-end-swiss'),'reader serves unified reader without redirecting to Swiss');
       const swiss=local?pathToFileURL(path.join(root,'end-to-end-swiss/index.html')).href:base+'end-to-end-swiss/index.html';
       await ready(page,swiss+'?rm=1#s-7','window.THREE && document.querySelector("#heroCanvas").width > 300');
       assert.equal(await page.locator('.stage-detail').count(),12);
@@ -514,7 +520,7 @@ async function mirrors(browser, base) {
 async function drawerPerformance(browser, base) {
   const page = await browser.newPage({viewport: {width:1440,height:900}});
   try {
-    await ready(page, base + 'journey-story/?rm=1&state=ch4-drawer-router', 'window.__ready && window.__journey.state.opened');
+    await ready(page, base + '?rm=1&state=ch4-drawer-router', 'window.__ready && window.__journey.state.opened');
     const frame = page.frames().find(f => f.url().includes('obs-core.html'));
     // One 53-frame p95 is its third-worst frame, so a single runner hiccup decides it (CI
     // measured 82 ms and 138 ms on the same commit). Judge the median of five trials.
@@ -563,7 +569,9 @@ async function main() {
       await drawerPerformance(browser, base);
       return await verifyReaderWarp(browser, base, WARP_P95_BUDGET_MS);
     }
+    if (runs('learning')) await verifyLearning(browser, base, artifacts);
     if (runs('reader')) await verifyReader(browser, base, artifacts);
+    if (runs('tour')) await verifyTour(browser, base);
     if (runs('layout')) await layoutAndAxe(browser, base, artifacts);
     if (runs('keyboard')) {
       await keyboard(browser, base, false);

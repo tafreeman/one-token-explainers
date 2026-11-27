@@ -20,9 +20,10 @@
   font: 500 .8rem/1.25 var(--sans);
 }
 .component-math button[aria-pressed="true"] {
-  border-color: currentColor;
-  background: color-mix(in srgb, currentColor 10%, transparent);
-  font-weight: 650;
+  border-color: var(--ml-orange, #E5672F);
+  background: var(--ml-orange-hi, #F2A65A);
+  color: var(--ml-orange-ink, #1B1209);
+  font-weight: 700;
 }
 .component-math :is(button, input, summary, a):focus-visible {
   outline: 2px solid currentColor;
@@ -48,11 +49,11 @@
 .optimizer-pair figcaption { flex: 1; font: .82rem/1.35 var(--sans); }
 .optimizer-pair b { display: block; font: 650 1rem/1.4 var(--display); }
 .optimizer-pair svg { height: 4.2rem; }
-.optimizer-pair svg text { font-size: 10px; }
+.optimizer-pair svg text { font-size: 11px; }
 .optimizer-pair ellipse { fill: none; stroke: var(--matrix); stroke-width: 2; }
 .optimizer-pair [data-spectrum] { fill: var(--matrix); }
 .optimizer-pair [data-coordinates] { fill: var(--coordinate); }
-.component-math small { font: .72rem/1.4 var(--mono); }
+.component-math small { font: .75rem/1.4 var(--mono); }
 .component-math .math-caption, .vector-sections p {
   margin: .45rem 0;
   color: inherit;
@@ -82,6 +83,8 @@
 .vector-sections .vector-first { stroke: var(--matrix); stroke-width: 2; }
 .vector-sections .vector-second { stroke: var(--coordinate); stroke-width: 2; }
 .lens-slider { display: block; margin: .6rem 0 .15rem; font: .82rem var(--mono); }
+/* the layer you chose is the current value: orange pill */
+.lens-slider [data-layer], .lens-slider [data-steer-value] { padding: .05rem .5rem; border-radius: 999px; background: var(--ml-orange-hi, #F2A65A); color: var(--ml-orange-ink, #1B1209); font-weight: 700; }
 .lens-slider input { display: block; width: 100%; margin: 0; height: 1.8rem; accent-color: var(--matrix); }
 .lens-probabilities { display: grid; gap: .3rem; margin-top: .75rem; }
 .lens-probability {
@@ -92,24 +95,28 @@
   font: .78rem/1.3 var(--mono);
 }
 .lens-probability [data-percent] { text-align: right; }
+.lens-probability:first-child [data-percent] { color: inherit; }
+.lens-probability[data-top] > span:first-child { font-weight: 700; }
 .lens-track { height: .45rem; border-radius: 2px; background: color-mix(in srgb, currentColor 14%, transparent); }
 .lens-track i { display: block; height: 100%; border-radius: inherit; background: var(--matrix); }
 .lens-probability:last-child .lens-track i { background: currentColor; opacity: .55; }
 .act-strip { max-width: 22rem; margin: .55rem auto .35rem; }
 .act-strip .act-pos { fill: var(--matrix); }
 .act-strip .act-neg { fill: var(--coordinate); }
-.act-strip .act-lbl { font-size: 9px; opacity: .72; }
+.act-strip .act-lbl { font-size: 11px; opacity: .82; }
 .steer-svg { max-width: 23rem; margin: .5rem auto .55rem; }
-.steer-cols text { font-size: 9px; opacity: .68; }
+.steer-cols text { font-size: 11px; opacity: .82; }
 .steer-svg [data-edge] { stroke: var(--matrix); transition: opacity .16s ease, stroke-width .16s ease; }
 .steer-svg [data-edge="pi"][data-active="true"] { stroke: var(--coordinate); }
 .steer-node { cursor: pointer; }
 .steer-node rect { fill: color-mix(in srgb, currentColor 6%, transparent); stroke: currentColor; stroke-width: 1.25; transition: fill .16s ease, stroke .16s ease, opacity .16s ease; }
-.steer-node text { font-size: 9.5px; font-weight: 500; }
+.steer-node text { font-size: 11px; font-weight: 500; }
 .steer-node[data-state="on"] rect { stroke: var(--matrix); fill: color-mix(in srgb, var(--matrix) 16%, transparent); stroke-width: 1.75; }
-.steer-node[data-state="boost"] rect { stroke: var(--matrix); fill: color-mix(in srgb, var(--matrix) 26%, transparent); stroke-width: 2.25; }
-.steer-node[data-state="swap"] rect { stroke: var(--coordinate); fill: color-mix(in srgb, var(--coordinate) 22%, transparent); stroke-width: 2; }
-.steer-node[data-state="off"] rect { stroke: var(--coordinate); stroke-dasharray: 3 2; opacity: .55; }
+.steer-node[data-state="boost"] rect,
+.steer-node[data-state="swap"] rect { stroke: var(--ml-orange, #E5672F); fill: var(--ml-orange-hi, #F2A65A); stroke-width: 2.25; }
+.steer-node[data-state="boost"] text,
+.steer-node[data-state="swap"] text { fill: var(--ml-orange-ink, #1B1209); font-weight: 700; }
+.steer-node[data-state="off"] rect { stroke: var(--ml-orange, #E5672F); stroke-dasharray: 3 2; opacity: .75; }
 .steer-node[data-state="off"] text, .steer-node[data-state="dim"] { opacity: .45; }
 @media (prefers-reduced-motion: no-preference) {
   html:not(.rm) .optimizer-pair rect { transition: height .18s ease, y .18s ease; }

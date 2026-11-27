@@ -27,12 +27,14 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 ## Component labs
 
 - Test the router at [Tour stop 17](../journey-tour/index.html?rm=1&lab=moe#stop-17). Both the component drawing and the Observatory use the same normalized affinities. The load correction affects selection only.
+- Each failure lab sits on every card of its concept (`concept-map.js` `obs`): MoE load-bias off on MD-2g/2h, PD-disaggregation off on IN-5 to IN-7 and IN-12, UTF-8 buffer off on IN-9/10, and prefix-cache bust on IN-11/12. The Story, Tour and Beamline Study hosts match. `tools/micro-labs.test.cjs` asserts every placement. In the standalone Observatory these cards also drive the 3D scene.
 - The BPE vocabulary, query/key vectors, load history and single-layer roofline are teaching examples. The KV comparison fits its illustrative V4 curve to the [DeepSeek-V4 report](https://arxiv.org/abs/2606.19348) at 1M. The reported 27% FLOP ratio applies at that endpoint.
 - The roofline uses the [GB200 specifications](https://www.nvidia.com/en-us/data-center/gb200-nvl72/) per GPU. The sampling probe implements the [Fable 5.2 parameter contract](https://platform.claude.com/docs/en/models/fable-5-2/overview) locally.
 
 ## Narration: `journey-narration/`
 
 - **Voice and model:** ElevenLabs voice Jade on `eleven_v4`. There are 32 clips, 6:25 in total.
+- **Extras:** `manifest.json` `extras` holds 7 more clips for stops the 32-clip script never covered: the five Training Line stations, the release gate, and stop 19 (frozen weights), whose original clip narrates training. Only the root Journey tour plays them; each names its tour stop in `slot`.
 - **Script:** `narration-script.md`.
 - **Manifest:** `manifest.json` lists each clip with its duration, its tour stop and its captions. Captions are timed by each sentence's share of the clip, snapped to the pauses that `ffmpeg silencedetect` finds.
 - **Paths:** clip `src` paths are written relative to the pages (`../shared/journey-narration/<clip>.mp3`). Both pages sit one folder deep, so one manifest serves both.

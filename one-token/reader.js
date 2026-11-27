@@ -11,6 +11,13 @@
   const first = stages.map((_, i) => stops.findIndex(stop => stop.stage === i + 1));
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const pad = n => String(n).padStart(2, '0');
+  function withTransition(fn) {
+    if (typeof document.startViewTransition === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      try { return document.startViewTransition(fn); } catch { /* fall through */ }
+    }
+    fn();
+    return null;
+  }
   const settings = {cache: 'hit', kv: 'sparse', effort: 'high'};
   const state = {index: 0, localT: 0, view: 'diagram', camera: 'director', opening: true, overview: false, present: false, recap: false};
   const readout = get('position'), slider = get('scrubber'), figure = get('figure');
@@ -119,15 +126,22 @@
   function readingLine() {
     return Math.max(anchorY() + 2, Math.round(window.innerHeight * READING_LINE));
   }
+  function syncScrollProgress() {
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    document.documentElement.style.setProperty('--scroll-p', clamp(window.scrollY / maxScroll, 0, 1).toFixed(4));
+    document.body.dataset.scrolled = window.scrollY > 24 ? 'true' : 'false';
+  }
   function scrollToElement(el) {
     holdSync = performance.now() + 160;
     window.scrollTo({top: window.scrollY + el.getBoundingClientRect().top - anchorY(), behavior: 'instant'});
+    syncScrollProgress();
   }
   function recordHash(hash) {
     if (location.hash !== hash) history.replaceState(null, '', hash);
   }
   function syncScroll() {
     raf = 0;
+    syncScrollProgress();
     if (anchorPending || state.present || state.recap || inspector.isOpen) return;
     const narrating = playback.playing;
     // A step the reader just picked (Next, a stage tab, a link) stays put until they scroll on.
@@ -271,10 +285,63 @@
   }
   buildQuickNav();
 
+  function applyDepth(next) {
+    const depth = next === 'deep' ? 'deep' : 'basic';
+    document.body.dataset.depth = depth;
+    const deep = depth === 'deep';
+    const btn = get('depth-btn');
+    if (btn) {
+      btn.setAttribute('aria-pressed', String(deep));
+      const lbl = btn.querySelector('span');
+      if (lbl) lbl.textContent = deep ? 'Deep' : 'Basic';
+    }
+    const inline = get('depth-inline');
+    if (inline) inline.textContent = deep ? 'Switch to Basic mode' : 'Switch to Deep mode';
+  }
+  function toggleDepth() {
+    const next = document.body.dataset.depth === 'deep' ? 'basic' : 'deep';
+    try { sessionStorage.setItem('oneTokenDepth', next); } catch {}
+    applyDepth(next);
+  }
+  function initDepth() {
+    let saved = null;
+    try { saved = sessionStorage.getItem('oneTokenDepth'); } catch {}
+    applyDepth(saved === 'basic' || saved === 'deep' ? saved : 'deep');
+    for (const stepEl of articles) {
+      const tech = stepEl?.querySelector('.technical-detail');
+      if (!tech || stepEl.querySelector('.card-deep-btn')) continue;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'card-deep-btn';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = '+ Math & specs';
+      btn.addEventListener('click', () => {
+        const open = stepEl.dataset.cardDeep === 'true';
+        if (open) {
+          delete stepEl.dataset.cardDeep;
+          btn.setAttribute('aria-expanded', 'false');
+          btn.textContent = '+ Math & specs';
+        } else {
+          stepEl.dataset.cardDeep = 'true';
+          btn.setAttribute('aria-expanded', 'true');
+          btn.textContent = '− Hide math & specs';
+        }
+      });
+      tech.before(btn);
+    }
+    const depthBtn = get('depth-btn');
+    if (depthBtn) depthBtn.onclick = toggleDepth;
+    const depthInline = get('depth-inline');
+    if (depthInline) depthInline.onclick = toggleDepth;
+  }
+  initDepth();
+  window.LearningPanels.reader({stops, articles, scene});
+
   function togglePresent() {
     hideAuxPopovers();
     if (inspector.isOpen) inspector.close();
-    if (!state.present) {
+    const entering = !state.present;
+    if (entering) {
       studioOrigin = {y: window.scrollY, index: state.index, opening: state.opening, overview: state.overview};
       state.present = true;
       state.overview = false;
@@ -438,7 +505,10 @@
       event.preventDefault();
       hideAuxPopovers();
       goToStep(target.dataset.stepJump);
-    } else if (target.dataset.view) { state.view = target.dataset.view; draw(); }
+    } else if (target.dataset.view) {
+      state.view = target.dataset.view;
+      draw();
+    }
     else if (target.matches('a[href^="#s-"], a[href="#sources"], a[href="#top"]')) {
       event.preventDefault();
       const hash = target.getAttribute('href');
@@ -502,8 +572,12 @@
       else pause();
       return;
     }
-    if (event.target.closest('input, select, button, a, summary, textarea, [contenteditable]')) return;
-    switch (event.key) {
+    // Fields keep their own arrow keys. Buttons and links have none, so stepping still works while
+    // one holds focus, as Present's Play does on entry; Space stays theirs to activate.
+    if (event.target.closest('input, select, textarea, [contenteditable]')) return;
+    if (event.key === ' ' && event.target.closest('button, a, summary')) return;
+    const presenterKey = state.present && (event.key === 'PageDown' || event.key === 'PageUp');
+    switch (presenterKey ? (event.key === 'PageDown' ? 'ArrowRight' : 'ArrowLeft') : event.key) {
       case 'ArrowRight': move(state.opening ? 0 : state.index + 1); break;
       case 'ArrowLeft': move(state.overview ? stops.length - 1 : state.index - 1); break;
       case 'Home': move(0); break;

@@ -31,8 +31,8 @@
       --on-teal: #125160;
       --on-copper: #8a371b;
       --on-emerald: #115838;
-      --hdr-h: 58px;
-      --ftr-h: 58px;
+      --hdr-h: 44px;
+      --ftr-h: 44px;
       --tint-brass: rgba(158, 115, 43, 0.18);
       --ring-brass: rgba(158, 115, 43, 0.48);
       --tint-teal: rgba(22, 95, 112, 0.15);
@@ -142,6 +142,19 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* Full-Bleed Viewport Stage */
     #stage {
       position: relative;
@@ -191,15 +204,16 @@
      * ========================================================================== */
     .top-bar {
       position: absolute;
-      top: 12px;
-      left: 14px;
-      right: 14px;
+      top: 6px;
+      left: 12px;
+      right: 12px;
+      min-height: 44px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 7px 12px;
-      border-radius: 12px;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 8px;
       z-index: 40;
       flex-wrap: wrap;
     }
@@ -209,7 +223,12 @@
     .brand-group {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+    }
+
+    #obsReturnSlot {
+      display: inline-flex;
+      align-items: center;
     }
 
     .led-indicator {
@@ -235,7 +254,7 @@
     }
     .brand-tag {
       font-family: var(--ff-mono);
-      font-size: 10.5px;
+      font-size: 11px;
       color: var(--text-muted);
       padding-left: 10px;
       border-left: 1px solid var(--border-hairline);
@@ -324,6 +343,7 @@
       gap: 11px;
       opacity: 0;
       pointer-events: none;
+      user-select: text;
       z-index: 32;
     }
     #narrativeBanner.visible {
@@ -333,7 +353,7 @@
     }
     .banner-badge {
       font-family: var(--ff-mono);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -366,7 +386,7 @@
     }
     .banner-step {
       font-family: var(--ff-mono);
-      font-size: 10.5px;
+      font-size: 11px;
       color: var(--text-muted);
       white-space: nowrap;
       margin-left: auto;
@@ -403,11 +423,18 @@
     }
     .toc-title {
       font-family: var(--ff-mono);
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--text-secondary);
+    }
+
+    .btn--toc-collapse {
+      height: auto;
+      min-height: 30px;
+      padding: 0 10px;
+      font-size: 11px;
     }
 
     .toc-search {
@@ -441,9 +468,9 @@
 
     .toc-zone-hdr {
       font-family: var(--ff-mono);
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--accent-brass);
       padding: 10px 6px 4px 6px;
@@ -477,10 +504,10 @@
     }
     .toc-code {
       font-family: var(--ff-mono);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--accent-teal);
-      min-width: 40px;
+      min-width: 44px;
       flex-shrink: 0;
     }
 
@@ -489,6 +516,8 @@
       position: absolute;
       top: calc(var(--hdr-h) + 6px);
       left: 14px;
+      min-height: 32px;
+      padding: 0 12px;
       z-index: 29;
       opacity: 0;
       pointer-events: none;
@@ -518,6 +547,7 @@
       transform: translateX(calc(100% + 28px));
       opacity: 0;
       pointer-events: none;
+      user-select: text;
     }
     #detailPanel.open {
       transform: translateX(0);
@@ -534,6 +564,21 @@
       flex-shrink: 0;
     }
 
+    .detail-head-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .btn--compact {
+      height: auto;
+      min-height: 28px;
+      padding: 4px 10px;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
     .detail-top-meta {
       display: flex;
       align-items: center;
@@ -543,9 +588,9 @@
 
     .realm-tag {
       font-family: var(--ff-mono);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--accent-brass);
     }
@@ -571,10 +616,10 @@
 
     .detail-block-lbl {
       font-family: var(--ff-mono);
-      font-size: 9.5px;
-      font-weight: 700;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: none;
       color: var(--accent-teal);
       margin-bottom: 4px;
     }
@@ -595,7 +640,7 @@
 
     .equation-strip {
       font-family: var(--ff-mono);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.45;
       color: var(--text-primary);
       background: var(--surface-inset);
@@ -615,7 +660,7 @@
     }
     .sub-pill {
       font-family: var(--ff-mono);
-      font-size: 10px;
+      font-size: 12px;
       padding: 3px 8px;
       border-radius: 6px;
       background: var(--surface-inset);
@@ -636,20 +681,20 @@
     }
     .tele-k {
       font-family: var(--ff-mono);
-      font-size: 9.5px;
-      letter-spacing: 0.06em;
+      font-size: 12px;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--text-muted);
     }
     .src-tag {
       align-self: flex-start;
       margin-top: 3px;
-      padding: 1px 7px;
+      padding: 2px 7px;
       border: 1px solid var(--border-hairline);
       border-radius: 999px;
       font-family: var(--ff-mono);
-      font-size: 9.5px;
-      letter-spacing: 0.03em;
+      font-size: 12px;
+      letter-spacing: 0.02em;
       color: var(--text-muted);
     }
     .tele-v {
@@ -701,7 +746,7 @@
       padding: 2px 7px;
       border-radius: 5px;
       font-family: var(--ff-mono);
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.03em;
       white-space: nowrap;
@@ -739,10 +784,10 @@
     }
     .comp-label .lbl-sub {
       display: none;
-      font-size: 8px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--text-muted);
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       margin-top: 1px;
     }
     .comp-label.show-detail .lbl-sub,
@@ -777,15 +822,14 @@
       background: var(--surface-glass);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      border: 1px solid var(--border-hairline);
-      border-left: 3px solid var(--accent-brass);
+      border: 1px solid var(--ring-brass);
       color: var(--text-primary);
-      padding: 4px 10px;
+      padding: 5px 10px 5px 22px;
       border-radius: 6px;
       font-family: var(--ff-mono);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       white-space: nowrap;
       pointer-events: auto;
@@ -794,18 +838,33 @@
       transition: opacity 0.28s var(--ease-studio), border-color 0.18s;
       z-index: 22;
     }
+    .zone-label::before {
+      content: '';
+      position: absolute;
+      left: 9px;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-brass);
+    }
     .zone-label .zl-sub {
       display: block;
-      font-size: 8.5px;
+      font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.02em;
+      text-transform: none;
       color: var(--text-muted);
       margin-top: 1px;
     }
-    .zone-label.z-teal { border-left-color: var(--accent-teal); }
-    .zone-label.z-copper { border-left-color: var(--accent-copper); }
-    .zone-label.z-emerald { border-left-color: var(--accent-emerald); }
-    .zone-label.z-brass { border-left-color: var(--accent-brass); }
+    .zone-label.z-teal { border-color: var(--ring-teal); }
+    .zone-label.z-teal::before { background: var(--accent-teal); }
+    .zone-label.z-copper { border-color: var(--ring-copper); }
+    .zone-label.z-copper::before { background: var(--accent-copper); }
+    .zone-label.z-emerald { border-color: var(--ring-emerald); }
+    .zone-label.z-emerald::before { background: var(--accent-emerald); }
+    .zone-label.z-brass { border-color: var(--ring-brass); }
+    .zone-label.z-brass::before { background: var(--accent-brass); }
     .zone-label:hover {
       border-color: var(--accent-brass);
       z-index: 26;
@@ -820,15 +879,16 @@
      * ========================================================================== */
     .bottom-bar {
       position: absolute;
-      bottom: 12px;
-      left: 14px;
-      right: 14px;
-      padding: 7px 14px;
-      border-radius: 12px;
+      bottom: 6px;
+      left: 12px;
+      right: 12px;
+      min-height: 44px;
+      padding: 4px 10px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
       z-index: 40;
     }
@@ -841,10 +901,10 @@
     }
     .speed-label {
       font-family: var(--ff-mono);
-      font-size: 10.5px;
+      font-size: 11px;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
     .speed-val {
       font-size: 11.5px;
@@ -976,11 +1036,12 @@
       .bottom-bar .btn { flex-shrink: 0; }
       .speed-control { flex-shrink: 0; }
       .btn { height: 34px; }
+      .btn--toc-collapse, #tocReopenBtn { min-height: 44px; padding: 0 12px; }
 
       #tocDrawer { left: 12px; width: calc(100% - 24px); }
       #tocReopenBtn { left: 12px; top: auto; bottom: calc(var(--ftr-h) + 6px); }
       #narrativeBanner { width: calc(100% - 24px); max-width: calc(100% - 24px); flex-wrap: wrap; gap: 6px 10px; padding: 7px 12px; }
-      .banner-copy { font-size: 11.5px; line-height: 1.38; flex: 1 1 100%; order: 3; }
+      .banner-copy { font-size: 12px; line-height: 1.38; flex: 1 1 100%; order: 3; }
       .banner-step { order: 2; }
 
       /* Stage focus: bottom sheet between the header and the footer mode bar */
@@ -1000,8 +1061,8 @@
       .detail-footer .pill-row { flex: 1 1 100%; flex-wrap: nowrap; gap: 6px; }
       .detail-footer .pill-row .btn { flex: 1 1 0; }
       .detail-footer > .btn { flex: 1 1 100%; }
-      .equation-strip { font-size: 10px; }
-      .tv-stage code { font-size: 10px; }
+      .equation-strip { font-size: 12px; }
+      .tv-stage code { font-size: 11px; }
       #textView { inset: 8px 12px; }
     }
 </style>
@@ -1043,8 +1104,8 @@ window.obs={};window.obs.ready=new Promise((resolve,reject)=>{window.__obsResolv
 /* Labels: code + name, a readable minimum size, and a lesson tag in the second line */
 .comp-label { font-size: 11px; padding: 3px 8px; }
 .comp-label .cid { color: var(--accent-teal); font-weight: 700; }
-.comp-label .lbl-sub { font-size: 10px; color: var(--text-secondary, var(--text-muted)); }
-.toc-item .toc-lesson { color: var(--text-muted); font-size: 10px; font-weight: 500; white-space: nowrap; }
+.comp-label .lbl-sub { font-size: 11px; color: var(--text-secondary, var(--text-muted)); }
+.toc-item .toc-lesson { color: var(--text-muted); font-size: 11px; font-weight: 500; white-space: nowrap; }
 html.embed .comp-label .lbl-lesson { color: inherit; }
 @media (max-width: 560px) { html.embed .comp-label .lbl-lesson { display: none; } }
 /* Tour caption: a compact corner card that can collapse */
@@ -1058,11 +1119,12 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
 @media (max-width: 680px) { #narrativeBanner { right: 12px; left: 12px; max-width: none; width: auto; } }
 /* Jargon glossary in the detail panel */
 .gloss-list { margin: 0; display: grid; gap: 6px; }
-.gloss-list dt { font: 700 11px/1.3 var(--ff-mono); color: var(--accent-teal); letter-spacing: .02em; }
+.gloss-list dt { font: 700 12px/1.3 var(--ff-mono); color: var(--accent-teal); letter-spacing: .02em; }
 .gloss-list dd { margin: 0 0 4px; font-size: 12.5px; line-height: 1.45; color: var(--text-secondary, var(--text-primary)); }
 </style>
 </head><body>
   <div id="stage" role="region" aria-label="3D observatory scene">
+    <h1 class="sr-only">LLM Systems 3D Observatory</h1>
     <!-- Main 3D WebGL Canvas -->
     <canvas id="threeCanvas" tabindex="0" aria-label="LLM Systems 3D Observatory"></canvas>
 
@@ -1073,9 +1135,10 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
     <!-- TOP FLOATING BAR -->
     <header class="top-bar glass-bar suite-bar-slot">
       <div class="brand-group">
-        <a class="suite-home" href="../index.html" style="font-size:11.5px;margin-right:4px">← All views</a>
-        <span class="led-indicator" id="simLed" title="Simulation Status"></span>
-        <span class="brand-title">LLM Systems Observatory</span>
+        <a class="suite-home" href="../index.html"><svg class="suite-mark" aria-hidden="true" viewBox="0 0 20 20"><path d="m3 6 7-4 7 4v8l-7 4-7-4z M3 6l7 4 7-4 M10 10v8"/></svg>One Token</a>
+        <span class="suite-edition">Observatory</span>
+        <span id="obsReturnSlot"></span>
+        <span class="led-indicator" id="simLed" role="status" aria-label="Simulation running" title="Simulation Status"></span>
         <span class="brand-tag tabular" id="statusReadout">31 Assemblies · 0.65x</span>
       </div>
 
@@ -1089,7 +1152,7 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
 
       <div class="pill-row">
         <button class="btn" id="btnThemeToggle" aria-pressed="false" title="Switch Studio Dark / Drafting Light">Studio Dark</button>
-        <button class="btn btn--pause" id="btnPause" aria-pressed="false" title="Pause / Resume Global Simulation (Space)">⏸ Pause</button>
+        <button class="btn btn--pause" id="btnPause" aria-pressed="false" title="Pause / Resume Global Simulation (Space)">Pause</button>
       </div>
       </div>
     </header>
@@ -1106,7 +1169,7 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
     <aside id="tocDrawer" class="glass-bar" aria-label="31-Stage Architecture Table of Contents">
       <div class="toc-header">
         <span class="toc-title">31-Stage Index</span>
-        <button class="btn" style="height:24px;padding:0 8px;font-size:10.5px;" id="btnTocCollapse" aria-label="Hide stage index" title="Collapse Index">Hide</button>
+        <button class="btn btn--toc-collapse" id="btnTocCollapse" aria-label="Hide stage index" title="Collapse Index">Hide</button>
       </div>
       <div class="toc-search">
         <input type="text" id="tocFilter" placeholder="Filter 31 components..." aria-label="Filter components" />
@@ -1115,51 +1178,53 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
     </aside>
 
     <!-- Floating Re-open Button when TOC is hidden -->
-    <button class="btn glass-bar" id="tocReopenBtn" style="height:32px;padding:0 12px;">☰ 31-Stage Index</button>
+    <button class="btn glass-bar" id="tocReopenBtn">31-Stage Index</button>
 
     <!-- RIGHT SLIDE-IN DETAILED COMPONENT & NARRATIVE INSPECTOR (Pop-Out Focus Mode) -->
     <aside id="detailPanel" class="glass-bar" aria-label="Component Detail Inspector">
       <div class="detail-header">
+        <div class="detail-head-row">
+          <h2 class="detail-title" id="detTitle">RoPE (Rotary Positional Embeddings)</h2>
+          <button class="btn btn--compact" id="btnExitFocus" aria-label="Close inspector and return to full view" title="Return to Full Architecture (Esc)">Full View</button>
+        </div>
         <div class="detail-top-meta">
           <span class="realm-tag tabular" id="detRealm">ZONE 2 · FORWARD PASS · MD-2c</span>
-          <button class="btn" style="height:26px;padding:0 9px;font-size:11px;" id="btnExitFocus" aria-label="Close inspector and return to full view" title="Return to Full Architecture (Esc)">✕ Full View</button>
         </div>
-        <h2 class="detail-title" id="detTitle">RoPE (Rotary Positional Embeddings)</h2>
       </div>
 
       <div class="detail-scroll" tabindex="0" role="region" aria-label="Component details">
         <div>
-          <div class="detail-block-lbl">What It Is</div>
+          <h3 class="detail-block-lbl">What It Is</h3>
           <p class="detail-prose" id="detWhat"></p>
         </div>
 
         <div class="detail-divider"></div>
 
         <div>
-          <div class="detail-block-lbl">What It Does</div>
+          <h3 class="detail-block-lbl">What It Does</h3>
           <p class="detail-prose" id="detDoing"></p>
         </div>
 
         <div class="detail-divider"></div>
 
         <div>
-          <div class="detail-block-lbl brass">Plain-English Walkthrough</div>
+          <h3 class="detail-block-lbl brass">Plain-English Walkthrough</h3>
           <p class="detail-prose" id="detNarrative"></p>
         </div>
 
         <div id="detGlossWrap" hidden>
-          <div class="detail-block-lbl">Jargon, in plain English</div>
+          <h3 class="detail-block-lbl">Jargon, in plain English</h3>
           <dl class="gloss-list" id="detGloss"></dl>
         </div>
 
         <div>
-          <div class="detail-block-lbl">Core Logic &amp; Data Shape</div>
+          <h3 class="detail-block-lbl">Core Logic &amp; Data Shape</h3>
           <div class="equation-strip tabular" id="detEquation"></div>
           <div id="componentLabs"></div>
         </div>
 
         <div>
-          <div class="detail-block-lbl">Key Responsibilities</div>
+          <h3 class="detail-block-lbl">Key Responsibilities</h3>
           <div class="sub-pills" id="detSubs"></div>
         </div>
 
@@ -1177,7 +1242,7 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
       <!-- Isolated Component Demo & Context Toggle Strip -->
       <div class="detail-controls-strip">
         <button class="btn btn--emerald is-active" id="btnIsolatedDemo" aria-pressed="true" title="Animate this component's physical mechanics even while global simulation is paused">
-          ⚙ Isolated Component Demo: ON
+          Isolated Component Demo: ON
         </button>
         <button class="btn btn--teal is-active" id="btnCsaHcaToggle" aria-pressed="true" style="display:none;" title="Switch between Heavily Compressed Attention (HCA 128x) and Compressed Sparse Attention (CSA 4x)">
           Mode: HCA 128× Compressed KV
@@ -1186,20 +1251,20 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
 
       <div class="detail-footer">
         <div class="pill-row">
-          <button class="btn" id="btnPrevComp">◀ Prev</button>
-          <button class="btn" id="btnNextComp">Next ▶</button>
+          <button class="btn" id="btnPrevComp">Prev</button>
+          <button class="btn" id="btnNextComp">Next</button>
         </div>
-        <button class="btn" id="btnExitFocusFooter">✕ Return to Full Architecture (Esc)</button>
+        <button class="btn" id="btnExitFocusFooter">Close</button>
       </div>
     </aside>
 
     <!-- COMPACT FLOATING BOTTOM BAR -->
     <footer class="bottom-bar glass-bar">
       <div class="pill-row" role="group" aria-label="Process Showcase Modes">
-        <button class="btn btn--copper is-active" data-showcase="TRAINING" id="btnModeTraining">⟲ Train &amp; Backprop</button>
-        <button class="btn btn--teal" data-showcase="FORWARD" id="btnModeForward">▶ Inference Flow</button>
-        <button class="btn btn--emerald" data-showcase="RLVR" id="btnModeRlvr" title="RLVR: reinforcement learning with verifiable rewards. GRPO scores a group of attempts and reinforces the best.">🎯 RLVR / GRPO Loop</button>
-        <button class="btn" data-showcase="AGENT" id="btnModeAgent">🔧 Agent Tool Loop</button>
+        <button class="btn btn--copper is-active" data-showcase="TRAINING" id="btnModeTraining">Train &amp; Backprop</button>
+        <button class="btn btn--teal" data-showcase="FORWARD" id="btnModeForward">Inference Flow</button>
+        <button class="btn btn--emerald" data-showcase="RLVR" id="btnModeRlvr" title="RLVR: reinforcement learning with verifiable rewards. GRPO scores a group of attempts and reinforces the best.">RLVR / GRPO</button>
+        <button class="btn" data-showcase="AGENT" id="btnModeAgent">Agent Tool Loop</button>
       </div>
 
       <div class="pill-row">
@@ -1230,7 +1295,7 @@ html.embed .comp-label .lbl-lesson { color: inherit; }
     <section id="textView" role="dialog" aria-modal="false" aria-labelledby="tvTitle">
       <div class="tv-head">
         <h2 id="tvTitle">Text view · all 31 stages</h2>
-        <button class="btn" id="btnTextViewClose" aria-label="Close text view">✕ Close (Esc)</button>
+        <button class="btn" id="btnTextViewClose" aria-label="Close text view">Close</button>
       </div>
       <div class="tv-body" id="textViewBody" tabindex="0"></div>
     </section>
@@ -5576,6 +5641,14 @@ let gantryShell=null;
       return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
+    // A card's Break labs drive this scene through the same API the embedding pages call.
+    function obsLabHooks() {
+      return {
+        onRoute: (k, bias) => window.obs?.setRouting?.(k, bias),
+        onPrefixCache: ratio => window.obs?.setPrefixCache?.(ratio),
+        onPDDisagg: on => window.obs?.setPDDisagg?.(on)
+      };
+    }
     function enterPopOutFocus(index) {
       if (index < 0 || index >= compRecords.length) return;
 
@@ -5607,7 +5680,7 @@ let gantryShell=null;
       document.getElementById('detGlossWrap').hidden = glossTerms.length === 0;
       const labs = document.getElementById('componentLabs');
       labs.replaceChildren();
-      MicroLabs.dock(labs, MicroLabs.components[d.id], {onRoute: (k, bias) => window.obs.setRouting(k, bias)});
+      MicroLabs.dock(labs, MicroLabs.components[d.id], obsLabHooks());
       document.getElementById('detKeyFact').textContent = d.keyFact;
       document.getElementById('detKeyFactSrc').textContent = 'Source: ' + d.keyFactSource;
 
@@ -5779,7 +5852,8 @@ let gantryShell=null;
       btn.classList.toggle('is-paused', isPaused);
       btn.setAttribute('aria-pressed', String(isPaused));
       led.classList.toggle('paused', isPaused);
-      btn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+      led.setAttribute('aria-label', isPaused ? 'Simulation paused' : 'Simulation running');
+      btn.textContent = isPaused ? 'Resume' : 'Pause';
       updateStatusReadout();
     }
 
@@ -5881,7 +5955,7 @@ let gantryShell=null;
           eq.textContent = c.equation;
           art.appendChild(eq);
           art.appendChild(textViewPara('Key fact', c.keyFact + ' (Source: ' + c.keyFactSource + ')'));
-          MicroLabs.dock(art, MicroLabs.components[c.id], {onRoute: (k, bias) => window.obs.setRouting?.(k, bias)});
+          MicroLabs.dock(art, MicroLabs.components[c.id], obsLabHooks());
           container.appendChild(art);
         });
       });
@@ -5970,7 +6044,7 @@ let gantryShell=null;
         isolatedDemoActive = !isolatedDemoActive;
         e.currentTarget.classList.toggle('is-active', isolatedDemoActive);
         e.currentTarget.setAttribute('aria-pressed', String(isolatedDemoActive));
-        e.currentTarget.textContent = isolatedDemoActive ? '⚙ Isolated Component Demo: ON' : '⚙ Isolated Component Demo: OFF';
+        e.currentTarget.textContent = isolatedDemoActive ? 'Isolated Component Demo: ON' : 'Isolated Component Demo: OFF';
       });
 
       document.getElementById('btnCsaHcaToggle').addEventListener('click', (e) => {
@@ -8309,21 +8383,6 @@ let gantryShell=null;
       if(QS.get('focus'))api.focus(QS.get('focus').split(','),{fly:false});if(QS.has('kv'))api.setKV(+QS.get('kv'));
       if (EMBED) forwardJourneyKeys();
       else {
-        if (window.SuiteLinks) {
-          const obsSuiteState = () => {
-            const detOpen = document.getElementById('detailPanel')?.classList.contains('open');
-            const realmTxt = detOpen ? (document.getElementById('detRealm')?.textContent || '') : '';
-            const codeMatch = realmTxt.match(/\b((?:TR|MD|IN)-[0-9a-z]+)\b/i);
-            const code = codeMatch ? codeMatch[1] : '';
-            const lesson = code && window.ConceptMap?.COMPONENTS[code]?.lesson;
-            if (lesson) return { stage: lesson.split('.')[0], step: lesson, pos: code, label: code };
-            if (currentRealm === 'TRAINING') return { stage: '3', step: '3', pos: 'TRAINING', label: 'Training' };
-            if (currentRealm === 'INFERENCE') return { stage: '8', step: '8', pos: 'INFERENCE', label: 'Inference' };
-            return { stage: '7', step: '7.2', pos: 'MODEL', label: 'Model Core' };
-          };
-          SuiteLinks.mountSuiteMenu(document.querySelector('.suite-home'), { currentPage: 'obs', getState: obsSuiteState });
-          SuiteLinks.mountReturnChip(document.querySelector('.top-actions'), 'obs');
-        }
         deepLinkInit();
         window.addEventListener('hashchange', deepLinkInit);
       }
@@ -8470,6 +8529,19 @@ let gantryShell=null;
         perf.settleUntil = performance.now() + 1500; // ignore shader-compile frames in the governor
         if(!EMBED)renderTOC();
         if(!EMBED)bindUIEvents();
+        if (!EMBED && window.SuiteLinks) {
+          const obsSuiteState = () => {
+            const comp = focusedCompIndex >= 0 ? COMPONENTS[focusedCompIndex] : null;
+            const code = comp ? comp.id : '';
+            const lesson = code && window.ConceptMap?.COMPONENTS[code]?.lesson;
+            if (lesson) return { stage: lesson.split('.')[0], step: lesson, pos: code, label: code };
+            if (currentRealm === 'TRAINING') return { stage: '3', step: '3', pos: 'TRAINING', label: 'Training' };
+            if (currentRealm === 'INFERENCE') return { stage: '8', step: '8', pos: 'INFERENCE', label: 'Inference' };
+            return { stage: '7', step: '7.2', pos: 'MODEL', label: 'Model Core' };
+          };
+          SuiteLinks.mountSuiteMenu(document.querySelector('.suite-edition') || document.querySelector('.suite-home'), { currentPage: 'obs', getState: obsSuiteState });
+          SuiteLinks.mountReturnChip(document.getElementById('obsReturnSlot'), 'obs');
+        }
         bindChromeMeasure();
         if (isNarrowLayout()) {
           // Phones: the stage index starts closed so it never covers the scene on load
@@ -8483,7 +8555,7 @@ let gantryShell=null;
           const b = document.getElementById('btnIsolatedDemo');
           b.classList.toggle('is-active', isolatedDemoActive);
           b.setAttribute('aria-pressed', String(isolatedDemoActive));
-          if (!isolatedDemoActive) b.textContent = '⚙ Isolated Component Demo: OFF';
+          if (!isolatedDemoActive) b.textContent = 'Isolated Component Demo: OFF';
         })();
         updateNarrativeBanner(0);
 

@@ -118,6 +118,37 @@ test('Guided Tour and Story offer the same component labs at all twelve lab stop
   assert.deepEqual(lab.storyStops, expected);
 });
 
+test('every Break lab sits on its concept card in Story, Tour, Observatory and Beamline Study', () => {
+  const links = require('../shared/concept-links.js');
+  const breaks = {'moe-router': 'moe', 'prefill-decode': 'pd', 'utf8-sse': 'stream', 'mcp-loop': 'cache'};
+  const beam = readFileSync(path.join(root, 'end-to-end-beamline/index.html'), 'utf8');
+  const literal = name => Function('return ' + beam.match(new RegExp('const ' + name + ' = (\\{[\\s\\S]*?\\});'))[1])();
+  const studyLabs = literal('studyLabs'), beamConcepts = literal('beamConcepts');
+  for (const [slug, name] of Object.entries(breaks)) {
+    const c = links.CONCEPTS[slug];
+    assert.equal(c.lab, name, slug + ' registry lab');
+    assert.ok(lab.storyStops[c.story.stop]?.includes(name), slug + ' Story stop ' + c.story.stop);
+    assert.ok(lab.tourStops[c.tour.stop]?.includes(name), slug + ' Tour stop ' + c.tour.stop);
+    for (const code of links.map.CONCEPTS[slug].obs) assert.ok(lab.components[code]?.includes(name), slug + ' Observatory ' + code);
+    assert.equal(beamConcepts[c.beamline.beat], slug, slug + ' Beamline beat');
+    assert.ok(studyLabs[c.beamline.beat]?.includes(name), slug + ' Beamline Study beat ' + c.beamline.beat);
+  }
+});
+
+test('Swiss concept bridges come from the registry and return to the same zero-based stage', () => {
+  const links = require('../shared/concept-links.js');
+  const swiss = readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8');
+  const hrefs = [...swiss.matchAll(/class="concept-bridge" href="([^"]+)"/g)].map(m => m[1].replaceAll('&amp;', '&'));
+  assert.equal(hrefs.length, 7);
+  for (const href of hrefs) {
+    const slug = href.match(/#concept=([a-z0-9-]+)$/)[1], c = links.CONCEPTS[slug];
+    assert.equal(href, links.urlFor('tour', slug, {from: 'swiss', pos: c.swiss.g}));
+    const back = links.returnHref('swiss', new URL(href, 'https://example.test/x/').searchParams.get('pos'), false, 'tour');
+    const g = Number(new URL(back, 'https://example.test/x/').searchParams.get('g'));
+    assert.equal(Math.floor(g), c.swiss.stage - 1, slug + ' returns to Swiss stage ' + c.swiss.stage);
+  }
+});
+
 test('UTF-8 buffer-off mode corrupts split multi-byte emoji into U+FFFD while buffered mode stays clean', () => {
   const text = ' The café 🚀';
   const raw = new TextEncoder().encode('data: ' + JSON.stringify({text}));
@@ -243,14 +274,15 @@ test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline st
   assert.equal(links.beamlineBeatToSwissG('5e'), 6.436);
   assert.equal(links.beamlineBeatToStep('5g'), '7.5');
   assert.equal(links.editionHref('beamline', 'reader', {stage: 7, step: links.beamlineBeatToStep('5g'), pos: '5g', label: 'Beat 5g'}),
-    '../index.html?from=beamline&pos=5g&fromLabel=Beat+5g#step-7.5');
+    '../one-token/index.html?from=beamline&pos=5g&fromLabel=Beat+5g#step-7.5');
   assert.equal(links.stageFromStop(17), '7.3');
   assert.equal(links.editionHref('reader', 'beamline', {stage: 7, step: '7.3', pos: '7.3', label: 'Step 7.3'}),
-    './end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');
+    '../end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');
   assert.equal(links.editionHref('tour', 'reader', {stage: '7', step: '7.3', pos: '17', label: 'Stop 17'}),
-    '../index.html?from=tour&pos=17&fromLabel=Stop+17#step-7.3');
-  assert.equal(links.returnHref('tour', '17', false, 'reader'), './journey-tour/index.html#stop-17');
-  assert.equal(links.returnHref('obs', 'MD-2g', false, 'reader'), './shared/obs-core.html?focus=MD-2g');
+    '../one-token/index.html?from=tour&pos=17&fromLabel=Stop+17#step-7.3');
+  assert.equal(links.returnHref('tour', '17', false, 'reader'), '../journey-tour/index.html#stop-17');
+  assert.equal(links.returnHref('obs', 'MD-2g', false, 'reader'), '../shared/obs-core.html?focus=MD-2g');
+  assert.equal(links.returnHref('tour', '17', false, 'story'), './journey-tour/index.html#stop-17');
 });
 
 test('Ch. 4 causal feature steering preserves 100% probability sum and shifts predictions on clamp', () => {
@@ -260,10 +292,22 @@ test('Ch. 4 causal feature steering preserves 100% probability sum and shifts pr
     const sum = res.probs.reduce((acc, p) => acc + p.pct, 0);
     assert.equal(sum, 100, mode + ' probabilities must sum to 100');
   }
-  assert.equal(math.steerCircuit('natural').probs[0].token, 'France');
-  assert.equal(math.steerCircuit('swap').probs[0].token, 'Italy');
+  assert.equal(math.steerCircuit('natural').top.token, 'France');
+  assert.equal(math.steerCircuit('swap').top.token, 'Italy');
   assert.ok(math.steerCircuit('ablate').probs.find(p => p.token === 'France').pct < 40);
-  assert.ok(math.steerCircuit('amplify').probs[0].pct > 90);
+  assert.ok(math.steerCircuit('amplify').top.pct > 90);
+  // The clamp slider (0x..2x in 5% steps) moves France monotonically and keeps a 100% total.
+  let previous = -1;
+  for (let step = 0; step <= 200; step += 5) {
+    const res = math.steerCircuit('natural', step / 100);
+    assert.equal(res.probs.reduce((acc, p) => acc + p.pct, 0), 100, 'clamp ' + step);
+    assert.deepEqual(res.probs.map(p => p.token), ['France', 'Italy', 'Belgium', 'Other'], 'rows stay in place');
+    const france = res.probs[0].pct;
+    assert.ok(france >= previous, 'France share must not fall as the Paris clamp rises');
+    previous = france;
+  }
+  assert.equal(math.steerCircuit('natural', 9).clamp, 2, 'clamp is bounded to 2x');
+  assert.equal(math.steerCircuit('swap', 0).probs.find(p => p.token === 'Italy').pct < 20, true, 'Rome at 0x no longer pushes Italy');
   const slice = math.activationSlice(38);
   assert.equal(slice.length, 24);
   assert.ok(slice.every(v => v >= -1 && v <= 1));
@@ -329,5 +373,99 @@ test('isolated local-file frames exchange component data and routing commands', 
     assert.deepEqual(await routed, [3, .55]);
   } finally {
     childPort?.close(); parentPort?.close();
+  }
+});
+
+/* ---------- change feedback: MicroLabs.flash / setValue and the orange selected state ---------- */
+
+function loadDomLabs({reduced = false, rm = false} = {}) {
+  const vm = require('node:vm');
+  const classes = () => { const set = new Set(); return {set, add: c => set.add(c), remove: c => set.delete(c), contains: c => set.has(c)}; };
+  const node = (text = '') => ({classList: classes(), textContent: text, isConnected: true, tagName: 'SPAN'});
+  const documentElement = {classList: classes(), offsetWidth: 0};
+  if (rm) documentElement.classList.add('rm');
+  const frames = [];
+  let now = 0;
+  const window = {};
+  const context = vm.createContext({
+    window, document: {documentElement, addEventListener() {}, createElement: () => node()},
+    matchMedia: query => ({matches: reduced && /reduce/.test(query)}),
+    setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: id => clearTimeout(id),
+    requestAnimationFrame: fn => frames.push(fn), cancelAnimationFrame() {},
+    performance: {now: () => now}, TextEncoder, TextDecoder, Node: class {}, MutationObserver: class { observe() {} }, console
+  });
+  vm.runInContext(readFileSync(path.join(root, 'shared/micro-labs.js'), 'utf8'), context);
+  const play = ms => { now += ms; const batch = frames.splice(0); batch.forEach(fn => fn(now)); };
+  return {api: window.MicroLabs, node, play, frames};
+}
+
+test('flash adds .is-changed, restarts cleanly and removes it after the animation', t => {
+  t.mock.timers.enable({apis: ['setTimeout']});
+  const {api, node} = loadDomLabs();
+  const box = node(), other = node();
+  api.flash(box);
+  assert.ok(box.classList.contains('is-changed'));
+  t.mock.timers.tick(600);
+  assert.ok(box.classList.contains('is-changed'), 'still pulsing at 600 ms');
+  api.flash(box); // a second change restarts the pulse instead of stacking timers
+  t.mock.timers.tick(600);
+  assert.ok(box.classList.contains('is-changed'));
+  t.mock.timers.tick(200);
+  assert.equal(box.classList.contains('is-changed'), false, 'class removed once the animation is over');
+  api.flashAll([box, box, other, null]);
+  assert.ok(box.classList.contains('is-changed') && other.classList.contains('is-changed'));
+});
+
+test('setValue tweens old to new under motion and lands on the exact new text', () => {
+  const {api, node, play} = loadDomLabs();
+  const out = node('10 MiB');
+  assert.equal(api.setValue(out, '50 MiB'), true);
+  assert.equal(out.textContent, '10 MiB', 'tween starts from the old value');
+  assert.ok(out.classList.contains('is-changed'));
+  play(200);
+  const mid = parseFloat(out.textContent);
+  assert.ok(mid > 10 && mid < 50, 'mid-tween value ' + out.textContent);
+  play(400);
+  assert.equal(out.textContent, '50 MiB');
+  assert.equal(api.setValue(out, '50 MiB'), false, 'unchanged value does not pulse');
+  const big = node('4,096 tokens');
+  api.setValue(big, '65,536 tokens'); play(600);
+  assert.equal(big.textContent, '65,536 tokens');
+});
+
+test('under prefers-reduced-motion setValue snaps and flash is only a static highlight class', t => {
+  for (const mode of [{reduced: true}, {rm: true}]) {
+    t.mock.timers.enable({apis: ['setTimeout']});
+    const {api, node, frames} = loadDomLabs(mode);
+    const out = node('10 MiB');
+    api.setValue(out, '50 MiB');
+    assert.equal(out.textContent, '50 MiB', 'no tween');
+    assert.equal(frames.length, 0, 'no animation frames requested');
+    assert.ok(out.classList.contains('is-changed'), 'static highlight still marks the change');
+    t.mock.timers.tick(720);
+    assert.equal(out.classList.contains('is-changed'), false);
+    t.mock.timers.reset();
+  }
+});
+
+test('orange token marks selected and changed state; reduced motion removes the animation; text on orange is legible', () => {
+  const css = readFileSync(path.join(root, 'shared/micro-labs.css'), 'utf8');
+  const hex = name => css.match(new RegExp('--' + name + ': *(#[0-9a-fA-F]{6})'))[1];
+  const [orange, orangeHi, ink] = [hex('ml-orange'), hex('ml-orange-hi'), hex('ml-orange-ink')];
+  assert.equal(orange.toUpperCase(), '#E5672F');
+  assert.equal(orangeHi.toUpperCase(), '#F2A65A');
+  const lum = c => { const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16) / 255)
+    .map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g + .0722 * b; };
+  const ratio = (a, b) => (Math.max(lum(a), lum(b)) + .05) / (Math.min(lum(a), lum(b)) + .05);
+  assert.ok(ratio(ink, orange) >= 4.5, 'ink on #E5672F ' + ratio(ink, orange).toFixed(2));
+  assert.ok(ratio(ink, orangeHi) >= 4.5, 'ink on #F2A65A ' + ratio(ink, orangeHi).toFixed(2));
+  assert.match(css, /\.ml-tokens button\[aria-pressed=true\][^{]*\{[^}]*background: var\(--ml-orange-hi\)/);
+  assert.match(css, /\.ml-value,\.ml-num \{ background: var\(--ml-orange-hi\)/);
+  assert.match(css, /\.is-changed \{ animation: ml-flash 650ms/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.is-changed,svg \.is-changed,svg text\.is-changed \{ animation: none \}/);
+  assert.match(css, /html\.rm \.is-changed,html\.rm svg \.is-changed,html\.rm svg text\.is-changed \{ animation: none \}/);
+  for (const file of ['one-token/learning-panels.css', 'journey-story/component-math.css']) {
+    const src = readFileSync(path.join(root, file), 'utf8');
+    assert.match(src, /\[aria-pressed="true"\]\s*\{[^}]*background: var\(--ml-orange-hi/, file + ' selected chips use the orange token');
   }
 });

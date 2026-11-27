@@ -1,3 +1,7 @@
+/* Orange marks what matters: the chosen token, active expert, selected option and current value.
+   Same copper-orange pair the Journey uses for its gradient flow (#E5672F to #F2A65A). Text on either
+   orange is near-black ink (about 6:1 on #E5672F, 9:1 on #F2A65A), never white. */
+:root { --ml-orange: #E5672F; --ml-orange-hi: #F2A65A; --ml-orange-ink: #1B1209 }
 .micro-lab { --ml-accent: var(--c-acc, var(--token-ink, var(--accent-brass, #347398))); --ml-danger: #B92B08; --ml-line: color-mix(in srgb, currentColor 24%, transparent); --ml-radius: var(--r-control, 4px); color: inherit; margin: .8rem 0 .3rem; border-block-start: 1px solid var(--ml-line); font: 400 .88rem/1.45 var(--sans, system-ui, sans-serif); text-align: left; min-width: 0 }
 .micro-lab > summary { cursor: pointer; padding: .62rem .1rem; font-size: .87rem; line-height: 1.35; font-weight: 600; }
 .micro-lab :is(summary,button,input,textarea,select):focus-visible { outline: 2px solid currentColor; outline-offset: 2px }
@@ -7,6 +11,9 @@
 .ml-control input { width: 100%; grid-column: 1/-1; accent-color: var(--ml-accent); margin: 0; cursor: pointer }
 .ml-value,.ml-weights,.ml-gloss,.ml-readout,.ml-wire,.ml-equation,.ml-pieces,.ml-merges,.ml-body td,.ml-break,.ml-presets button,.ml-prefix button {font-family: var(--mono, ui-monospace, Consolas, monospace); font-variant-numeric: tabular-nums}
 .ml-value,.ml-merges,.ml-weight {font-size: .77rem}
+/* The current value of a control: an orange pill that stays on screen. */
+.ml-value,.ml-num { background: var(--ml-orange-hi); color: var(--ml-orange-ink); font-weight: 700; padding: .05rem .45rem; border-radius: 999px; white-space: nowrap }
+.ml-num { font-family: var(--mono, ui-monospace, Consolas, monospace); font-variant-numeric: tabular-nums }
 .ml-field {display: grid; gap: .3rem}
 .ml-body :is(textarea,select) {font: inherit; color: inherit; background: color-mix(in srgb, currentColor 4%, transparent); border: 1px solid var(--ml-line); border-radius: var(--ml-radius); padding: .45rem; max-width: 100%; box-sizing: border-box}
 .ml-body textarea { width: 100%; resize: vertical }
@@ -17,25 +24,35 @@
 .ml-equation { display: flex; align-items: baseline; flex-wrap: wrap; gap: .2rem; font-size: .88rem }
 .ml-equation button,.ml-tokens button,.ml-presets button,.ml-break,.ml-prefix button { color: inherit; background: transparent; font: inherit; cursor: pointer; padding: .2rem .45rem; border: 1px solid var(--ml-line); border-radius: var(--ml-radius); font-size: .76rem; line-height: 1.3; transition: background-color .15s ease, border-color .15s ease }
 .ml-equation button { border: 0; border-bottom: 1px dotted currentColor; padding: .15rem .3rem; font-size: .88rem }
-.ml-tokens button[aria-pressed=true],.ml-presets button[aria-pressed=true] { outline: 2px solid var(--ml-accent); background: color-mix(in srgb, var(--ml-accent) 12%, transparent) }
+.ml-tokens button[aria-pressed=true],.ml-presets button[aria-pressed=true],.ml-prefix button[data-state="edited"],.ml-break[aria-pressed=true],.ml-switch.is-off { background: var(--ml-orange-hi); color: var(--ml-orange-ink); border-color: var(--ml-orange); font-weight: 700 }
 .ml-break { display: inline-flex; align-items: center; gap: .4rem; width: fit-content; font-weight: 600; padding: .3rem .58rem; background: color-mix(in srgb, currentColor 5%, transparent) }
 .ml-break:hover { border-color: currentColor }
-.ml-break[aria-pressed=true] { border-color: var(--ml-danger); background: color-mix(in srgb, var(--ml-danger) 16%, transparent) }
+.ml-break[aria-pressed=true] { border: 2px solid var(--ml-danger) }
 .ml-prefix button { font-size: .78rem; padding: .22rem .42rem }
 .ml-prefix button[data-state="warm"] { border-color: var(--ml-accent); background: color-mix(in srgb, var(--ml-accent) 12%, transparent) }
 .ml-prefix button[data-state="cold"] { border-color: var(--ml-danger); border-style: dashed; background: color-mix(in srgb, var(--ml-danger) 14%, transparent) }
-.ml-prefix button[data-state="edited"] { border-color: var(--ml-danger); background: color-mix(in srgb, var(--ml-danger) 24%, transparent); font-weight: 700 }
+.ml-prefix button[data-state="edited"] { border: 2px solid var(--ml-danger) }
 .ml-gloss { font-size: .76rem; line-height: 1.4 }
 .ml-gloss:empty { display:none }
 .micro-lab .ml-graphic { display: block; width: 100%; height: auto; position: static; overflow: visible; max-height: 210px; color: inherit }
 .ml-graphic text { fill: currentColor; font: 11px var(--mono, ui-monospace, monospace) }
 .ml-graphic .ml-idle {fill: currentColor; opacity: .22}
-.ml-graphic .ml-active,.ml-graphic .ml-cell,.ml-weight i {fill: var(--ml-accent); background: var(--ml-accent)}
+.ml-graphic .ml-active,.ml-graphic .ml-cell {fill: var(--ml-accent)}
+.ml-graphic .ml-sel {fill: var(--ml-orange); stroke: var(--ml-orange-ink); stroke-width: .6}
+.ml-graphic .ml-sel.ml-square {stroke-width: 1.2}
+.ml-graphic .ml-chip {fill: none}
+.ml-graphic .ml-chip.ml-sel {fill: var(--ml-orange-hi); stroke: none}
+.ml-graphic text.ml-on-sel {fill: var(--ml-orange-ink); font-weight: 700}
+.ml-graphic .ml-ring {fill: none; stroke: var(--ml-orange); stroke-width: 2.5; pointer-events: none}
+.ml-graphic .ml-sel-line {stroke: var(--ml-orange); stroke-width: 4}
+.ml-weight i {background: var(--ml-orange)}
 .ml-graphic .ml-drop,.ml-weight.is-hot i {fill: var(--ml-danger); background: var(--ml-danger)}
+.ml-graphic .ml-drop.ml-sel {fill: var(--ml-danger)}
 .ml-graphic .ml-masked { fill: currentColor }
 .ml-graphic .ml-outline,.ml-graphic .ml-guide {fill: none; stroke: currentColor; opacity: .45}
 .ml-graphic .ml-guide,.ml-graphic .ml-key {stroke-dasharray: 3 2}
-.ml-graphic .ml-vector,.ml-graphic .ml-curve {fill: none; stroke: var(--ml-accent); stroke-width: 2.5}
+.ml-graphic .ml-vector {fill: none; stroke: var(--ml-orange); stroke-width: 2.5}
+.ml-graphic .ml-curve {fill: none; stroke: var(--ml-accent); stroke-width: 2.5}
 .ml-graphic .ml-nvlink {fill: none; stroke: var(--ml-danger); stroke-width: 2; stroke-dasharray: 5 3}
 .ml-graphic .ml-key {stroke: currentColor; fill: none}
 .ml-graphic .ml-lit {stroke: var(--ml-accent); stroke-width: 2; opacity: 1}
@@ -55,12 +72,53 @@
 .eq [data-eq-target]:focus-visible { outline: 1px solid currentColor; outline-offset: 2px }
 @media (prefers-reduced-motion: reduce) {
   .ml-pieces > span, .ml-weight, .ml-break, .ml-presets button, .ml-prefix button { transition: none }
+  .ml-graphic rect, .ml-graphic line, .ml-graphic circle { transition: none }
 }
-.ml-trace > summary { display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .3rem .7rem; border: 1px solid currentColor; border-radius: 3px; font-weight: 600; font-size: .84rem; cursor: pointer; list-style: none; }
+/* Same plain disclosure look as the lab's own summary: no box, just a marker. */
+.ml-trace > summary { display: flex; align-items: center; gap: .4rem; padding: .62rem .1rem; font-weight: 600; font-size: .87rem; line-height: 1.35; cursor: pointer; list-style: none; }
 .ml-trace > summary::-webkit-details-marker { display: none; }
 .ml-trace > summary::before { content: "\25B8"; }
 .ml-trace[open] > summary::before { content: "\25BE"; }
 .ml-demo-vocab { display: inline-block; padding: .3rem .55rem; border: 1px dashed currentColor; border-radius: 3px; font-weight: 600; }
 .ml-hint { margin: .2rem 0 .6rem; font-size: .82rem; opacity: .8; }
 .ml-switch[role=switch][aria-checked=true] { border-color: currentColor }
-.ml-switch.is-off { border-color: var(--ml-danger); background: color-mix(in srgb, var(--ml-danger) 16%, transparent) }
+.ml-switch.is-off { border: 2px solid var(--ml-danger) }
+
+/* "Try this" prompt and "Why it matters" line */
+:is(.micro-lab,.component-math) :is(.ml-try,.ml-why) { margin: .4rem 0; font: .86rem/1.45 var(--sans, system-ui, sans-serif) }
+.ml-try b { display: inline-block; margin-inline-end: .3rem; padding: .02rem .5rem; border-radius: 999px; background: var(--ml-orange-hi); color: var(--ml-orange-ink); font-size: .74rem; font-weight: 700; letter-spacing: .02em }
+.ml-why { opacity: .92 }
+.ml-why b { margin-inline-end: .3rem; font-weight: 700 }
+
+/* Change feedback: one helper (MicroLabs.flash) adds .is-changed for about 650 ms. The element pulses
+   orange and eases back to its own state; a selected item settles to its orange. Reduced motion
+   (OS setting or html.rm) swaps the pulse for a static orange highlight with no animation. */
+@keyframes ml-flash {
+  0% { background-color: var(--ml-orange); color: var(--ml-orange-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ml-orange) 45%, transparent) }
+  100% { box-shadow: 0 0 0 0 transparent }
+}
+@keyframes ml-flash-fill { 0% { fill: var(--ml-orange); stroke: var(--ml-orange-ink) } }
+@keyframes ml-flash-stroke { 0% { stroke: var(--ml-orange); stroke-width: 5 } }
+@keyframes ml-flash-text {
+  0% { fill: var(--ml-orange-ink); stroke: var(--ml-orange); stroke-width: 6px }
+  100% { stroke: var(--ml-orange); stroke-width: 0 }
+}
+.is-changed { animation: ml-flash 650ms cubic-bezier(.16, 1, .3, 1) }
+svg .is-changed { animation: ml-flash-fill 650ms cubic-bezier(.16, 1, .3, 1); box-shadow: none }
+svg line.is-changed,svg path.is-changed { animation-name: ml-flash-stroke }
+svg text.is-changed { animation-name: ml-flash-text; paint-order: stroke; stroke-linejoin: round }
+@media (prefers-reduced-motion: reduce) {
+  .is-changed,svg .is-changed,svg text.is-changed { animation: none }
+  .is-changed { background-color: var(--ml-orange); color: var(--ml-orange-ink) }
+  svg .is-changed { fill: var(--ml-orange) }
+  svg line.is-changed,svg path.is-changed { fill: none; stroke: var(--ml-orange) }
+  svg text.is-changed { fill: var(--ml-orange-ink); stroke: var(--ml-orange); stroke-width: 6px }
+}
+html.rm .is-changed,html.rm svg .is-changed,html.rm svg text.is-changed { animation: none }
+html.rm .is-changed { background-color: var(--ml-orange); color: var(--ml-orange-ink) }
+html.rm svg .is-changed { fill: var(--ml-orange) }
+html.rm svg line.is-changed,html.rm svg path.is-changed { fill: none; stroke: var(--ml-orange) }
+html.rm svg text.is-changed { fill: var(--ml-orange-ink); stroke: var(--ml-orange); stroke-width: 6px }
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.rm) .ml-graphic :is(rect,circle)[data-live] { transition: width .45s cubic-bezier(.16, 1, .3, 1), x .45s cubic-bezier(.16, 1, .3, 1), cx .45s cubic-bezier(.16, 1, .3, 1), cy .45s cubic-bezier(.16, 1, .3, 1), y .45s cubic-bezier(.16, 1, .3, 1) }
+}

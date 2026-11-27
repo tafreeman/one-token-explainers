@@ -111,8 +111,11 @@
   }
   const stopLabs = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
     16: ['mix'], 17: ['moe'], 23: ['pd'], 24: ['roof'], 25: ['roof'], 26: ['stream'], 30: ['cache']};
+  // Observatory cards. Each concept's components (concept-map.js `obs`) carry its Break lab.
+  const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'],
+    'IN-5': ['pd'], 'IN-6': ['pd'], 'IN-7': ['pd'], 'IN-9': ['stream'], 'IN-10': ['stream'], 'IN-11': ['cache'], 'IN-12': ['cache', 'pd']};
   const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope, kvFootprints, maxContext,
-    routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs};
+    routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs, components};
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
 
@@ -122,6 +125,75 @@
   const svg = (tag, p, parent, txt) => { const n = setA(document.createElementNS('http://www.w3.org/2000/svg', tag), p); if (txt !== undefined) n.textContent = txt; parent.append(n); return n; };
   const graphic = (box, viewBox, label) => svg('svg', {viewBox, role: 'img', 'aria-label': label, class: 'ml-graphic'}, box);
   const note = (box, text) => { const p = el('p', text, 'ml-note'); box.append(p); return p; };
+
+  /* ---- Change feedback: one helper drives every lab -------------------------------------------
+     flash(el) adds .is-changed (CSS: an eased orange pulse that settles to the element's own state;
+     under prefers-reduced-motion or html.rm it is a static orange highlight). setValue() tweens old -> new
+     numbers. live(root) watches a lab and flashes whatever changed, so no lab needs its own hack. */
+  const FLASH_MS = 650, TWEEN_MS = 450, NUM = /\d[\d,]*(?:\.\d+)?/g;
+  const reducedMotion = () => document.documentElement.classList.contains('rm') ||
+    !!(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function flashAll(nodes) {
+    const list = [...new Set(nodes)].filter(n => n && n.classList);
+    for (const n of list) { clearTimeout(n._mlFlash); n.classList.remove('is-changed'); }
+    if (list.length) void document.documentElement.offsetWidth; // one reflow restarts every animation
+    for (const n of list) {
+      n.classList.add('is-changed');
+      n._mlFlash = setTimeout(() => n.classList.remove('is-changed'), reducedMotion() ? 700 : FLASH_MS + 60);
+    }
+    return list;
+  }
+  const flash = node => { flashAll([node]); return node; };
+  function setValue(node, value) {
+    const text = String(value), from = node.textContent;
+    cancelAnimationFrame(node._mlRaf);
+    if (from === text) { node._mlTween = false; return false; }
+    const a = from.match(NUM), b = text.match(NUM);
+    const plain = !from || reducedMotion() || node.tagName === 'OUTPUT' || !node.isConnected || !a || !b ||
+      a.length !== b.length || from.replace(NUM, '#') !== text.replace(NUM, '#');
+    if (plain) { node._mlTween = false; node.textContent = text; if (from) flash(node); return true; }
+    const num = s => parseFloat(s.replaceAll(',', '')), start = a.map(num), end = b.map(num);
+    const t0 = performance.now(); node._mlTween = true; flash(node);
+    const step = now => {
+      const k = Math.min(1, (now - t0) / TWEEN_MS), e = 1 - (1 - k) ** 3; let i = 0;
+      node.textContent = k >= 1 ? text : text.replace(NUM, m => {
+        const digits = (m.split('.')[1] || '').length, v = (start[i] + (end[i] - start[i]) * e).toFixed(digits); i++;
+        return m.includes(',') ? Number(v).toLocaleString('en-US', {minimumFractionDigits: digits}) : v;
+      });
+      if (k < 1) node._mlRaf = requestAnimationFrame(step); else node._mlTween = false;
+    };
+    node._mlRaf = requestAnimationFrame(step);
+    return true;
+  }
+  const LIVE_TEXT = '.ml-value,.ml-readout,.ml-wire,.ml-num,.ml-weights span,svg text,output,.learning-equation strong,.learning-handover-readout strong,.math-caption,[data-percent],[data-layer]';
+  const LIVE_ATTR = ['aria-pressed', 'aria-checked', 'width', 'height', 'x', 'y', 'cx', 'cy', 'x2', 'y2', 'd'];
+  function live(root) {
+    if (!root || root._mlLive) return root;
+    root._mlLive = true;
+    new MutationObserver(records => {
+      const hits = [];
+      for (const r of records) {
+        const t = r.target.nodeType === 3 ? r.target.parentElement : r.target;
+        if (!t || t._mlTween) continue;
+        if (r.type === 'attributes') {
+          const now = t.getAttribute(r.attributeName);
+          if (now === r.oldValue) continue;
+          if (r.attributeName.startsWith('aria-') ? now === 'true' : t.hasAttribute('data-live')) hits.push(t);
+        } else if (t.matches?.(LIVE_TEXT)) {
+          const was = r.type === 'characterData' ? r.oldValue : [...r.removedNodes].map(n => n.textContent).join('');
+          if ((r.type === 'characterData' || r.removedNodes.length) && was !== t.textContent) hits.push(t);
+        }
+      }
+      flashAll(hits);
+    }).observe(root, {subtree: true, childList: true, characterData: true, characterDataOldValue: true,
+      attributes: true, attributeOldValue: true, attributeFilter: LIVE_ATTR});
+    return root;
+  }
+  /* "Try this" prompt first, "Why it matters" last: the same two plain lines on every lab. */
+  function intro(body, tryText, whyText) {
+    if (tryText) { const p = el('p', undefined, 'ml-try'); p.append(el('b', 'Try this'), ' ' + tryText); body.prepend(p); }
+    if (whyText) { const p = el('p', undefined, 'ml-why'); p.append(el('b', 'Why it matters'), ' ' + whyText); body.append(p); }
+  }
   function slider(box, label, min, max, start, update, describe = String) {
     const field = el('label', undefined, 'ml-control'), value = el('span', describe(start), 'ml-value');
     const input = Object.assign(el('input'), {type: 'range', min, max, value: start});
@@ -141,7 +213,7 @@
       gloss.textContent = t?.gloss || '';
     };
     for (const term of terms) {
-      if (typeof term === 'string') { row.append(term); continue; }
+      if (typeof term === 'string' || term instanceof Node) { row.append(term); continue; }
       const [key, label, desc] = term, s = btn(label), item = {key, gloss: desc};
       s.setAttribute('aria-label', label + '. ' + desc);
       s.onfocus = () => { foc = item; show(); }; s.onblur = () => { foc = null; show(); };
@@ -163,9 +235,9 @@
     for (const [l, v] of samples) {
       const b = btn(l); b.onclick = () => { input.value = v; update(); }; presets.append(b);
     }
-    const result = el('div', undefined, 'ml-pieces'), steps = el('ol', undefined, 'ml-merges'), trace = el('details', undefined, 'ml-trace');
+    const result = el('div', undefined, 'ml-pieces'), tally = el('div', undefined, 'ml-readout'), steps = el('ol', undefined, 'ml-merges'), trace = el('details', undefined, 'ml-trace');
     trace.append(el('summary', 'Show merge order'), steps);
-    box.append(field, presets, result, trace);
+    box.append(field, presets, result, tally, trace);
     const vocab = note(box, 'Demo vocabulary: IDs differ from the main story. ␠ marks a space. Labels below each piece are its demo token ID.');
     vocab?.classList?.add('ml-demo-vocab');
     let cursor, wire, status, buffered = true, bufToggle;
@@ -199,9 +271,15 @@
       wire = el('pre', '', 'ml-wire'); status = el('div', '', 'ml-readout');
       box.append(bufToggle, bufHint, wire, status);
     }
+    let prevIds = null;
     function update() {
       const {ids, merges} = tokenize(input.value);
-      result.replaceChildren(...ids.map(id => { const p = el('span', pieceLabel(pieces[id])); p.append(el('small', String(id))); return p; }));
+      const spans = ids.map(id => { const p = el('span', pieceLabel(pieces[id])); p.append(el('small', String(id))); return p; });
+      result.replaceChildren(...spans);
+      if (prevIds) flashAll(spans.filter((_, i) => prevIds[i] !== ids[i])); // only the pieces that changed pulse
+      prevIds = ids;
+      [...presets.children].forEach((b, i) => b.setAttribute('aria-pressed', String(samples[i][1] === input.value)));
+      setValue(tally, ids.length + ' token' + (ids.length === 1 ? '' : 's') + ' from ' + bytesOf(input.value).length + ' bytes');
       steps.replaceChildren(...merges.map(({left, right, id, count}) => el('li', pieceLabel(pieces[left]) + ' + ' + pieceLabel(pieces[right]) + ' → ' + pieceLabel(pieces[id]) + (count > 1 ? ' × ' + count : ''))));
       if (!merges.length) steps.append(el('li', 'No matching pair.'));
       if (stream) {
@@ -215,9 +293,12 @@
 
   function attentionLab(box) {
     const weights = attention(), fig = graphic(box, '0 0 294 148', 'Causal attention weights by query row and key column');
-    const info = el('div', '', 'ml-readout'), controls = el('div', undefined, 'ml-tokens'), rows = [], btns = [];
+    const info = el('div', '', 'ml-readout'), controls = el('div', undefined, 'ml-tokens'), rows = [], btns = [], chips = [];
+    const ring = svg('rect', {x: 39, width: 250, height: 29, rx: 4, class: 'ml-ring'}, fig);
     function select(i) {
       rows.forEach((r, j) => r.setAttribute('opacity', j === i ? '1' : '.46'));
+      chips.forEach(([c, t], j) => { c.classList.toggle('ml-sel', j === i); t.classList.toggle('ml-on-sel', j === i); });
+      setA(ring, {y: 22 + i * 31});
       btns.forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
       info.textContent = 'Query “' + tokens[i] + '” · allowed weights sum to ' + weights[i].reduce((a, b) => a + b).toFixed(2);
     }
@@ -226,7 +307,8 @@
       controls.append(b); btns.push(b);
       svg('text', {x: 70 + i * 61, y: 13, 'data-mark': 'keys', 'text-anchor': 'middle'}, fig, word);
       const row = svg('g', {}, fig); rows.push(row); row.onpointerenter = () => select(i);
-      svg('text', {x: 1, y: 42 + i * 31, 'data-mark': 'q'}, row, word);
+      const chip = svg('rect', {x: 0, y: 29 + i * 31, width: 38, height: 17, rx: 3, class: 'ml-chip'}, row);
+      chips.push([chip, svg('text', {x: 3, y: 42 + i * 31, 'data-mark': 'q'}, row, word)]);
       weights[i].forEach((w, j) => {
         const x = 42 + j * 61, y = 23 + i * 31;
         svg('rect', {x, y, width: 56, height: 27, rx: 3, class: j > i ? 'ml-masked' : 'ml-cell', opacity: j > i ? .32 : .12 + .7 * w, 'data-mark': j > i ? 'mask' : 'keys'}, row);
@@ -236,6 +318,7 @@
     box.append(controls, info);
     eq(box, ['softmax(', ['q', 'q', 'The query asks which earlier tokens matter.'], ' · ', ['keys', 'Kᵀ', 'Each column scores the query against one key.'], ' / √d + ', ['mask', 'mask', 'Future positions receive zero probability.'], ')']);
     note(box, 'Four illustrative 2D query/key vectors. Choose a token to inspect its row.');
+    fig.append(ring); // draw the orange ring above the cells
     select(2);
   }
 
@@ -243,14 +326,14 @@
     const m = slider(box, 'Query position m', 0, 24, 8, draw), n = slider(box, 'Key position n', 0, 24, 3, draw);
     const fig = graphic(box, '0 0 280 112', 'Query and key rotations at 15 degrees per position');
     svg('circle', {cx: 60, cy: 56, r: 43, class: 'ml-outline'}, fig);
-    const lines = ['ml-vector', 'ml-key'].map(cls => svg('line', {x1: 60, y1: 56, class: cls, 'stroke-width': 3}, fig));
+    const lines = ['ml-vector', 'ml-key'].map(cls => svg('line', {x1: 60, y1: 56, class: cls, 'stroke-width': 3, 'data-live': ''}, fig));
     const legend = svg('text', {x: 124, y: 48}, fig), dot = svg('text', {x: 124, y: 72}, fig);
     note(box, 'Solid ray = query. Dashed ray = key. Both start at (1, 0). Move both positions equally to preserve their dot product.');
     function draw() {
       const r = rope(m.value, n.value);
       [r.query, r.key].forEach((a, i) => setA(lines[i], {x2: 60 + 43 * Math.cos(a), y2: 56 - 43 * Math.sin(a)}));
-      legend.textContent = 'θ(m − n) = ' + Math.round(r.phase * 180 / Math.PI) + '°';
-      dot.textContent = 'q · k = ' + r.dot.toFixed(3);
+      setValue(legend, 'θ(m − n) = ' + Math.round(r.phase * 180 / Math.PI) + '°');
+      setValue(dot, 'q · k = ' + r.dot.toFixed(3));
     }
     draw();
   }
@@ -262,12 +345,15 @@
       const y = 6 + i * 21;
       svg('text', {x: 2, y: y + 11}, fig, lbl);
       svg('rect', {x: 82, y, width: 150, height: 13, rx: 2, class: 'ml-idle'}, fig);
-      const fill = svg('rect', {x: 82, y, width: 10, height: 13, rx: 2, class: i === 0 ? 'ml-drop' : 'ml-active'}, fig);
+      const fill = svg('rect', {x: 82, y, width: 10, height: 13, rx: 2, class: i === 0 ? 'ml-drop' : 'ml-active', 'data-live': ''}, fig);
       const win = i === 3 ? svg('rect', {x: 82, y, width: 4, height: 13, rx: 2, class: 'ml-masked', opacity: '.55'}, fig) : null;
       const val = svg('text', {x: 238, y: y + 11}, fig);
       return {fill, win, val};
     });
     const table = el('table'), body = el('tbody'), info = el('div', '', 'ml-readout');
+    const cells = ['Full MHA', 'GQA', 'MLA toy baseline', 'V4 fitted estimate'].map(name => {
+      const tr = el('tr'), td = el('td'); tr.append(el('th', name), td); body.append(tr); return td;
+    });
     table.append(body); box.append(table, info);
     note(box, 'Illustrative average layer, MiB/sequence (log₂ bar scale). MHA/GQA: 128/8 KV heads, width 128, BF16. MLA toy baseline: 768 B/token, excluding metadata. The hybrid curve keeps 128 local tokens and fits the reported 1M ratio; it is not a V4 memory simulator.');
     function update() {
@@ -278,11 +364,9 @@
         const w = wOf(bytes), mib = +(bytes / 1048576).toFixed(2);
         setA(bars[i].fill, {width: w});
         if (bars[i].win) setA(bars[i].win, {width: Math.max(2, Math.round(w * Math.min(1, (Math.min(len, 128) * 768) / bytes)))});
-        bars[i].val.textContent = (mib >= 100 ? Math.round(mib) : mib) + ' MiB';
+        setValue(bars[i].val, (mib >= 100 ? Math.round(mib) : mib) + ' MiB');
+        setValue(cells[i], fmt(+(bytes / 1048576).toFixed(2)) + ' MiB');
       });
-      body.replaceChildren(...rows.map(([name, bytes]) => {
-        const tr = el('tr'); tr.append(el('th', name), el('td', fmt(+(bytes / 1048576).toFixed(2)) + ' MiB')); return tr;
-      }));
       info.textContent = v.flopRatio ? 'Reported at 1M · 10% KV cache · 27% single-token FP8-equivalent FLOPs vs V3.2' :
         'Estimated V4 cache · ' + (100 * v.v4 / v.mla).toFixed(1) + '% of MLA. Move to 1M for the published FLOP comparison.';
     }
@@ -291,6 +375,7 @@
 
   const routing = {k: 6, bias: 1};
   function moeLab(box, options) {
+    let prevIds = new Set();
     const count = slider(box, 'Routed experts K', 1, 8, routing.k, change);
     const bias = slider(box, 'Load correction', 0, 100, Math.round(routing.bias * 100), change, n => (n / 100).toFixed(2));
     const failBtn = btn('Break: Load-Bias Off (λ = 0)', 'ml-break', routing.bias === 0);
@@ -315,16 +400,21 @@
       failBtn.textContent = col ? 'Load-Bias OFF (λ = 0) · Restore balanced' : 'Break: Load-Bias Off (λ = 0)';
       cells.forEach(c => { setA(c, {class: 'ml-idle', height: '4.5'}); c.removeAttribute('data-mark'); });
       weights.replaceChildren();
+      const fresh = [];
       for (const {id, weight, hot} of entries) {
         const c = cells[id];
-        setA(c, {class: col && hot ? 'ml-drop' : 'ml-active', 'data-mark': 'top gate', height: (3 + 4.4 * Math.sqrt(weight)).toFixed(2)});
+        setA(c, {class: col && hot ? 'ml-drop' : 'ml-sel', 'data-mark': 'top gate', height: (3 + 4.4 * Math.sqrt(weight)).toFixed(2)});
+        if (prevIds.size && !prevIds.has(id)) fresh.push(c);
         c.style.setProperty('--ml-weight', String(weight));
         const row = el('div', undefined, 'ml-weight' + (col && hot ? ' is-hot' : ''));
         row.dataset.eid = String(id); row.onpointerenter = () => setTrace(id); row.onpointerleave = () => setTrace(null);
         const bar = el('i'); bar.style.width = (weight * 100) + '%'; bar.dataset.mark = 'gate';
         row.append(el('span', 'E' + id), bar, el('span', (100 * weight).toFixed(1) + '%'));
         weights.append(row);
+        if (prevIds.size && !prevIds.has(id)) fresh.push(row);
       }
+      prevIds = new Set(entries.map(e => e.id));
+      flashAll(fresh); // newly chosen experts pulse; unchanged ones stay put
       const okW = (cap.routed / cap.total) * 274;
       setA(capOk, {width: okW.toFixed(1)}); setA(capDrop, {x: (2 + okW).toFixed(1), width: (274 - okW).toFixed(1)});
       info.textContent = 'Σ aⱼ = ' + entries.reduce((s, e) => s + e.weight, 0).toFixed(2) + ' · busy experts ' + entries.filter(e => e.hot).length + '/' + entries.length +
@@ -346,28 +436,32 @@
     const bustBtn = btn('Break: Edit token 1 (95% → 0%)', 'ml-break', false), strip = el('div', undefined, 'ml-prefix');
     const fig = graphic(box, '0 0 292 64', 'Prefix KV cache hit ratio and illustrative time to first token');
     svg('text', {x: 2, y: 14}, fig, 'Prefix KV'); svg('rect', {x: 78, y: 4, width: 158, height: 12, rx: 2, class: 'ml-idle'}, fig);
-    const hitBar = svg('rect', {x: 78, y: 4, width: 150, height: 12, rx: 2, class: 'ml-active'}, fig);
-    const missBar = svg('rect', {x: 228, y: 4, width: 8, height: 12, rx: 2, class: 'ml-drop'}, fig);
+    const hitBar = svg('rect', {x: 78, y: 4, width: 150, height: 12, rx: 2, class: 'ml-active', 'data-live': ''}, fig);
+    const missBar = svg('rect', {x: 228, y: 4, width: 8, height: 12, rx: 2, class: 'ml-drop', 'data-live': ''}, fig);
     const hitLbl = svg('text', {x: 242, y: 14}, fig);
     svg('text', {x: 2, y: 46}, fig, 'TTFT'); svg('rect', {x: 78, y: 36, width: 158, height: 12, rx: 2, class: 'ml-idle'}, fig);
-    const ttftBar = svg('rect', {x: 78, y: 36, width: 15, height: 12, rx: 2, class: 'ml-active'}, fig);
+    const ttftBar = svg('rect', {x: 78, y: 36, width: 15, height: 12, rx: 2, class: 'ml-active', 'data-live': ''}, fig);
     const ttftLbl = svg('text', {x: 242, y: 46}, fig), info = el('div', '', 'ml-readout');
     box.append(bustBtn, strip, fig, info);
     note(box, 'Assume an eligible warm cache. Tiles stand for blocks of a 16K-token prompt. Edit a tile: reuse ends at its first changed token. TTFT is illustrative.');
+    let prevStates = null;
     function paint() {
       const s = prefixCache(edited), wHit = Math.round(158 * s.hitRate);
       bustBtn.setAttribute('aria-pressed', String(edited != null));
       bustBtn.textContent = edited == null ? 'Break: Edit token 1 (95% → 0%)' : 'Restore warm prefix (95% hit)';
-      strip.replaceChildren(...PREFIX_TOKENS.map((tok, i) => {
+      const tiles = PREFIX_TOKENS.map((tok, i) => {
         const b = btn(i === edited ? tok + '*' : tok, undefined, i === edited);
         b.dataset.state = i === edited ? 'edited' : (i < s.matched ? 'warm' : 'cold');
         b.onclick = () => { edited = edited === i ? null : i; paint(); };
         return b;
-      }));
+      });
+      strip.replaceChildren(...tiles);
+      if (prevStates) flashAll(tiles.filter((b, i) => b.dataset.state !== prevStates[i])); // tiles that flipped warm/cold/edited pulse
+      prevStates = tiles.map(b => b.dataset.state);
       setA(hitBar, {width: wHit}); setA(missBar, {x: 78 + wHit, width: 158 - wHit});
-      hitLbl.textContent = Math.round(s.hitRate * 100) + '%';
+      setValue(hitLbl, Math.round(s.hitRate * 100) + '%');
       setA(ttftBar, {width: Math.round(158 * (s.ttftMs / 1920)), class: s.hitRate < .5 ? 'ml-drop' : 'ml-active'});
-      ttftLbl.textContent = s.ttftMs + 'ms';
+      setValue(ttftLbl, s.ttftMs + 'ms');
       info.textContent = 'Prefix hit ' + Math.round(s.hitRate * 100) + '% (' + s.matched + '/' + s.total + ' blocks reused) · illustrative TTFT ' + s.ttftMs + ' ms' + (edited === 0 ? ' · full re-prefill triggered' : '');
       options.onPrefixCache?.(s.hitRate);
     }
@@ -379,6 +473,7 @@
     const toggle = btn('Break: PD-Disaggregation Off', 'ml-break', false);
     const fig = graphic(box, '0 0 296 106', 'Prefill and decode inter-token latency timeline'), info = el('div', '', 'ml-readout');
     const tx = ms => 68 + ms * 220 / 450;
+    let first = true;
     box.append(toggle, fig, info);
     note(box, 'Idealized schedule: 18 ms decode, a 320 ms prefill chunk, no queue or KV-transfer overhead. Dedicated pools avoid this modeled prefill stall; real ITL also depends on transfer and scheduling.');
     function paint() {
@@ -386,6 +481,7 @@
       toggle.setAttribute('aria-pressed', String(!disagg));
       toggle.textContent = disagg ? 'Break: PD-Disaggregation Off' : 'PD-Disagg OFF (64K stall active) · Restore';
       fig.replaceChildren();
+      const changed = [];
       svg('line', {x1: 68, y1: 88, x2: 288, y2: 88, class: 'ml-outline'}, fig);
       svg('text', {x: 68, y: 101}, fig, '0 ms'); svg('text', {x: 162, y: 101}, fig, 'time →'); svg('text', {x: 252, y: 101}, fig, '450 ms');
       if (disagg) {
@@ -395,11 +491,13 @@
       } else {
         svg('text', {x: 2, y: 45}, fig, 'Shared GPU');
         svg('text', {x: 174, y: 20, 'text-anchor': 'middle'}, fig, '64K prefill chunk (320 ms)');
-        svg('rect', {x: tx(s.prefillStartMs), y: 27, width: tx(s.prefillChunkMs) - tx(0), height: 26, rx: 2, class: 'ml-drop'}, fig);
+        changed.push(svg('rect', {x: tx(s.prefillStartMs), y: 27, width: tx(s.prefillChunkMs) - tx(0), height: 26, rx: 2, class: 'ml-drop'}, fig));
         svg('path', {d: 'M' + tx(s.decodeTimesMs[1]) + ' 58 V63 H' + tx(s.decodeTimesMs[2]) + ' V58', class: 'ml-nvlink'}, fig);
-        svg('text', {x: 177, y: 78, 'text-anchor': 'middle'}, fig, 'ITL spike: ' + s.peakItlMs + ' ms');
+        changed.push(svg('text', {x: 177, y: 78, 'text-anchor': 'middle'}, fig, 'ITL spike: ' + s.peakItlMs + ' ms'));
       }
-      for (const t of s.decodeTimesMs) svg('rect', {x: tx(t), y: disagg ? 50 : 31, width: 4, height: 18, rx: 1.5, class: 'ml-active'}, fig);
+      for (const t of s.decodeTimesMs) changed.push(svg('rect', {x: tx(t), y: disagg ? 50 : 31, width: 4, height: 18, rx: 1.5, class: 'ml-active'}, fig));
+      if (!first) flashAll(changed); // the redrawn timeline pulses on every toggle
+      first = false;
       info.textContent = disagg ? 'Isolated pools · decode ITL steady at ' + s.baseItlMs + ' ms while 64K prefill runs in parallel (illustrative)' :
         'Colocated GPU · 64K prefill chunk stalls concurrent decode ITL from ' + s.baseItlMs + ' ms → ' + s.peakItlMs + ' ms (illustrative)';
       options.onPDDisagg?.(disagg);
@@ -421,7 +519,7 @@
     const nvLine = svg('line', {x1: 40, x2: 278, y1: y(10), y2: y(10), class: 'ml-nvlink', opacity: '0'}, fig);
     const nvLbl = svg('text', {x: 276, y: y(10) - 4, 'text-anchor': 'end', opacity: '0'}, fig);
     for (const [tx, ty, l] of [[2, 15, 'PF/s'], [44, 140, '1'], [138, 140, 'FLOP/byte →'], [245, 140, '4096'], [2, y(10) + 3, '10'], [1, y(.01) + 3, '.01']]) svg('text', {x: tx, y: ty}, fig, l);
-    const prefill = svg('circle', {r: 5, class: 'ml-active'}, fig), decode = svg('rect', {width: 8, height: 8, class: 'ml-key'}, fig), info = el('div', '', 'ml-readout');
+    const prefill = svg('circle', {r: 5, class: 'ml-sel', 'data-live': ''}, fig), decode = svg('rect', {width: 8, height: 8, class: 'ml-sel ml-square', 'data-live': ''}, fig), info = el('div', '', 'ml-readout');
     box.append(info);
     note(box, 'GB200: dense NVFP4 10 PFLOP/s, HBM3e 8 TB/s, NVLink 5 900 GB/s unidirectional (1.8 TB/s bidirectional) per GPU. EP All-to-All ceiling is an illustrative top-6 BF16 dispatch/combine model.');
     note(box, '1 GPU models a 7,168² GEMM. EP models top-6 SwiGLU experts (width 3,072), balanced work per GPU and 384/EP resident experts; each active expert’s FP4 weights are read once. BF16 inputs/outputs cross HBM; NVLink bytes count one direction across dispatch and combine. Ideal bounds omit metadata, intermediate traffic, imbalance and overlap.');
@@ -440,7 +538,7 @@
         nvLbl.textContent = 'NVLink EP ' + r.nvlinkCeiling.toFixed(1) + ' PF/s';
       } else { setA(nvLine, {opacity: '0'}); setA(nvLbl, {opacity: '0'}); }
       info.textContent = (r.ep === 1 ? 'Dense GEMM' : 'EP SwiGLU · assumed 5 PF/s compute') + ' · per GPU\n● Prefill ' + r.prefill.intensity.toFixed(1) + ' FLOP/B · ' + r.prefill.pflops.toFixed(2) + ' PF/s · ' + r.prefill.bound +
-        '\n□ Decode ' + r.decode.intensity.toFixed(1) + ' FLOP/B · ' + r.decode.pflops.toFixed(2) + ' PF/s · ' + r.decode.bound;
+        '\n■ Decode ' + r.decode.intensity.toFixed(1) + ' FLOP/B · ' + r.decode.pflops.toFixed(2) + ' PF/s · ' + r.decode.bound;
     }
     update();
   }
@@ -448,36 +546,58 @@
   function couplingLab(box, kind) {
     const fig = graphic(box, '0 0 280 105', kind === 'mix' ? 'Four residual streams pass through a mixing matrix' : 'Current and reference distributions for two possible tokens');
     if (kind === 'mix') {
+      const paths = [], pick = el('div', undefined, 'ml-tokens'), btns = [], info = el('div', '', 'ml-readout');
       for (let i = 0; i < 4; i++) {
         const y = 16 + 24 * i; svg('text', {x: 0, y: y + 4}, fig, 'x' + (i + 1));
-        for (const j of [i, (i + 1) % 4]) svg('path', {d: 'M24 ' + y + ' C110 ' + y + ' 170 ' + (16 + j * 24) + ' 248 ' + (16 + j * 24), class: 'ml-curve', opacity: i === j ? 1 : .5, 'data-mark': 'mix'}, fig);
+        paths.push([i, (i + 1) % 4].map(j => svg('path', {d: 'M24 ' + y + ' C110 ' + y + ' 170 ' + (16 + j * 24) + ' 248 ' + (16 + j * 24), class: 'ml-curve', opacity: i === j ? 1 : .5, 'data-mark': 'mix'}, fig)));
         svg('text', {x: 252, y: y + 4}, fig, 'y' + (i + 1));
       }
+      const choose = i => {
+        paths.forEach((pair, n) => pair.forEach(p => { p.classList.toggle('ml-sel-line', n === i); p.setAttribute('opacity', n === i ? 1 : .22); }));
+        btns.forEach((b, n) => b.setAttribute('aria-pressed', String(n === i)));
+        info.textContent = 'x' + (i + 1) + ' sends ¾ to y' + (i + 1) + ' and ¼ to y' + ((i + 1) % 4 + 1);
+      };
+      for (let i = 0; i < 4; i++) { const b = btn('x' + (i + 1)); b.onclick = b.onfocus = () => choose(i); btns.push(b); pick.append(b); }
+      box.append(pick, info);
       eq(box, ['Y = ', ['mix', 'mHC_mix', 'Each output mixes ¾ of its stream and ¼ from a neighbor. Every row and column sums to one.'], ' · X']);
       note(box, 'Illustrative fixed ¾ / ¼ doubly-stochastic mixing matrix. DeepSeek-V4-Pro learns dynamic H_pre, H_res, and H_post stream maps across 4 × 7,168 streams and merges them to 7,168 before final RMSNorm.');
+      choose(1);
     } else {
-      const p = [.75, .25], ref = [.5, .5];
+      const ref = [.5, .5], bars = [], labels = [], klVal = el('span', '', 'ml-num');
       for (let i = 0; i < 2; i++) {
         const base = 20 + i * 46; svg('text', {x: 3, y: base + 12}, fig, i ? 'B' : 'A');
-        [p[i], ref[i]].forEach((v, j) => {
-          svg('rect', {x: 25, y: base + j * 14, width: 220 * v, height: 10, class: j ? 'ml-masked' : 'ml-active', 'data-mark': 'kl'}, fig);
-          svg('text', {x: 30 + 220 * v, y: base + j * 14 + 10}, fig, v.toFixed(2));
-        });
+        bars.push(svg('rect', {x: 25, y: base, width: 10, height: 10, class: 'ml-sel', 'data-mark': 'kl', 'data-live': ''}, fig));
+        labels.push(svg('text', {x: 30, y: base + 10}, fig));
+        svg('rect', {x: 25, y: base + 14, width: 220 * ref[i], height: 10, class: 'ml-masked', 'data-mark': 'kl'}, fig);
+        svg('text', {x: 30 + 220 * ref[i], y: base + 24}, fig, ref[i].toFixed(2));
       }
-      eq(box, [['kl', 'KL', 'The penalty grows as the current policy departs from the reference distribution.'], '(π ∥ πref) = 0.131 nats']);
+      const policy = slider(box, 'Current policy p(A)', 5, 95, 75, draw, n => (n / 100).toFixed(2));
+      box.append(fig);
+      eq(box, [['kl', 'KL', 'The penalty grows as the current policy departs from the reference distribution.'], '(π ∥ πref) = ', klVal, ' nats']);
       note(box, 'Current policy above each reference bar. KL = Σ p log(p / pref).');
+      function draw() {
+        const pa = policy.value / 100, p = [pa, 1 - pa];
+        p.forEach((v, i) => { setA(bars[i], {width: (220 * v).toFixed(1)}); setA(labels[i], {x: 30 + 220 * v}); setValue(labels[i], v.toFixed(2)); });
+        setValue(klVal, p.reduce((n, v, i) => n + v * Math.log(v / ref[i]), 0).toFixed(3));
+      }
+      draw();
     }
   }
 
+  // [title, builder, "Try this" line, "Why it matters" line]
   const labs = {
-    bpe: ['Trace a BPE merge', b => bpeLab(b, false)], stream: ['Step through the UTF-8 stream', b => bpeLab(b, true)],
-    attention: ['Inspect causal attention', attentionLab], rope: ['Rotate a query and key', ropeLab],
-    kv: ['Compare KV cache sizes', kvLab], moe: ['Adjust the expert router', moeLab],
-    cache: ['Test prefix cache busting', cacheLab], pd: ['Test PD-disaggregation stalls', pdLab],
-    roof: ['Explore the 3-bound GB200 roofline', roofLab],
-    mix: ['Follow the four residual streams', b => couplingLab(b, 'mix')], kl: ['Inspect the KL penalty', b => couplingLab(b, 'kl')]
+    bpe: ['Trace a BPE merge', b => bpeLab(b, false), 'Click “ Paris” or type your own words, then open Show merge order.', 'The model reads these pieces, not letters, so unusual words split into more of them.'],
+    stream: ['Step through the UTF-8 stream', b => bpeLab(b, true), 'Drag Bytes received through the emoji, then switch the UTF-8 buffer off.', 'A network chunk can end in the middle of a character, so the stream must wait for the rest.'],
+    attention: ['Inspect causal attention', attentionLab, 'Click each word to see which earlier words it reads.', 'Attention is how a token pulls in context, and the mask stops it peeking at future words.'],
+    rope: ['Rotate a query and key', ropeLab, 'Move both sliders by the same amount: q · k stays put.', 'Position is a rotation, so only the gap between two tokens matters.'],
+    kv: ['Compare KV cache sizes', kvLab, 'Slide the context length up and watch each cache grow.', 'The KV cache is what limits how much context fits in GPU memory.'],
+    moe: ['Adjust the expert router', moeLab, 'Drag Load correction to 0 and watch the busiest experts take over.', 'Balanced routing keeps every expert useful; without it a few overflow and drop work.'],
+    cache: ['Test prefix cache busting', cacheLab, 'Click a token tile to edit it: everything after it must be recomputed.', 'A prefix cache only helps while the start of the prompt stays identical.'],
+    pd: ['Test PD-disaggregation stalls', pdLab, 'Press Break to run prefill and decode on the same GPU.', 'Separate pools keep streaming smooth while a long prompt is processed.'],
+    roof: ['Explore the 3-bound GB200 roofline', roofLab, 'Raise the batch size and watch the decode square climb toward the roof.', 'It shows whether a step waits on compute, memory bandwidth, or the network.'],
+    mix: ['Follow the four residual streams', b => couplingLab(b, 'mix'), 'Pick a stream x1 to x4 to see where it flows.', 'Mixing lets the four streams share information while every row and column still sums to one.'],
+    kl: ['Inspect the KL penalty', b => couplingLab(b, 'kl'), 'Slide the current policy away from the 0.50 reference and watch the penalty grow.', 'KL is the leash that keeps a tuned model close to its reference.']
   };
-  const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'], 'IN-12': ['cache', 'pd']};
   function dock(parent, names = [], options = {}) {
     for (const name of names) {
       const details = el('details', undefined, 'micro-lab'); details.dataset.lab = name;
@@ -485,7 +605,10 @@
       details.addEventListener('toggle', () => {
         if (!details.open) return;
         let body = details.querySelector('.ml-body');
-        if (!body) { body = el('div', undefined, 'ml-body'); details.append(body); labs[name][1](body, options); }
+        if (!body) {
+          body = el('div', undefined, 'ml-body'); details.append(body); labs[name][1](body, options);
+          intro(body, labs[name][2], labs[name][3]); live(body); // observe after the first paint so only changes pulse
+        }
         else body._refreshRoute?.();
       });
       parent.append(details);
@@ -524,5 +647,6 @@
     for (let n = lab; n; n = n.parentElement) if (n.tagName === 'DETAILS') n.open = true;
     requestAnimationFrame(() => lab.querySelector('summary').scrollIntoView({block: 'center', behavior: 'instant'}));
   }
-  window.MicroLabs = Object.freeze({...core, dock, components, routing, routerDrawing, routerCenter, reveal});
+  window.MicroLabs = Object.freeze({...core, dock, routing, routerDrawing, routerCenter, reveal,
+    flash, flashAll, setValue, live, intro, reducedMotion});
 })();

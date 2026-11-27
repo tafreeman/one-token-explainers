@@ -569,5 +569,134 @@
     }
    ]
   }
+ ],
+ "extras": [
+  {
+   "id": "tl-1-corpus",
+   "title": "Station 1 · Corpus",
+   "src": "../shared/journey-narration/tl-1-corpus.mp3",
+   "dur": 8.32,
+   "slot": "station-1",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "Station one, the corpus."
+    },
+    {
+     "t": 2.6,
+     "s": "Web pages, code, books and math pour in, and the duplicates drop out."
+    }
+   ]
+  },
+  {
+   "id": "tl-2-tokenizer",
+   "title": "Station 2 · Tokenizer",
+   "src": "../shared/journey-narration/tl-2-tokenizer.mp3",
+   "dur": 9.12,
+   "slot": "station-2",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "Station two, the tokenizer."
+    },
+    {
+     "t": 2.95,
+     "s": "The sentence is cut into pieces, and \"sat\" becomes a single number in the vocabulary."
+    }
+   ]
+  },
+  {
+   "id": "tl-3-pretrain",
+   "title": "Station 3 · Pretrain",
+   "src": "../shared/journey-narration/tl-3-pretrain.mp3",
+   "dur": 8.4,
+   "slot": "station-3",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "Station three, pretraining."
+    },
+    {
+     "t": 2.7,
+     "s": "Streams of tokens climb the tower, and every wrong guess nudges the weights."
+    }
+   ]
+  },
+  {
+   "id": "tl-4-posttrain",
+   "title": "Station 4 · Post-train",
+   "src": "../shared/journey-narration/tl-4-posttrain.mp3",
+   "dur": 8.48,
+   "slot": "station-4",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "Station four, post-training."
+    },
+    {
+     "t": 2.9,
+     "s": "Specialists practise on problems with checkable answers, and learn from their best attempts."
+    }
+   ]
+  },
+  {
+   "id": "tl-5-freeze",
+   "title": "Station 5 · Freeze",
+   "src": "../shared/journey-narration/tl-5-freeze.mp3",
+   "dur": 7.36,
+   "slot": "station-5",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "Station five."
+    },
+    {
+     "t": 1.85,
+     "s": "Benchmarks and red teams sign off, and the weights freeze before any prompt arrives."
+    }
+   ]
+  },
+  {
+   "id": "release-gate",
+   "title": "Release gate",
+   "src": "../shared/journey-narration/release-gate.mp3",
+   "dur": 7.68,
+   "slot": "release",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "Post-training is done."
+    },
+    {
+     "t": 1.8,
+     "s": "The weights pass the release gate and freeze."
+    },
+    {
+     "t": 4.85,
+     "s": "From here on, the model only answers."
+    }
+   ]
+  },
+  {
+   "id": "20-frozen",
+   "title": "Weights stay fixed; activations change",
+   "src": "../shared/journey-narration/20-frozen.mp3",
+   "dur": 9.76,
+   "slot": "step-20",
+   "cues": [
+    {
+     "t": 0.0,
+     "s": "During inference, the weights stay fixed."
+    },
+    {
+     "t": 3.3,
+     "s": "Only the activations and the attention cache change as \"sat\" passes through."
+    },
+    {
+     "t": 8.35,
+     "s": "Nothing is learned."
+    }
+   ]
+  }
  ]
 }

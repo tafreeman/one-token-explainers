@@ -310,7 +310,13 @@
       const view = state.view === 'spatial' ? 'spatial' : 'diagram';
       const switchingView = Boolean(renderedView && renderedView !== view);
       const switchingStep = Boolean(renderedStep && renderedStep !== state.stepId);
-      const transition = !resized && (switchingView || (switchingStep && view !== 'spatial'));
+      // Diagram cuts crossfade (a far step or a change of shot); a short move between
+      // neighbouring steps glides instead.
+      const diagramScene = view !== 'spatial' ? scenes[view] : null;
+      const diagramCut = view !== 'spatial'
+        && (diagramScene?.cuts?.({...state, reducedMotion: reduced.matches, snapCamera: snapNext}) ?? true);
+      const shotChange = Boolean(renderedView && diagramScene?.shotChanges?.(state));
+      const transition = !resized && (switchingView || ((switchingStep || shotChange) && diagramCut));
       if (transition && canvas.width > 0 && canvas.height > 0) {
         if (!fadeCanvas) {
           fadeCanvas = document.createElement('canvas');

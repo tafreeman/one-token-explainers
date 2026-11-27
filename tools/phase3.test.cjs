@@ -7,11 +7,11 @@ const root = path.resolve(__dirname, '..');
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 
 test('journey-story Ch 4 & 5 use non-overlapping .has-room split/stacked layout', () => {
-  const html = read('journey-story/index.html');
-  assert.match(html, /\.s4-draw\.has-room\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
-  assert.match(html, /\.stage\.has-room:not\(#stage4\)\{display:grid;/);
-  assert.match(html, /@media\(max-width:1023px\)\{[\s\S]*?\.s4-draw\.has-room\{grid-template-columns:minmax\(0,1fr\)/);
-  assert.match(html, /c\.stage\.classList\.add\(isRoom\?'has-room':'has-tile'\)/);
+  const html = read('index.html');
+  assert.match(html, /\.s4-draw\.has-room\{\s*display:grid;\s*grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
+  assert.match(html, /\.stage\.has-room:not\(#stage4\)\{\s*display:grid;/);
+  assert.match(html, /@media\(max-width:1023px\)\{[\s\S]*?\.s4-draw\.has-room\{\s*grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(html, /c\.stage\.classList\.add\(isRoom\s*\?\s*'has-room'\s*:\s*'has-tile'\)/);
 });
 
 test('end-to-end-beamline exposes Watch vs Study mode switch and camera angle presets', () => {

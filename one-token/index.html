@@ -1,15 +1,863 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Moved: One Token, End to End</title>
-<meta name="robots" content="noindex">
-<link rel="canonical" href="https://tafreeman.github.io/one-token-explainers/">
-<meta http-equiv="refresh" content="0; url=../index.html">
-<script>location.replace(new URL('../index.html', location.href).href + location.search + location.hash);</script>
-</head>
-<body>
-<p>One Token, End to End is now the home page at <a href="../index.html">index.html</a>.</p>
-</body>
-</html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>One Token, End to End | One Token Explainers</title>
+<meta name="description" content="Follow Paris from a training document to a streamed reply in twelve illustrated stages."><meta name="theme-color" content="#F6F5F2"><meta property="og:title" content="One Token, End to End | One Token Explainers"><meta property="og:description" content="Follow Paris from a training document to a streamed reply in twelve illustrated stages."><meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23ff4a1c'/%3E%3C/svg%3E">
+<link rel="preload" as="font" type="font/woff2" href="./fonts/roboto-flex.woff2" crossorigin>
+<link rel="stylesheet" href="../shared/suite-theme.css">
+<link rel="stylesheet" href="../shared/micro-labs.css">
+<link rel="stylesheet" href="../journey-story/component-math.css"><link rel="stylesheet" href="./learning-panels.css">
+<link rel="stylesheet" href="./reader.css"><link rel="stylesheet" href="./inspector.css">
+<script src="../shared/theme-tokens.js"></script>
+</head><body id="top" data-mode="read" data-depth="deep">
+<a class="skip" href="#lesson">Skip to lesson</a>
+<svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-cube" viewBox="0 0 20 20"><path d="m3 6 7-4 7 4v8l-7 4-7-4z M3 6l7 4 7-4 M10 10v8"/></symbol>
+<symbol id="i-diagram" viewBox="0 0 20 20"><path d="m2 7 8-4 8 4-8 4z M2 10l8 4 8-4 M2 13l8 4 8-4"/></symbol>
+<symbol id="i-spatial" viewBox="0 0 20 20"><path d="m3 6 7-4 7 4v8l-7 4-7-4z M3 6l7 4 7-4 M10 10v8"/></symbol>
+<symbol id="i-present" viewBox="0 0 20 20"><path d="M2 3h16v11H2z M10 14v3 M6 18l4-2 4 2"/></symbol>
+<symbol id="i-audio" viewBox="0 0 20 20"><path d="M2 8h3l4-4v12l-4-4H2z M12 7a4.5 4.5 0 0 1 0 6 M15 4a8.3 8.3 0 0 1 0 12"/></symbol>
+<symbol id="i-book" viewBox="0 0 20 20"><path d="M2 4c3-1 5-1 8 1 3-2 5-2 8-1v12c-3-1-5-1-8 1-3-2-5-2-8-1z M10 5v12"/></symbol>
+<symbol id="i-next" viewBox="0 0 20 20"><path d="m7 4 6 6-6 6"/></symbol>
+<symbol id="i-prev" viewBox="0 0 20 20"><path d="m13 4-6 6 6 6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 20 20"><path d="M3 10h13m-5-5 5 5-5 5"/></symbol>
+<symbol id="i-down" viewBox="0 0 20 20"><path d="M10 3v13m-5-5 5 5 5-5"/></symbol>
+<symbol id="i-play" viewBox="0 0 20 20"><path d="m5 3 11 7-11 7z"/></symbol>
+<symbol id="i-info" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5 M10 6v1"/></symbol>
+<symbol id="i-mini" viewBox="0 0 20 20"><path d="M4 15h12 M7 9l3 3 3-3"/></symbol>
+<symbol id="i-expand" viewBox="0 0 20 20"><rect x="4" y="5" width="12" height="10" rx="1.5"/></symbol>
+<symbol id="i-close" viewBox="0 0 20 20"><path d="m5.5 5.5 9 9 M14.5 5.5l-9 9"/></symbol>
+<symbol id="i-grid" viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></symbol>
+<symbol id="i-list" viewBox="0 0 20 20"><path d="M7 5h10 M7 10h10 M7 15h10 M3.5 5h.01 M3.5 10h.01 M3.5 15h.01"/></symbol>
+<symbol id="i-layers" viewBox="0 0 20 20"><path d="m10 3 7 4-7 4-7-4z M3 11l7 4 7-4 M3 15l7 4 7-4"/></symbol>
+<symbol id="st-doc" viewBox="0 0 28 18"><rect x="2" y="2" width="24" height="14" rx="2"/><path d="M5.5 6h17 M5.5 9.5h6 M18.5 9.5h4 M5.5 13h12"/><rect x="13" y="8" width="4.2" height="3" rx=".6" fill="currentColor"/></symbol>
+<symbol id="st-chip" viewBox="0 0 28 18"><rect x="2" y="3.5" width="24" height="11" rx="2"/><path d="M8.5 3.5v11 M19 3.5v11"/><path d="M4.5 10.5v1.5h2.2v-1.5"/></symbol>
+<symbol id="st-train" viewBox="0 0 28 18"><path d="M4 13.5h20 M4 9h20 M4 4.5h20"/><circle cx="14" cy="9" r="5"/></symbol>
+<symbol id="st-vec" viewBox="0 0 28 18"><rect x="1.5" y="2.5" width="25" height="13" rx="1.8"/><path d="M5.5 12.5V6.5 M9.5 13V4.8 M13.5 11.5V7.5 M17.5 13.2V4.5 M21.5 12V6.8" stroke-width="2.1"/></symbol>
+<symbol id="st-kv" viewBox="0 0 28 18"><path d="M3 2.5v13 M25 2.5v13 M3 6.8h22 M3 11.2h22"/><rect x="5.5" y="3.6" width="4" height="2.3" fill="currentColor"/><rect x="11" y="3.6" width="4" height="2.3" fill="currentColor"/><rect x="5.5" y="8" width="4" height="2.3" fill="currentColor"/><rect x="16.5" y="8" width="5.5" height="2.3" fill="currentColor"/></symbol>
+<symbol id="st-wire" viewBox="0 0 28 18"><path d="M3 13.5V9.5 M7 13.5V5 M11 13.5V8 M15 9h9m-3-3 3 3-3 3"/></symbol>
+</defs></svg>
+<header class="mast suite-bar-slot">
+  <div class="mast-lead">
+    <a href="../index.html" class="brand" aria-label="One Token home"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-cube"/></svg><span class="brand-name">One Token</span></a>
+    <span class="suite-edition">Reader</span>
+  </div>
+  <div class="view-switch interactive" role="group" aria-label="Figure view: overview diagram, then 3D model">
+    <button type="button" data-view="diagram" aria-pressed="true" title="Overview diagram"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-diagram"/></svg>Diagram</button>
+    <button type="button" data-view="spatial" aria-pressed="false" title="3D model"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-spatial"/></svg>Spatial</button>
+  </div>
+  <nav aria-label="Reader tools">
+    <button type="button" class="interactive" id="depth-btn" aria-pressed="true" aria-label="Toggle technical depth: Basic or Deep" title="Basic: plain cards · Deep: equations &amp; specs"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-layers"/></svg><span>Deep</span></button>
+    <button type="button" class="interactive" popovertarget="views-panel" id="views-btn" aria-label="Views and labs" title="Jump to labs or archive views"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-grid"/></svg><span>Views</span></button>
+    <button type="button" class="interactive" id="present" aria-pressed="false" aria-label="Present"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-present"/></svg><span>Present</span></button>
+    <button type="button" class="interactive" popovertarget="audio-panel" id="narrate" aria-label="Narrate"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-audio"/></svg><span>Narrate</span><span class="narr-live" hidden aria-hidden="true"></span></button>
+    <a href="#sources" aria-label="Sources"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-book"/></svg><span>Sources</span></a>
+  </nav>
+  <span class="mast-progress" aria-hidden="true"></span>
+</header>
+<section popover id="audio-panel" aria-labelledby="audio-heading">
+  <div class="audio-head">
+    <h2 id="audio-heading">Narration</h2>
+    <button type="button" id="audio-size" class="audio-icon" aria-pressed="false" aria-label="Shrink to mini player" title="Mini player"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use id="audio-size-icon" href="#i-mini"/></svg></button>
+    <button type="button" id="audio-close" class="audio-icon" popovertarget="audio-panel" popovertargetaction="hide" aria-label="Close narration panel" title="Close"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="audio-full">
+    <label for="track">Recording</label>
+    <select id="track"><option value="full">Full walkthrough (9:41)</option><option value="quick">Quick summary (4:38)</option></select>
+    <div class="audio-options"><label><input id="captions" type="checkbox" checked>Captions</label><label><input id="muted" type="checkbox">Mute</label></div>
+  </div>
+  <div class="audio-controls"><button id="play-audio" class="primary" type="button">Play narration</button><output id="audio-time">0:00 / 9:41</output></div>
+  <p id="audio-status" role="status" hidden></p>
+  <nav class="audio-full audio-chapters" aria-label="Narration chapters, one per stage"><h3>Jump to a stage</h3><ol id="chapters"></ol></nav>
+</section>
+<section popover id="views-panel" aria-labelledby="views-heading">
+  <div class="audio-head">
+    <h2 id="views-heading">Labs &amp; archive views</h2>
+    <button type="button" class="audio-icon" popovertarget="views-panel" popovertargetaction="hide" aria-label="Close labs and archive views" title="Close"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="views-labs views-labs-first">
+    <h3>Zoom straight into a hands-on lab</h3>
+    <div class="views-lab-list" id="views-labs"></div>
+  </div>
+  <div class="views-archive">
+    <h3>Standalone archive views</h3>
+    <p class="views-sync" id="views-sync">Switch format without losing your place</p>
+    <nav class="views-editions" aria-label="Six explainer editions">
+      <a class="views-card" data-edition="story" href="../index.html"><strong>Journey (Central Hub)</strong><span>6 chapters + 3D cutaways</span></a>
+      <span class="views-card" aria-current="page"><strong>12-Stage Reader<em>Current</em></strong><span>Unified 2D + 3D + labs</span></span>
+      <a class="views-card" data-edition="swiss" href="../end-to-end-swiss/index.html"><strong>Swiss</strong><span>Editorial 12-stage poster</span></a>
+      <a class="views-card" data-edition="beamline" href="../end-to-end-beamline/index.html"><strong>Beamline</strong><span>3D rail · Watch &amp; Study</span></a>
+      <a class="views-card" data-edition="tour" href="../journey-tour/index.html"><strong>Guided Tour</strong><span>30 stops + catalog</span></a>
+      <a class="views-card" data-edition="obs" href="../shared/obs-core.html?realm=MODEL"><strong>3D Observatory</strong><span>31-assembly studio</span></a>
+    </nav>
+  </div>
+</section>
+<section popover id="steps-panel" aria-labelledby="steps-heading">
+  <div class="audio-head">
+    <h2 id="steps-heading">All 12 stages &amp; 43 steps</h2>
+    <button type="button" class="audio-icon" popovertarget="steps-panel" popovertargetaction="hide" aria-label="Close step index" title="Close"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="steps-grid" id="steps-grid"></div>
+</section>
+<main class="spread">
+  <figure id="figure" aria-labelledby="figure-name">
+    <header class="figure-head">
+      <div class="specimen" aria-label="Paris with a leading space"><span class="space-mark" aria-hidden="true"></span><span id="glyph">Paris</span></div>
+      <div class="form-meta"><svg class="state-glyph" aria-hidden="true" viewBox="0 0 28 18"><use id="state-icon" href="#st-doc"/></svg><div class="form-readout"><span id="token-form">Word in a document</span><span id="token-id">ID 12842 · illustrative</span></div></div>
+    </header>
+    <div id="viewport" data-render="fallback">
+      <canvas id="scene" aria-hidden="true"></canvas>
+      <svg class="leaders" aria-hidden="true"><line id="leader"/><circle id="leader-dot" r="2.75"/></svg><span id="pin" aria-hidden="true"></span>
+      <div class="fallback">
+        <img src="./lifecycle.svg" alt="Training documents feed a model. A fresh request passes through its frozen layers to produce a reply.">
+        <p id="fallback-status">Lifecycle diagram</p>
+      </div>
+    </div>
+    <figcaption>
+      <div class="figure-note"><span class="plate-id" id="plate-id">01 / 12</span><div><strong id="figure-name">Corpus</strong><span id="step-name">Word in a document</span><span id="mobile-pin"></span></div></div>
+      <label class="camera interactive" hidden title="Director = guided · Close = zoomed · Overhead = top-down"><span class="camera-lbl">Camera </span><select id="camera" aria-label="Camera: Director is guided, Close is zoomed, Overhead is top-down" title="Director = guided · Close = zoomed · Overhead = top-down"><option value="director" title="Guided: the camera follows the token">Director</option><option value="close" title="Zoomed in on the action">Close</option><option value="overhead" title="Top-down view of the whole scene">Overhead</option></select></label>
+      <button class="interactive" id="explain" type="button" hidden>Explanation</button>
+    </figcaption>
+    <div id="spoken-caption" hidden></div>
+    <div id="explanation-bay">
+      <div id="explanation-preview">
+        <h2 id="explanation-preview-title">Corpus</h2>
+        <p id="explanation-preview-copy"></p>
+        <button type="button" id="open-explanation" aria-controls="explanation" aria-expanded="false">Read explanation <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-arrow"/></svg></button>
+      </div>
+      <section id="explanation" aria-labelledby="explanation-title" hidden>
+        <header class="explanation-head">
+          <h2 id="explanation-title">Corpus</h2>
+          <button type="button" id="close-explanation" aria-label="Close explanation">Close <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+        </header>
+        <div id="explanation-content" tabindex="0" role="region" aria-label="Step explanation">
+          <p id="explanation-copy"></p>
+          <div id="explanation-detail"></div>
+          <button type="button" class="concept-bridge try-it" data-inspect="" hidden>Try it</button>
+        </div>
+      </section>
+    </div>
+  </figure>
+  <div id="lesson" tabindex="-1">
+    <header class="opening">
+      <div id="readerReturnSlot"></div>
+      <h1>One token, <br>end to end.</h1>
+      <p>How does a word get from a training document into a reply? Follow <strong class="token-word">“&nbsp;Paris”</strong> through the making and serving of a language model.</p>
+      <div class="onboard-guide" id="onboard-guide" aria-label="How to use this explainer">
+        <p class="onboard-step"><span class="onboard-cue" aria-hidden="true"><svg class="icon" viewBox="0 0 20 20"><use href="#i-down"/></svg></span><span><b>Scroll these cards</b> (or press <kbd>→</kbd>) to move “&nbsp;Paris” through the 12 stages. The figure on the right follows every card.</span></p>
+        <p class="onboard-step"><span><b>Try the math:</b> Sections, equations and labs start expanded. Change a value to see the diagram respond. Use <b>Collapse section</b> or <b>Basic</b> for a shorter view.</span></p>
+      </div>
+      <div class="opening-actions">
+        <a class="primary" id="follow" href="#s-1">Start scrolling cards <svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-down"/></svg></a>
+        <button type="button" class="depth-inline interactive" id="depth-inline">Switch to Basic mode</button>
+      </div>
+      <p class="credits"><b>Claude Fable 5.2</b> for the public API. <b>DeepSeek‑V4‑Pro</b> for representative internals. The token ID and weather example are illustrative. <a href="#sources">Sources</a></p>
+    </header>
+    <!-- 01 CORPUS -->
+    <section class="station" id="s-1" data-i="0" aria-labelledby="h-1">
+      <div class="st-title"><span class="st-num" aria-hidden="true">01</span><h2 id="h-1">Read almost everything.</h2></div>
+      <p class="lead">Pretraining starts as a stream of documents. Somewhere in it is a page that says “…the Eiffel Tower is in Paris.” Its “&nbsp;Paris” is our token.</p>
+      <div class="stage-detail" id="depth-1">
+        <div class="depth-sheet">
+      <article class="step" id="step-1.1" data-step="1.1">
+        <h3><span class="sn">1.1</span>Pool the sources</h3>
+        <p>Crawled web pages, code, books, papers, math and many languages are pooled into one stream. Anthropic’s recent system cards describe the mix as public web data, licensed data, data from users who opted in, and data generated internally. They don’t publish proportions or totals.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Pretraining tokens</dt><dd>33T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Claude’s data volume</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-1.2" data-step="1.2">
+        <h3><span class="sn">1.2</span>Remove duplicates</h3>
+        <p>One common approach uses MinHash signatures to find and remove near-duplicate documents. Deduplication reduces repeated exposure, memorized output and wasted compute; it does not eliminate memorization. Claude’s exact deduplication pipeline is not published.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>sig  = minhash(shingles(doc))
+keep = not lsh_index.has_near_duplicate(sig)</code></pre>
+          <dl class="spec">
+          <div><dt>Method</dt><dd>MinHash + LSH</dd><dd class="src">Lee et al., 2021</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-1.3" data-step="1.3">
+        <h3><span class="sn">1.3</span>Filter and mix</h3>
+        <p>Data pipelines use filters to reduce spam, boilerplate, low-quality text and personal data, then adjust the source mix. These filters are imperfect. The drawing illustrates this process; Claude’s exact filters and mixture weights are not published.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Mixture weights</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 TOKENS -->
+    <section class="station" id="s-2" data-i="1" aria-labelledby="h-2">
+      <div class="st-title"><span class="st-num" aria-hidden="true">02</span><h2 id="h-2">Cut into tokens.</h2></div>
+      <p class="lead">The text model receives token IDs. The byte-level BPE example here cuts text into pieces from a fixed vocabulary, and each piece becomes an integer ID.</p>
+      <div class="stage-detail" id="depth-2">
+        <div class="depth-sheet">
+      <article class="step" id="step-2.1" data-step="2.1">
+        <h3><span class="sn">2.1</span>Byte-pair encoding</h3>
+        <p>When training a byte-level BPE tokenizer, frequent adjacent byte sequences are merged to build a vocabulary. Encoding new text applies those learned merge rules. Common words can form one piece with a leading space; this example treats “&nbsp;Paris” as one token. Its segmentation and ID are illustrative.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="tokenization" href="../journey-tour/index.html#concept=tokenization" aria-label="Try it → Tokenizer, with labs and a 3D cutaway">Try it → Tokenizer</a></p>
+        <div class="technical-detail">
+          <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
+# [382, 304, 12842, 13]   illustrative IDs</code></pre>
+          <dl class="spec">
+          <div><dt>Algorithm</dt><dd>Byte-level BPE</dd><dd class="src">Sennrich et al., 2016; Radford et al., 2019</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-2.2" data-step="2.2">
+        <h3><span class="sn">2.2</span>A fixed vocabulary</h3>
+        <p>Every ID points at one row of a table the model learns. A bigger vocabulary can shorten average sequences, but requires a bigger table.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Vocabulary</dt><dd>129,280<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Fable 5.2 tokenizer</dt><dd>Introduced with Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Tokens vs. older Claude</dt><dd>≈ 30% more than before Opus 4.7</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-2.3" data-step="2.3">
+        <h3><span class="sn">2.3</span>Images take another road</h3>
+        <p>Claude processes image inputs as visual patches. This drawing represents patch encodings as vectors alongside text; its encoder layout is illustrative, because Anthropic does not publish the full vision architecture.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Image input</dt><dd>Supported</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 PRETRAIN -->
+    <section class="station" id="s-3" data-i="2" aria-labelledby="h-3">
+      <div class="st-title"><span class="st-num" aria-hidden="true">03</span><h2 id="h-3">Predict the next one.</h2></div>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— 1M-token context</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— figures marked&nbsp;<span class="rep">*</span></i></span></p>
+      <p class="lead">Pretraining is one objective repeated trillions of times: given everything so far, put probability on the next token. The tower of layers you’ll meet again in stage 7 is built here.</p>
+      <div class="stage-detail" id="depth-3">
+        <div class="depth-sheet">
+      <article class="step" id="step-3.1" data-step="3.1">
+        <h3><span class="sn">3.1</span>Forward, in parallel</h3>
+        <p>A batch of sequences flows up the tower at once. A causal mask lets position <i>n</i> see only positions ≤ <i>n</i>, so every position in every sequence is its own prediction problem.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Total parameters</dt><dd>1.6T<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Active per token</dt><dd>49B<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Claude’s size</dt><dd class="unk">Not published</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-3.2" data-step="3.2">
+        <h3><span class="sn">3.2</span>Score the guess</h3>
+        <p>After “…the Eiffel Tower is in”, the loss is the negative log of the probability given to “&nbsp;Paris”. A multi-token-prediction head also predicts the token after that, which adds training signal at every position.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>loss = cross_entropy(logits[:, :-1], ids[:, 1:]) + λ · mtp_loss</code></pre>
+          <dl class="spec">
+          <div><dt>MTP depth</dt><dd>1 extra token<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-3.3" data-step="3.3">
+        <h3><span class="sn">3.3</span>Update the weights</h3>
+        <p>Gradients flow back through the active computation, and the optimizer updates the model’s trainable weights. DeepSeek‑V4 uses Muon for most matrices and AdamW for embeddings, the output head and norms. Pretraining uses FP8 mixed precision; quantization-aware training (QAT) produces FP4 expert weights for the released model.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Optimizer</dt><dd>Muon + AdamW<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Pretraining precision</dt><dd>FP8 mixed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Released expert weights</dt><dd>FP4 via QAT<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-3.4" data-step="3.4">
+        <h3><span class="sn">3.4</span>Stretch the context</h3>
+        <p>Most training runs at a shorter context before staged long-context extension. In the representative config, rotary position frequencies are rescaled from a 65,536 base window (YaRN, ×16) so attention can reach 1,048,576 positions.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>max_positions = 65_536 × 16 = 1_048_576</code></pre>
+          <dl class="spec">
+          <div><dt>Context, representative</dt><dd>65,536 → 1,048,576<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Fable 5.2 context</dt><dd>1M tokens</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+          <p class="asof">Prices and limits as of 21 November 2026.</p>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 POST-TRAIN -->
+    <section class="station" id="s-4" data-i="3" aria-labelledby="h-4">
+      <div class="st-title"><span class="st-num" aria-hidden="true">04</span><h2 id="h-4">Learn what good looks like.</h2></div>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no training recipe</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— the recipe marked&nbsp;<span class="rep">*</span></i></span></p>
+      <p class="lead">A pretrained text model predicts continuations. Post-training turns the same tower into an assistant that follows instructions, uses tools and reasons toward answers it can check.</p>
+      <div class="stage-detail" id="depth-4">
+        <div class="depth-sheet">
+      <article class="step" id="step-4.1" data-step="4.1">
+        <h3><span class="sn">4.1</span>Imitate</h3>
+        <p>Supervised fine-tuning trains on curated demonstrations: conversations, tool calls, worked solutions. It uses the pretraining loss on much better data.</p>
+      </article>
+      <article class="step" id="step-4.2" data-step="4.2">
+        <h3><span class="sn">4.2</span>Try, grade, reinforce</h3>
+        <p>For a prompt with a checkable answer, the policy samples a group of attempts. Verifiers grade them: the tests pass, the final answer matches. Each score is compared with the group’s mean, so no separate value model is needed. Rewarding correct answers is also how a model learns to think before it answers.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>A_i = (r_i − mean(r)) / (std(r) + ε_std)
+θ  ← θ + η · ∇ Σ_i A_i · log π_θ(attempt_i)
+# ε_std &gt; 0 avoids division by zero; equal rewards give A_i = 0
+# simplified: GRPO also clips π_θ / π_old to 1 ± ε, PPO-style</code></pre>
+          <dl class="spec">
+          <div><dt>Method</dt><dd>GRPO</dd><dd class="src">Shao et al., 2024</dd></div>
+          <div><dt>Group of 8 in the drawing</dt><dd>Illustrative</dd><dd class="src">—</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-4.3" data-step="4.3">
+        <h3><span class="sn">4.3</span>Principles as feedback</h3>
+        <p>Anthropic’s Constitutional AI writes down a set of principles. The model critiques and compares responses against them, and that AI feedback trains a preference model used alongside human feedback.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Method</dt><dd>Constitutional AI (RLAIF)</dd><dd class="src">Bai et al., 2022</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-4.4" data-step="4.4">
+        <h3><span class="sn">4.4</span>Stay near the anchor</h3>
+        <p>A KL penalty discourages divergence from the frozen starting model; it does not guarantee that reward hacking is prevented. DeepSeek‑V4 trains separate domain experts this way, then distills them into one model on-policy.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Recipe, representative</dt><dd>SFT → GRPO per domain → distillation<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+          <div><dt>Claude’s recipe</dt><dd class="unk">Not published in detail</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 RELEASE -->
+    <section class="station" id="s-5" data-i="4" aria-labelledby="h-5">
+      <div class="st-title"><span class="st-num" aria-hidden="true">05</span><h2 id="h-5">Pass the gate.</h2></div>
+      <p class="lead">Before a frontier model ships, it is tested for what it can do and for what it could be misused to do. After this gate the weights are frozen: everything training changed is now fixed, and no request will change it.</p>
+      <div class="stage-detail" id="depth-5">
+        <div class="depth-sheet">
+      <article class="step" id="step-5.1" data-step="5.1">
+        <h3><span class="sn">5.1</span>Evaluate</h3>
+        <p>Capability suites, agentic tasks and dangerous-capability evaluations (cyber, biology, autonomy) run on the final checkpoint. Anthropic publishes the results in a system card.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Framework</dt><dd>Responsible Scaling Policy</dd><dd class="src">Anthropic</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-5.2" data-step="5.2">
+        <h3><span class="sn">5.2</span>Red-team, then set safeguards</h3>
+        <p>Internal and external red teams hunt for jailbreaks and misuse. Under the Responsible Scaling Policy, higher capability requires stronger safeguards before deployment.</p>
+      </article>
+      <article class="step" id="step-5.3" data-step="5.3">
+        <h3><span class="sn">5.3</span>Ship with classifiers</h3>
+        <p>Deployed models run with safety classifiers beside them. On Fable 5.2 a classifier can end a reply with <code>stop_reason: "refusal"</code> and a <code>stop_details</code> category, such as cyber.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>if (resp.stop_reason === "refusal")
+  handle(resp.stop_details.category)</code></pre>
+          <dl class="spec">
+          <div><dt>Refusal signal</dt><dd>HTTP 200 · "refusal"</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 REQUEST -->
+  <section class="learning-transition" id="reader-inference-transition" aria-labelledby="reader-inference-heading">
+    <h2 id="reader-inference-heading">Training is complete.<br>Now send a new prompt.</h2>
+    <div class="learning-checkpoint"><span>Pretrain → fine-tune</span><b aria-hidden="true">→</b><span>Evaluate → release</span><b aria-hidden="true">→</b><span><strong>Frozen weights</strong></span></div>
+    <p>The training occurrence of “ Paris” is gone; learning left changes in the weights. A new occurrence arrives in “What’s the weather in Paris right now?” We now follow its activations, a weather-tool call, and the answer about Paris. Ordinary inference changes request state, not model weights.</p>
+    <a href="#s-6">Follow the new prompt through the model →</a>
+  </section>
+
+    <section class="station" id="s-6" data-i="5" aria-labelledby="h-6">
+      <div class="st-title"><span class="st-num" aria-hidden="true">06</span><h2 id="h-6">Your request arrives.</h2></div>
+      <p class="lead">Months later you ask “What’s the weather in Paris right now?” with a <code>get_weather</code> tool attached. The API is stateless: every call carries the whole conversation. What the call builds is temporary, activations and a KV cache that end with the request, apart from any prefix the prompt cache keeps for reuse, 5 minutes by default.</p>
+      <div class="stage-detail" id="depth-6">
+        <div class="depth-sheet">
+      <article class="step" id="step-6.1" data-step="6.1">
+        <h3><span class="sn">6.1</span>One call</h3>
+        <p>Your app sends one stateless HTTPS request carrying the model name, tool definitions, system prompt and messages.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>POST /v1/messages
+{ "model": "claude-fable-5-2",
+  "max_tokens": 64000, "stream": true,
+  "cache_control": { "type": "ephemeral" },
+  "tools": [ get_weather ],
+  "system": "…",
+  "messages": [{ "role": "user",
+    "content": "What’s the weather in Paris right now?" }] }</code></pre>
+          <dl class="spec">
+          <div><dt>Request body</dt><dd>Abridged</dd><dd class="src">Illustrative</dd></div>
+          <div><dt>Price</dt><dd>$8 in · $40 out / MTok</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Max output</dt><dd>128K tokens</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+          <p class="asof">Prices and limits as of 21 November 2026.</p>
+        </div>
+      </article>
+      <article class="step" id="step-6.2" data-step="6.2">
+        <h3><span class="sn">6.2</span>Rendered in a fixed order</h3>
+        <p>Tools, then system, then messages are rendered through the chat template into one token sequence. Enabled prompt caching can reuse an eligible identical prefix at a cache boundary, so stable content goes first.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Render order</dt><dd>tools → system → messages</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-6.3" data-step="6.3">
+        <h3><span class="sn">6.3</span>The same tokenizer</h3>
+        <p>The prompt is cut by the tokenizer used in training, so “&nbsp;Paris” gets the same ID it had in stage 2.</p>
+      </article>
+      <article class="step" id="step-6.4" data-step="6.4">
+        <h3><span class="sn">6.4</span>Check the prefix cache</h3>
+        <p>With prompt caching enabled, a matching prefix of at least 512 tokens can be reused at a cache boundary while its entry remains available. This drawing assumes those conditions. The first eligible request writes the cache; later hits read it. The default minimum lifetime is 5 minutes, refreshed on use.</p>
+        <fieldset class="effort">
+          <legend>Prefix cache state, as drawn · rates per MTok, as of 21 November 2026</legend>
+          <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
+            <label><input type="radio" name="cacheMode6" data-sync="cache" value="hit" checked><span>Hit · $0.20 read</span></label>
+            <label><input type="radio" name="cacheMode6" data-sync="cache" value="miss"><span>Miss · $10 write</span></label>
+          </div>
+          <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
+          <p class="why"><b>Why it matters here:</b> A hit reuses the shared start of the prompt at 1/40 of the normal input price and skips most of the prefill work, so the first token arrives sooner.</p>
+        </fieldset>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Cache read</dt><dd>$0.20 / MTok</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>5-minute cache write</dt><dd>$10 / MTok</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Uncached input</dt><dd>$8 / MTok</dd><dd class="src">Anthropic docs</dd></div>
+          <div><dt>Minimum prefix, Fable 5.2</dt><dd>512 tokens</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+          <p class="asof">Prices and limits as of 21 November 2026.</p>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 FORWARD PASS -->
+    <section class="station" id="s-7" data-i="6" aria-labelledby="h-7">
+      <div class="st-title"><span class="st-num" aria-hidden="true">07</span><h2 id="h-7">One pass up the tower.</h2></div>
+      <p class="prov"><span><b>Claude Fable 5.2 · Published API</b> <i>— no internals</i></span><span><b>DeepSeek‑V4‑Pro · Representative internals</b> <i>— every figure, marked&nbsp;<span class="rep">*</span></i></span></p>
+      <p class="lead">This is the engine. The token’s vector rides a residual stream up 61 layers; each layer reads from the stream and writes back to it. Anthropic doesn’t publish Claude’s internals, so this stage uses DeepSeek‑V4‑Pro’s published design as a representative frontier architecture.</p>
+      <div class="stage-detail" id="depth-7">
+        <div class="depth-sheet">
+      <article class="step" id="step-7.1" data-step="7.1">
+        <h3><span class="sn">7.1</span>Look up a vector</h3>
+        <p>The ID selects one row of the embedding table: a lookup, not a multiplication. Out comes a vector of 7,168 numbers, the start of the residual stream.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>h = E[12842]        # float[7168]</code></pre>
+          <dl class="spec">
+          <div><dt>Hidden size</dt><dd>7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Embedding table</dt><dd>129,280 × 7,168<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-7.2" data-step="7.2">
+        <h3><span class="sn">7.2</span>Attend, sparsely</h3>
+        <p>RMSNorm rescales a copy of the vector, then causal attention uses only permitted current and earlier positions. In DeepSeek‑V4, compressed sparse attention (CSA) selects compressed entries with a lightweight indexer, while heavily compressed attention (HCA) reads more compressed summaries. Both also read a recent-token window. RoPE rotates part of each query and key to encode position.</p>
+        <p class="plain"><b>In plain words:</b> each token looks back at earlier tokens to decide which ones matter. DeepSeek‑V4 keeps a compressed summary of the past, so it does not reread everything.</p>
+
+        <fieldset class="effort">
+          <legend>Attention &amp; KV mode, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
+            <label><input type="radio" name="kvMode7" data-sync="kv" value="sparse" checked><span>Sparse k=1,024</span></label>
+            <label><input type="radio" name="kvMode7" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
+          </div>
+          <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
+          <p class="why"><b>Why it matters here:</b> Each new token has to look back at the history. How much of it is read decides how much memory and bandwidth every step needs.</p>
+        </fieldset>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="csa-hca-kv" href="../journey-tour/index.html#concept=csa-hca-kv" aria-label="Try it → Attention & KV, with labs and a 3D cutaway">Try it → Attention & KV</a></p>
+        <div class="technical-detail">
+          <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
+out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
+          <dl class="spec">
+          <div><dt>Query heads</dt><dd>128<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>CSA top-k entries</dt><dd>1,024<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Sliding window</dt><dd>128 tokens<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>V4-Pro stored KV at 1M</dt><dd>≈ 10% of V3.2’s<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-7.3" data-step="7.3">
+        <h3><span class="sn">7.3</span>Route to 6 of 384 experts</h3>
+        <p>A router scores 384 expert networks and keeps the top 6, and one shared expert always runs. Their outputs are weighted and summed. That’s why only 49B of the 1.6T parameters touch this token.</p>
+        <p class="plain"><b>In plain words:</b> this layer is a mixture of experts (MoE): it holds hundreds of small specialists, and a router picks six of them for this token while the rest stay idle.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="moe-router" href="../journey-tour/index.html#concept=moe-router" aria-label="Try it → MoE router, with labs and a 3D cutaway">Try it → MoE router</a></p>
+        <div class="technical-detail">
+          <pre class="eq"><code>out = shared(x) + Σ_{j ∈ selected} g_j · expert_j(x)
+g_j = 2.5 · s_j / Σ_{k ∈ selected} s_k
+# s_j = sqrt(softplus(router_j(x))); load-balance bias selects experts only</code></pre>
+          <dl class="spec">
+          <div><dt>Experts</dt><dd>384 routed + 1 shared<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>Active per token</dt><dd>6 routed<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+          <div><dt>First layers</dt><dd>Hash routing<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-7.4" data-step="7.4">
+        <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
+        <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. The drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections)<span class="rep">*</span>.</p>
+        <p class="plain"><b>In plain words:</b> each layer adds its result to a running total instead of replacing it, so earlier information survives. Four parallel totals are blended with weights whose rows and columns each add up to 1, which keeps the numbers stable.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="mhc-residual" href="../journey-tour/index.html#concept=mhc-residual" aria-label="Try it → 4-stream residual, with labs and a 3D cutaway">Try it → 4-stream residual</a></p>
+        <div class="technical-detail">
+          <pre class="eq"><code>for layer in layers:
+    h = h + layer.attn(rmsnorm(h))
+    h = h + layer.moe(rmsnorm(h))</code></pre>
+          <dl class="spec">
+          <div><dt>Layers</dt><dd>61<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4‑Pro config</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-7.5" data-step="7.5">
+        <h3><span class="sn">7.5</span>Score the vocabulary</h3>
+        <p>Before the output head, the four hyper-connection streams merge through a learned reduction back to one 7,168-dimensional vector<span class="rep">*</span>. A final RMSNorm (preserving shape) and the LM head turn that vector into 129,280 logits, one per token, and softmax makes them probabilities. In the representative design, a small multi-token-prediction head sharing the output head also drafts the token after next, which serving can use to speculate<span class="rep">*</span>.</p>
+        <p class="plain"><b>In plain words:</b> the model gives every word in its vocabulary a score, then turns the scores into probabilities.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>h = merge_4_to_1(streams)           # 4 × 7,168 → 7,168*
+p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
+          <dl class="spec">
+          <div><dt>After “ Paris”</dt><dd>“ right” 0.31</dd><dd class="src">Illustrative</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 PREFILL -->
+    <section class="station" id="s-8" data-i="7" aria-labelledby="h-8">
+      <div class="st-title"><span class="st-num" aria-hidden="true">08</span><h2 id="h-8">Read the prompt in parallel.</h2></div>
+      <p class="lead">Serving runs the frozen tower in two phases. Prefill processes prompt positions in parallel, often in chunks, while layers remain sequential.</p>
+      <div class="stage-detail" id="depth-8">
+        <div class="depth-sheet">
+      <article class="step" id="step-8.1" data-step="8.1">
+        <h3><span class="sn">8.1</span>Parallel, often compute-bound</h3>
+        <p>Prefill computes prompt representations without learning or backpropagation. Parallel matrix operations often keep accelerators busy. Prompt length, reused cache state, scheduling and any generated reasoning all affect time to the first visible answer token.</p>
+        <p class="plain"><b>In plain words:</b> prefill reads the whole prompt at once. Decode, which comes next, writes the reply one token at a time.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="prefill-decode" href="../journey-tour/index.html#concept=prefill-decode" aria-label="Try it → Prefill vs decode, with labs and a 3D cutaway">Try it → Prefill vs decode</a></p>
+      </article>
+      <article class="step" id="step-8.2" data-step="8.2">
+        <h3><span class="sn">8.2</span>Fill the KV cache</h3>
+        <p>Each layer caches attention state to avoid repeating earlier computation. DeepSeek‑V4 combines compressed entries with a recent-token window; its cache does not retain one permanent entry per token. It stores the positional dimensions in BF16 and the rest in FP8.</p>
+        <p class="plain"><b>In plain words:</b> the cache is the model’s notes on everything it has read, so it does not reread the prompt for each new token.</p>
+        <fieldset class="effort">
+          <legend>Attention &amp; KV mode, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Attention and KV mode">
+            <label><input type="radio" name="kvMode8" data-sync="kv" value="sparse" checked><span>Sparse k=1,024</span></label>
+            <label><input type="radio" name="kvMode8" data-sync="kv" value="dense"><span>Dense Full KV</span></label>
+          </div>
+          <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
+          <p class="why"><b>Why it matters here:</b> Prefill just built this cache. Its size decides how many requests fit in GPU memory and how fast each decode step can read it.</p>
+        </fieldset>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>KV storage</dt><dd>FP8 + BF16 RoPE dims<span class="rep">*</span></dd><dd class="src">DeepSeek‑V4 paper</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-8.3" data-step="8.3">
+        <h3><span class="sn">8.3</span>Batched with strangers</h3>
+        <p>In the common serving design illustrated here, a scheduler re-forms batches at each iteration, admitting work as memory and compute allow. Finished requests can leave independently. Continuous batching and paged KV storage are published techniques; Claude’s scheduler and cache layout are not published.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Batching</dt><dd>Continuous</dd><dd class="src">Yu et al., OSDI 2022</dd></div>
+          <div><dt>Cache memory</dt><dd>Paged blocks</dd><dd class="src">Kwon et al., SOSP 2023</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 THINK -->
+    <section class="station" id="s-9" data-i="8" aria-labelledby="h-9">
+      <div class="st-title"><span class="st-num" aria-hidden="true">09</span><h2 id="h-9">Think before answering.</h2></div>
+      <p class="lead">On Fable 5.2, adaptive thinking is always enabled. The model decides whether and how much reasoning a turn needs. When it reasons, reasoning tokens are generated through the decode loop before or between other output.</p>
+      <div class="stage-detail" id="depth-9">
+        <div class="depth-sheet">
+      <article class="step" id="step-9.1" data-step="9.1">
+        <h3><span class="sn">9.1</span>Effort sets the depth</h3>
+        <p>You don’t set a separate thinking-token budget. You set effort, from low to max, and the model decides whether and how much to think. Effort also affects answer and tool-call tokens. For Fable 5.2, Anthropic suggests starting at high.</p>
+        <fieldset class="effort">
+          <legend>Effort, as drawn</legend>
+          <div class="seg" role="radiogroup" aria-label="Effort">
+            <label><input type="radio" name="effort" value="low"><span>low</span></label>
+            <label><input type="radio" name="effort" value="medium"><span>medium</span></label>
+            <label><input type="radio" name="effort" value="high" checked><span>high</span></label>
+            <label><input type="radio" name="effort" value="xhigh"><span>xhigh</span></label>
+            <label><input type="radio" name="effort" value="max"><span>max</span></label>
+          </div>
+          <output class="effort-out" id="effortOut">16 thinking tokens in the drawing (illustrative; actual use varies by request)</output>
+        </fieldset>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Effort levels</dt><dd>low → max</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-9.2" data-step="9.2">
+        <h3><span class="sn">9.2</span>Readable reasoning is summarized</h3>
+        <p>Raw reasoning is never returned as readable text. Thinking blocks include an encrypted signature and, by default, an empty readable field (<code>display: "omitted"</code>); <code>"summarized"</code> returns a summary. Pass complete thinking blocks back unchanged during tool loops. Thinking is billed the same in either display mode.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>thinking: { type: "adaptive", display: "summarized" }</code></pre>
+        </div>
+      </article>
+      <article class="step" id="step-9.3" data-step="9.3">
+        <h3><span class="sn">9.3</span>Reasoning picks the tool</h3>
+        <p>Here the model works out that it can’t know today’s weather and should call <code>get_weather</code>. Every reasoning step attends over the KV cache, “&nbsp;Paris” included.</p>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 DECODE -->
+    <section class="station" id="s-10" data-i="9" aria-labelledby="h-10">
+      <div class="st-title"><span class="st-num" aria-hidden="true">10</span><h2 id="h-10">One token per step.</h2></div>
+      <p class="lead">After prefill, basic autoregressive generation repeats a forward pass for each next token. Attention reads the cached history selected by its mechanism; sparse attention does not read every stored entry.</p>
+      <div class="stage-detail" id="depth-10">
+        <div class="depth-sheet">
+      <article class="step" id="step-10.1" data-step="10.1">
+        <h3><span class="sn">10.1</span>Memory-bound</h3>
+        <p>Basic decode often spends much of its time reading active weights and selected cached history from memory. The bottleneck depends on hardware, batch size and context length. Decode speed is measured in tokens per second; sparse experts and compressed caches can reduce the work.</p>
+      </article>
+      <article class="step" id="step-10.2" data-step="10.2">
+        <h3><span class="sn">10.2</span>Sample</h3>
+        <p>The model produces a probability distribution over possible next tokens. Sampling selects one token from that distribution, which becomes the next step in the generated reasoning, tool call or answer. The exact sampling policy for Fable 5.2 is controlled by the model provider.</p>
+      </article>
+      <article class="step" id="step-10.3" data-step="10.3">
+        <h3><span class="sn">10.3</span>Draft, then verify</h3>
+        <p>A cheap draft proposes the next token or two, and the next pass of the big model checks them in parallel. In the representative design the draft comes from the MTP head<span class="rep">*</span>. When a draft is accepted, one target pass verifies two tokens; the net speedup depends on draft cost and acceptance rate. Anthropic doesn’t publish how Claude is served.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Technique</dt><dd>Speculative decoding</dd><dd class="src">Leviathan et al., 2023</dd></div>
+        </dl>
+        </div>
+      </article>
+      <article class="step" id="step-10.4" data-step="10.4">
+        <h3><span class="sn">10.4</span>“Paris”, again</h3>
+        <p>The model writes a tool call: <code>get_weather</code> with <code>{"city": "Paris"}</code>. In this illustrative segmentation, the word after the JSON quote has no leading space, so its ID differs from “&nbsp;Paris”. The prompt provides the city name, while the model predicts the tool-call text. Cached state is updated as generation continues; the compressed cache need not grow by one entry per token.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>{ "type": "tool_use", "name": "get_weather",
+  "input": { "city": "Paris" } }</code></pre>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 STREAM -->
+    <section class="station" id="s-11" data-i="10" aria-labelledby="h-11">
+      <div class="st-title"><span class="st-num" aria-hidden="true">11</span><h2 id="h-11">Stream it out.</h2></div>
+      <p class="lead">Token IDs are decoded back into text and sent to your app as server-sent events while generation is still running.</p>
+      <div class="stage-detail" id="depth-11">
+        <div class="depth-sheet">
+      <article class="step" id="step-11.1" data-step="11.1">
+        <h3><span class="sn">11.1</span>Detokenize</h3>
+        <p>Token pieces are decoded into text, and SSE carries UTF-8 data. Token and network chunk boundaries can split a character’s bytes; a streaming UTF-8 decoder buffers incomplete sequences before presenting text.</p>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="utf8-sse" href="../journey-tour/index.html#concept=utf8-sse" aria-label="Try it → UTF-8 buffer, with labs and a 3D cutaway">Try it → UTF-8 buffer</a></p>
+      </article>
+      <article class="step" id="step-11.2" data-step="11.2">
+        <h3><span class="sn">11.2</span>Stream</h3>
+        <p>Text and tool input arrive as <code>content_block_delta</code> events over SSE. A single response can run to 128K output tokens (as of 21 November 2026).</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>event: content_block_delta
+data: {"delta": {"type": "input_json_delta",
+        "partial_json": "{\"city\": \"Par"}}</code></pre>
+        </div>
+      </article>
+      <article class="step" id="step-11.3" data-step="11.3">
+        <h3><span class="sn">11.3</span>Stop, with a reason</h3>
+        <p>Generation ends with a stop reason, such as <code>end_turn</code>, <code>max_tokens</code>, <code>refusal</code>, <code>pause_turn</code> when a server-tool loop hits its limit, or, here, <code>tool_use</code>.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Stop reason</dt><dd>"tool_use"</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12 TOOL LOOP -->
+    <section class="station" id="s-12" data-i="11" aria-labelledby="h-12">
+      <div class="st-title"><span class="st-num" aria-hidden="true">12</span><h2 id="h-12">Call a tool. Continue.</h2></div>
+      <p class="lead">The model can’t check the weather itself. It stops, your code does the work, and the conversation goes back in.</p>
+      <div class="stage-detail" id="depth-12">
+        <div class="depth-sheet">
+      <article class="step" id="step-12.1" data-step="12.1">
+        <h3><span class="sn">12.1</span>Your code runs the tool</h3>
+        <p>Claude doesn’t execute <code>get_weather</code>; your app does. Keep the complete assistant response unchanged, including thinking signatures, then append a <code>tool_result</code>. Treat that result as untrusted input. Server tools such as web search and code execution run on Anthropic’s side instead.</p>
+        <div class="technical-detail">
+          <pre class="eq"><code>{ "type": "tool_result", "tool_use_id": "toolu_…",
+  "content": "{\"temp_c\": 18, \"conditions\": \"clear\"}" }   # illustrative</code></pre>
+        </div>
+      </article>
+      <article class="step" id="step-12.2" data-step="12.2">
+        <h3><span class="sn">12.2</span>A new request, a warm prefix</h3>
+        <p>In this Messages API example, the app resends the conversation, including the complete assistant response and the tool result. If caching is enabled and an eligible matching prefix is still available, that prefix is reused. New assistant and tool-result content belongs to the uncached suffix unless it was already cached.</p>
+        <fieldset class="effort">
+          <legend>Prefix cache state, as drawn · rates per MTok, as of 21 November 2026</legend>
+          <div class="seg" role="radiogroup" aria-label="Prefix cache mode">
+            <label><input type="radio" name="cacheMode12" data-sync="cache" value="hit" checked><span>Hit · $0.20 read</span></label>
+            <label><input type="radio" name="cacheMode12" data-sync="cache" value="miss"><span>Miss · $10 write</span></label>
+          </div>
+          <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
+          <p class="why"><b>Why it matters here:</b> Every tool round trip resends the whole conversation. A warm prefix keeps each repeat cheap and fast instead of recomputing everything.</p>
+        </fieldset>
+        <p class="concept-bridge-row"><a class="concept-bridge try-it" data-inspect="mcp-loop" href="../journey-tour/index.html#concept=mcp-loop" aria-label="Try it → Tool loop, with labs and a 3D cutaway">Try it → Tool loop</a></p>
+      </article>
+      <article class="step" id="step-12.3" data-step="12.3">
+        <h3><span class="sn">12.3</span>The answer</h3>
+        <p>Decoding resumes: “It’s 18&nbsp;°C and clear in <span class="arrival-word">Paris</span> right now.” (illustrative). The reply ends with <code>stop_reason: "end_turn"</code>, and “&nbsp;Paris” reaches your screen.</p>
+      </article>
+      <article class="step" id="step-12.4" data-step="12.4">
+        <h3><span class="sn">12.4</span>Long sessions</h3>
+        <p>When a long agent session nears the context limit, opt-in server-side compaction (beta, configurable threshold) summarizes earlier turns so the loop can keep going.</p>
+        <div class="technical-detail">
+          <dl class="spec">
+          <div><dt>Compaction trigger</dt><dd>150K tokens (opt-in default)</dd><dd class="src">Anthropic docs</dd></div>
+        </dl>
+        </div>
+      </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINALE -->
+    <section class="finale" id="line" aria-labelledby="h-line">
+      <h2 id="h-line">The whole line.</h2>
+      <p class="lead">Twelve stages, one token. Run it again, or jump to any stage.</p>
+      <div class="actions">
+        <button class="btn" id="runStory" type="button" aria-pressed="false">
+          <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z" fill="currentColor"/></svg>
+          <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
+          <span>Run end to end</span>
+        </button>
+        <button class="btn btn-quiet interactive" id="narrStory" type="button" aria-pressed="false">
+          <svg class="i-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 4.3h2.1l2.9-2.5v8.4L3.3 7.7H1.2z" fill="currentColor"/><path d="M8 3.9a2.9 2.9 0 0 1 0 4.2M9.5 2.4a5 5 0 0 1 0 7.2" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+          <svg class="i-stop" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2h8v8H2z" fill="currentColor"/></svg>
+          <span>Narrated run</span><small class="dur">(9:41)</small>
+        </button>
+      </div>
+      <ol class="recap">
+        <li><span class="n">01</span><a href="#s-1">Corpus</a><span>Documents pooled, deduplicated, filtered and mixed.</span></li>
+        <li><span class="n">02</span><a href="#s-2">Tokens</a><span>Illustrative byte-level BPE maps “&nbsp;Paris” to one ID.</span></li>
+        <li><span class="n">03</span><a href="#s-3">Pretrain</a><span>Next-token prediction builds the tower.</span></li>
+        <li><span class="n">04</span><a href="#s-4">Post-train</a><span>Demonstrations, graded attempts, written principles.</span></li>
+        <li><span class="n">05</span><a href="#s-5">Release</a><span>Evaluations, red-teaming, classifiers. Weights frozen.</span></li>
+        <li><span class="n">06</span><a href="#s-6">Request</a><span>Tools, system, messages. Same tokenizer. Cache check.</span></li>
+        <li><span class="n">07</span><a href="#s-7">Forward pass</a><span>Embed, attend sparsely, route to 6 of 384 experts, ×61, score.</span></li>
+        <li><span class="n">08</span><a href="#s-8">Prefill</a><span>The whole prompt in parallel; the KV cache fills.</span></li>
+        <li><span class="n">09</span><a href="#s-9">Think</a><span>Adaptive reasoning; optional readable summaries.</span></li>
+        <li><span class="n">10</span><a href="#s-10">Decode</a><span>One token per pass. Sample, draft, verify.</span></li>
+        <li><span class="n">11</span><a href="#s-11">Stream</a><span>Detokenize, server-sent events, a stop reason.</span></li>
+        <li><span class="n">12</span><a href="#s-12">Tool loop</a><span>Your code runs the tool; eligible prefixes may be reused; the answer streams.</span></li>
+      </ol>
+    </section>
+
+<section class="learning-transition" aria-labelledby="cinema-heading"><h2 id="cinema-heading">Lifecycle complete: enter the full 3D scene.</h2><p>You have followed training, fine-tuning, release and a complete request. Replay the journey as a continuous 3D tour.</p><a href="../journey-tour/index.html?mode=flythrough&amp;from=reader">Enter the Cinema flythrough →</a></section>
+<section class="sources" id="sources" aria-labelledby="h-src">
+  <div>
+    <h2 id="h-src">Sources</h2>
+    <p>Token IDs, probabilities, the request body, the weather result and thinking-token counts are illustrative. Figures marked <span class="rep">*</span> are DeepSeek‑V4‑Pro’s published values, used as a representative frontier design; Anthropic doesn’t publish Claude’s architecture. Claude facts reflect Anthropic’s API documentation as of 23 November 2026. Data filtering, serving schedules and token segmentation are teaching examples unless explicitly documented.</p>
+    <p class="drawing-key"><b>Drawing key:</b> <span class="key-swatch key-token">Vermilion</span> marks the tracked token (“&nbsp;Paris”), <span class="key-swatch key-attn">Cobalt</span> marks attention reads, <span class="key-swatch key-cache">Brass</span> marks cached KV state and doubled prefix-cache tracks, and <span class="key-swatch key-tool">Pine</span> marks tool execution results. Solid lines show active data flow, dashed lines show reference/masked paths, and hollow tiles show unreturned thinking or masked future positions.</p>
+  </div>
+  <ol>
+    <li><b>Claude Fable 5.2</b><a href="https://platform.claude.com/docs">Anthropic, Claude API documentation</a>: models, adaptive thinking and effort, tool use, prompt caching, stop reasons, compaction.</li>
+    <li><b>Representative design</b><a href="https://arxiv.org/abs/2606.19348">DeepSeek‑V4: Towards Highly Efficient Million-Token Context Intelligence</a></li>
+    <li><b>Representative design</b><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/config.json">DeepSeek‑V4‑Pro config.json</a></li>
+    <li><b>Safety</b><a href="https://www.anthropic.com/responsible-scaling-policy">Anthropic, Responsible Scaling Policy</a></li>
+    <li><b>Data and evaluations</b><a href="https://www.anthropic.com/system-cards">Anthropic, model system cards</a>: training-data description and pre-deployment evaluations.</li>
+    <li><b>Post-training</b><a href="https://arxiv.org/abs/2212.08073">Bai et al., Constitutional AI, 2022</a></li>
+    <li><b>Post-training</b><a href="https://arxiv.org/abs/2402.03300">Shao et al., DeepSeekMath (GRPO), 2024</a></li>
+    <li><b>Data</b><a href="https://arxiv.org/abs/2107.06499">Lee et al., Deduplicating Training Data, 2021</a></li>
+    <li><b>Tokens</b><a href="https://arxiv.org/abs/1508.07909">Sennrich et al., Subword Units (BPE), 2016</a></li>
+    <li><b>Byte-level tokens</b><a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">Radford et al., GPT-2, 2019, §2.2</a></li>
+    <li><b>Architecture</b><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., Attention Is All You Need, 2017</a></li>
+    <li><b>Architecture</b><a href="https://arxiv.org/abs/2104.09864">Su et al., RoFormer (RoPE), 2021</a></li>
+    <li><b>Long context</b><a href="https://arxiv.org/abs/2309.00071">Peng et al., YaRN, 2023</a></li>
+    <li><b>Experts</b><a href="https://arxiv.org/abs/2401.06066">Dai et al., DeepSeekMoE, 2024</a></li>
+    <li><b>Multi-token prediction</b><a href="https://arxiv.org/abs/2412.19437">DeepSeek‑V3 Technical Report, 2024</a></li>
+    <li><b>Serving</b><a href="https://www.usenix.org/conference/osdi22/presentation/yu">Yu et al., Orca (continuous batching), OSDI 2022</a></li>
+    <li><b>Serving</b><a href="https://arxiv.org/abs/2309.06180">Kwon et al., PagedAttention, SOSP 2023</a></li>
+    <li><b>Serving</b><a href="https://arxiv.org/abs/2211.17192">Leviathan et al., Speculative Decoding, 2023</a></li>
+  </ol>
+  <details class="glossary" id="glossary">
+    <summary>Glossary</summary>
+    <dl>
+      <dt data-match="token|tokens">Token</dt><dd>A piece of text, such as a word, part of a word or punctuation, that the model reads and writes as one integer ID.</dd>
+      <dt data-match="KV cache|KV‑cache|KV-cache">KV cache</dt><dd>The stored keys and values for earlier tokens, kept so attention does not recompute them for every new token.</dd>
+      <dt data-match="prefill|Prefill">Prefill</dt><dd>The first serving phase: the whole prompt is processed in parallel and the KV cache is filled.</dd>
+      <dt data-match="decode|Decode|decoding">Decode</dt><dd>The second serving phase: the reply is generated one token at a time, each step reading the cache.</dd>
+      <dt data-match="logits">Logits</dt><dd>The raw score the model gives every vocabulary entry before softmax turns the scores into probabilities.</dd>
+      <dt data-match="MoE|mixture of experts">MoE</dt><dd>Mixture of experts: a router sends each token to a few specialist sub-networks instead of running the whole layer.</dd>
+      <dt data-match="SSE">SSE</dt><dd>Server-sent events: a one-way stream of text from server to browser over ordinary HTTP.</dd>
+      <dt data-match="CSA">CSA</dt><dd>Compressed sparse attention: a token reads a small, selected set of compressed history entries.</dd>
+      <dt data-match="HCA">HCA</dt><dd>Heavily compressed attention: the history squeezed far harder into summaries, trading detail for memory.</dd>
+      <dt data-match="RMSNorm">RMSNorm</dt><dd>A step that rescales a vector so its average size stays steady before the next layer.</dd>
+      <dt data-match="RoPE">RoPE</dt><dd>Rotary position embedding: it encodes where a token sits by rotating its query and key vectors.</dd>
+      <dt data-match="doubly-stochastic">Doubly-stochastic matrix</dt><dd>A grid of non-negative numbers whose rows and columns each add up to 1, so mixing with it neither grows nor shrinks the total.</dd>
+      <dt data-match="manifold-constrained hyper-connections|mHC">Manifold-constrained hyper-connections (mHC)</dt><dd>Several parallel residual streams mixed by learned matrices that are constrained to stay stable.</dd>
+    </dl>
+  </details>
+  <details class="other-presentations">
+    <summary>Other views</summary>
+    <ul>
+      <li><a href="../index.html">Braided Journey</a> — six chapters with inspectable model rooms.</li>
+      <li><a href="../end-to-end-swiss/index.html">Swiss</a> — the original twelve-stage illustrated lesson.</li>
+      <li><a href="../end-to-end-beamline/index.html">Beamline</a> — the lifecycle as physical stations, with Watch and Study modes.</li>
+      <li><a href="../journey-tour/index.html">Guided Tour</a> — thirty stops and a component index.</li>
+      <li><a href="../shared/obs-core.html?realm=MODEL">3D Observatory</a> — the standalone model scene.</li>
+    </ul>
+  </details>
+  <p class="project">Narration voiced with ElevenLabs. 3D with Three.js. Fonts from Google Fonts.
+    <a href="https://github.com/tafreeman/one-token-explainers">Source on GitHub</a>.
+    Code MIT, content CC BY 4.0. <a href="https://github.com/tafreeman/one-token-explainers#license">License</a>.</p>
+</section>
+  </div>
+  <aside id="inspector" hidden></aside>
+</main>
+<nav class="rail" aria-label="Journey timeline">
+  <div class="rail-top">
+    <label for="scrubber" id="rail-label">Journey</label>
+    <input class="interactive" id="scrubber" type="range" min="0" max="42" value="0" step="1" aria-describedby="position">
+    <output id="position" for="scrubber">01 / 12 · Corpus</output>
+    <button class="interactive" type="button" popovertarget="steps-panel" id="steps-btn" aria-label="Steps (all 43)" title="Jump to any of the 43 steps"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-list"/></svg><span class="steps-lbl">Steps</span></button>
+    <button class="interactive" type="button" id="previous" aria-label="Previous step"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-prev"/></svg></button>
+    <button class="interactive" type="button" id="next" aria-label="Next step"><svg class="icon" aria-hidden="true" viewBox="0 0 20 20"><use href="#i-next"/></svg></button>
+    <button class="interactive" type="button" id="studio-play" hidden>Play</button>
+  </div>
+  <ol><li><a href="#s-1"><span>01</span>Corpus</a></li><li><a href="#s-2"><span>02</span>Tokens</a></li><li><a href="#s-3"><span>03</span>Pretrain</a></li><li><a href="#s-4"><span>04</span>Post-train</a></li><li><a href="#s-5"><span>05</span>Release</a></li><li><a href="#s-6"><span>06</span>Request</a></li><li><a href="#s-7"><span>07</span>Forward pass</a></li><li><a href="#s-8"><span>08</span>Prefill</a></li><li><a href="#s-9"><span>09</span>Think</a></li><li><a href="#s-10"><span>10</span>Decode</a></li><li><a href="#s-11"><span>11</span>Stream</a></li><li><a href="#s-12"><span>12</span>Tool loop</a></li></ol>
+</nav>
+<div id="announce" class="sr" role="status" aria-live="polite"></div>
+<script src="../shared/vendor/three-r160.min.js"></script>
+<script src="../shared/three-loader.js"></script>
+<script src="../shared/concept-map.js"></script>
+<script src="../shared/concept-links.js"></script>
+<script src="../shared/micro-labs.js"></script>
+<script src="../shared/obs-file-bridge.js"></script>
+<script src="../journey-story/component-math.js"></script>
+<script src="./narration-data.js"></script>
+<script src="./stops-manifest.js"></script>
+<script src="./scene-diagram.js"></script>
+<script src="./spatial-models.js"></script>
+<script src="./spatial-materials.js"></script>
+<script src="./scene-spatial.js"></script>
+<script src="./scene-host.js"></script>
+<script src="./inspector.js"></script>
+<script src="./playback.js"></script>
+<script src="./glossary.js"></script>
+<script src="./learning-panels.js"></script>
+<script src="./reader.js"></script>
+</body></html>

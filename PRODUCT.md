@@ -25,21 +25,30 @@ training, post-training, inference, serving, streaming, and the tool loop.
 
 Success means a learner can explain the major stages and distinguish a public API
 contract, a documented model mechanism, and an illustrative teaching example.
-The root entry (`index.html`) opens directly into one unified Continuous Reader
-so learners do not have to choose a format before starting the lesson.
+The root entry (`index.html`) opens directly into **One Token's Journey** as a
+full-section braided centerpiece so learners do not have to choose a format
+before starting: first-run visitors start in **Deep** mode with expanded lesson
+cards, visible math and open labs. Each card can be collapsed without losing lab
+values. Chapter-matched pooled 3D `Diagram` and
+`Spatial` stages (`shared/spine-stage-pool.js`), inline micro-labs, Observatory
+cutaways, and a bottom capstone launching the **Cinema 3D Flythrough**
+(`journey-tour/index.html?mode=flythrough`) complete the experience. **Basic** mode
+remains available for a shorter explanation. Both Journey and Reader finish
+pretraining, fine-tuning and release before the new-request inference story.
+The release transition distinguishes a training occurrence from a fresh prompt
+occurrence of the tracked token; only learned weight changes survive training.
 
-These are learning goals, not measured learning gains. The unified Continuous
-Reader exposes the complete twelve-stage written lesson without mandatory
-stage-level disclosure controls, synchronized beside a single persistent 3D
-figure that switches between **Diagram** (Swiss wireframe assemblies) and
-**Spatial** (Beamline hall choreography) at the exact step being read, plus a
-**Present** mode for guided walkthroughs and an inline **Component Inspector**
-for micro-labs and 3D Observatory cutaways.
+These are learning goals, not measured learning gains. Alongside the root
+Braided *Journey* hub, the **12-Stage Continuous Reader** (`one-token/index.html`)
+synchronizes the twelve-stage written lesson beside a persistent 3D figure that
+switches between **Diagram** (Swiss wireframe assemblies) and **Spatial**
+(Beamline hall choreography), plus **Present** mode and an inline **Component
+Inspector**.
 
 Opening detail preserves the current scene and reading position until
 navigation resumes; reduced motion and static fallbacks retain the same
-controls and lesson content. The earlier standalone formats remain accessible
-from the quiet **Other views** menu for deep-dive study or comparison.
+controls and lesson content. All six stage-synced formats and all seven hands-on
+labs remain accessible from the shared **Views** menu across every surface.
 
 ## Positioning
 
@@ -58,23 +67,28 @@ Learners can use the hosted site or open local pages with their sibling assets
 present. Viewing does not require a build step. An optional Express server is
 available through `npm run dev`.
 
-The root entry (`index.html`) is the unified Continuous Reader (`one-token/`
-holds its assets and a compatibility redirect at `one-token/index.html`). The
-repo also preserves the separate formats under the **Other views** menu:
+The root entry (`index.html`) is **One Token's Journey**, the full-section
+braided centerpiece (`journey-story/index.html` provides a compatibility
+redirect). Every surface shares the minimalist `44px` **Views** bar linking all
+six formats and seven hands-on labs:
 
-- **One Token, End to End (`index.html`):** the unified twelve-stage Continuous
-  Reader with synchronized Diagram/Spatial 3D views, Present mode, guided
-  narration (9:41 full walkthrough + optional 4:38 quick summary), and an
-  inline Component Inspector.
-- **One Token, End to End (Swiss):** the classic twelve-stage editorial plate
-  explanation.
-- **One Token, End to End (Beamline):** the classic physical-stations hall with
-  Watch and Study modes.
-- **One Token's Journey:** a chapter-based explanation with inspectable 3D rooms.
-- **Guided Tour:** a stop-based route through the model with deeper component
-  references.
-- **3D Observatory:** the shared architectural cutaway scene, available both
-  inside the Component Inspector and as a standalone page.
+- **One Token's Journey (`index.html`):** the root six-chapter braided
+  centerpiece following `" sat"` through chapter-matched Story SVGs, pooled
+  Diagram/Spatial 3D stage bands, inline micro-labs, 3D Observatory portals,
+  Basic/Deep progressive disclosure, Jade narration, and the Cinema 3D
+  Flythrough capstone.
+- **12-Stage Reader (`one-token/index.html`):** the twelve-stage Continuous
+  Reader with synchronized Diagram/Spatial 3D views, Basic/Deep toggle, Present
+  mode, guided narration (9:41 full walkthrough + optional 4:38 quick summary),
+  and an inline Component Inspector.
+- **One Token, End to End (Swiss) (`end-to-end-swiss/index.html`):** the classic
+  twelve-stage editorial plate explanation.
+- **One Token, End to End (Beamline) (`end-to-end-beamline/index.html`):** the
+  classic physical-stations hall with Watch and Study modes.
+- **Guided Tour (`journey-tour/index.html`):** the 30-stop guided route with
+  catalog and `?mode=flythrough` Cinema 3D Flythrough HUD.
+- **3D Observatory (`shared/obs-core.html`):** the shared 31-assembly
+  architectural cutaway scene, available both inline and standalone.
 
 Narration, captions, written explanations, playback controls, component details,
 and small labs provide different ways to follow and revisit the material.

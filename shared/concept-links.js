@@ -7,15 +7,15 @@
   const map = (typeof window !== 'undefined' && window.ConceptMap) || require('./concept-map.js');
 
   const PAGES = {
-    reader:   { dir: '',                    name: 'One Token',   sub: '12 stages · 2D + 3D',       file: '../index.html',                     rootFile: './index.html' },
-    swiss:    { dir: 'end-to-end-swiss',    name: 'Swiss',       sub: 'Editorial poster + scrub',  file: '../end-to-end-swiss/index.html',    rootFile: './end-to-end-swiss/index.html' },
-    beamline: { dir: 'end-to-end-beamline', name: 'Beamline',    sub: '3D rail · Watch & Study',   file: '../end-to-end-beamline/index.html', rootFile: './end-to-end-beamline/index.html' },
-    story:    { dir: 'journey-story',       name: 'Story',       sub: '6 chapters + cutaways',     file: '../journey-story/index.html',       rootFile: './journey-story/index.html' },
-    tour:     { dir: 'journey-tour',        name: 'Guided Tour', sub: '30-stop 3D walk',           file: '../journey-tour/index.html',        rootFile: './journey-tour/index.html' },
-    obs:      { dir: 'shared',              name: 'Observatory', sub: '31-part 3D studio',         file: '../shared/obs-core.html',           rootFile: './shared/obs-core.html' }
+    story:    { dir: '',                    name: 'Journey',         sub: 'Central hub · 2D + 3D + labs', file: '../index.html',                     rootFile: './index.html' },
+    reader:   { dir: 'one-token',           name: '12-Stage Reader', sub: '12 stages · Diagram + 3D',       file: '../one-token/index.html',           rootFile: './one-token/index.html' },
+    swiss:    { dir: 'end-to-end-swiss',    name: 'Swiss',           sub: 'Editorial poster + scrub',       file: '../end-to-end-swiss/index.html',    rootFile: './end-to-end-swiss/index.html' },
+    beamline: { dir: 'end-to-end-beamline', name: 'Beamline',        sub: '3D rail · Watch & Study',        file: '../end-to-end-beamline/index.html', rootFile: './end-to-end-beamline/index.html' },
+    tour:     { dir: 'journey-tour',        name: 'Guided Tour',     sub: '30-stop 3D walk',                file: '../journey-tour/index.html',        rootFile: './journey-tour/index.html' },
+    obs:      { dir: 'shared',              name: 'Observatory',     sub: '31-part 3D studio',              file: '../shared/obs-core.html',           rootFile: './shared/obs-core.html' }
   };
 
-  const EDITION_ORDER = ['reader', 'swiss', 'beamline', 'story', 'tour', 'obs'];
+  const EDITION_ORDER = ['story', 'reader', 'swiss', 'beamline', 'tour', 'obs'];
 
   // Swiss lays out 12 stations at zero-based indices 0..11 with lead A0=0.06 and equal step widths.
   const SWISS_A0 = 0.06;
@@ -214,6 +214,18 @@
     return step ? stepToSwissG(step) : 0;
   }
 
+  function isRootStoryContext(currentPage) {
+    if (currentPage !== 'story') return false;
+    if (typeof location === 'undefined' || !location.pathname) return true;
+    return !location.pathname.includes('/journey-story/');
+  }
+
+  function fileFrom(currentPage, targetPage) {
+    const page = PAGES[targetPage];
+    if (!page) return null;
+    return isRootStoryContext(currentPage) ? page.rootFile : page.file;
+  }
+
   function urlFor(targetPage, slug, opts = {}) {
     const page = PAGES[targetPage];
     const entry = resolve(slug);
@@ -226,19 +238,14 @@
     if (targetPage === 'beamline' && entry.beamline.study) params.set('study', '1');
     if (opts.openLab && entry.lab && targetPage !== 'swiss') params.set('lab', entry.lab);
     const qs = params.toString();
-    return page.file + (qs ? '?' + qs : '') + '#concept=' + entry.slug;
+    const base = opts.from ? fileFrom(opts.from, targetPage) : page.file;
+    return base + (qs ? '?' + qs : '') + '#concept=' + entry.slug;
   }
 
   function parseConceptHash(hash) {
     const raw = String(hash || '').replace(/^#/, '');
     const m = raw.match(/^concept=([a-z0-9-]+)$/i);
     return m ? resolve(m[1]) : null;
-  }
-
-  function fileFrom(currentPage, targetPage) {
-    const page = PAGES[targetPage];
-    if (!page) return null;
-    return currentPage === 'reader' ? page.rootFile : page.file;
   }
 
   function resolveStageTarget(state = {}) {
@@ -345,10 +352,10 @@
     details.className = 'suite-menu';
     const summary = document.createElement('summary');
     summary.className = 'suite-menu-btn';
-    summary.title = 'Switch between all 6 views at this stage';
+    summary.title = 'Switch between all 6 views & 7 labs at this stage';
     const lbl = document.createElement('span');
     lbl.className = 'suite-menu-lbl';
-    lbl.textContent = '6 views';
+    lbl.textContent = 'Views';
     const chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     chev.setAttribute('viewBox', '0 0 12 12');
     chev.setAttribute('aria-hidden', 'true');
@@ -396,16 +403,53 @@
       list.appendChild(item);
       if (!isCurrent) links.set(key, item);
     }
-    panel.append(syncNote, list);
+    const labsWrap = document.createElement('div');
+    labsWrap.className = 'suite-menu-labs';
+    const labsHd = document.createElement('p');
+    labsHd.className = 'suite-menu-labs-hd';
+    labsHd.textContent = 'Hands-on labs';
+    const labsList = document.createElement('div');
+    labsList.className = 'suite-menu-lab-list';
+    const labTarget = opts.labTarget || (currentPage === 'story' ? 'story' : 'reader');
+    const onLabSelect = typeof opts.onLabSelect === 'function' ? opts.onLabSelect : null;
+    const labLinks = new Map();
+    for (const slug of Object.keys(CONCEPTS)) {
+      const entry = CONCEPTS[slug];
+      const a = document.createElement('a');
+      a.className = 'suite-menu-lab';
+      a.textContent = entry.button || entry.label;
+      a.href = urlFor(labTarget, slug, { from: currentPage, openLab: labTarget === 'story' });
+      if (onLabSelect) {
+        a.addEventListener('click', e => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          details.open = false;
+          onLabSelect(slug, entry, a);
+        });
+      }
+      labsList.appendChild(a);
+      labLinks.set(slug, a);
+    }
+    labsWrap.append(labsHd, labsList);
+    panel.append(syncNote, list, labsWrap);
     details.append(summary, panel);
     anchorEl.after(details);
 
     function refresh() {
       const rm = new URLSearchParams(location.search).get('rm') === '1';
       const st = { rm, ...(getState() || {}) };
-      syncNote.textContent = st.label ? 'Synced · ' + st.label : 'Switch edition (keeps place)';
+      syncNote.textContent = st.label ? 'Synced · ' + st.label : 'Switch view (keeps place)';
       for (const [key, a] of links) {
         a.href = editionHref(currentPage, key, st);
+      }
+      for (const [slug, a] of labLinks) {
+        a.href = urlFor(labTarget, slug, {
+          rm,
+          from: currentPage,
+          pos: st.pos,
+          label: st.label,
+          openLab: labTarget === 'story'
+        });
       }
       const rect = summary.getBoundingClientRect();
       panel.classList.toggle('align-right', rect.left > window.innerWidth * 0.55);
