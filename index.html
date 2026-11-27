@@ -101,9 +101,13 @@ h1,h2,h3{ font-family:var(--display); font-optical-sizing:auto; text-wrap:balanc
 .hero{ min-height:calc(90svh - 44px); display:grid; align-content:center; padding-block:44px; box-sizing:border-box }
 .hero-grid{ display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:clamp(24px,4vw,64px); align-items:center }
 .sentence{ font-family:var(--display); font-weight:600; font-size:clamp(1.7rem,3vw,2.65rem); letter-spacing:-.02em; line-height:1.3; display:flex; flex-wrap:wrap; align-items:center; gap:0 .28em; margin:26px 0; color:#374350 }
-.slot{ display:inline-flex; align-items:center; justify-content:center; width:1.7em; height:.8em; border-radius:999px; border:1.25px dashed rgba(43,91,132,.6); color:var(--ink); font-size:1em; box-sizing:border-box }
-.slot > span{ font-size:max(12px,.52em); line-height:1 }
-html.js .slot > span{ visibility:hidden }
+.slot{ display:inline-flex; align-items:center; justify-content:center; width:2.15em; height:1.08em; border-radius:999px; border:2px solid #2b5b84; background:rgba(43,91,132,.1); color:#24506f; font-size:1em; line-height:1; box-sizing:border-box; transition:background-color .3s var(--ease), border-color .3s var(--ease) }
+.slot > span{ font-size:1em; line-height:1; transition:opacity .25s ease }
+/* The hero word is the token, boxed in its capsule. Once the reader scrolls or the tour plays, the capsule stays behind as an empty socket and the travelling token (#thread) lifts out of it. */
+html.tok-lifted #a-hero{ border-style:dashed; border-color:rgba(43,91,132,.5); background:transparent }
+html.tok-lifted #a-hero > span{ opacity:0 }
+html.js #a-outro > span{ visibility:hidden }
+html.rm .slot, html.rm .slot > span, html.rm #thread{ transition:none }
 .hero-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px }
 .hero-start{
   appearance:none; display:inline-flex; align-items:center; gap:10px; min-height:48px; padding:0 22px 0 18px; box-sizing:border-box;
@@ -325,6 +329,18 @@ html.rm #thread.dip{ animation:tdip .42s ease both }
 .t-dot{ left:-7px; top:-7px; width:14px; height:14px; border-radius:50%; background:radial-gradient(circle at 38% 35%,#fff8ec 0 28%,#e6bf80 60%,#987237 100%); box-shadow:0 4px 12px -2px rgba(0,0,0,.42), 0 0 0 2px rgba(255,255,255,.24) }
 .t-ring{ left:-15px; top:-15px; width:30px; height:30px; border-radius:50%; box-sizing:border-box; border:2.5px solid transparent; background:linear-gradient(rgba(18,58,99,.78),rgba(18,58,99,.78)) padding-box,linear-gradient(135deg,#e6bf80,#4ea5b8) border-box; box-shadow:0 4px 12px -2px rgba(0,0,0,.42) }
 .t-ring::after{ content:"sat"; position:absolute; right:36px; top:6px; font:500 12px/1 var(--mono); color:#fff; letter-spacing:.02em; opacity:var(--lab,1) }
+#thread{ transition:opacity .3s ease }
+html.tok-docked #thread{ opacity:0 }
+@keyframes tlift{ 0%{ scale:.78; translate:0 8px } 55%{ scale:1.16; translate:0 -9px } 100%{ scale:1; translate:0 0 } }
+html.tok-lifted:not(.rm) .t-pill{ animation:tlift .55s var(--ease) both }
+/* token rails: a quiet track under the Training Line and release stages that the token rides while the 3D diagram plays */
+.tok-rail{ position:absolute; left:7%; right:7%; bottom:14px; height:0; pointer-events:none; border-top:2px dotted rgba(152,114,55,.7); z-index:2 }
+.tok-rail > i{ position:absolute; top:-6px; width:10px; height:10px; margin-left:-5px; border-radius:50%; background:var(--c-bg,#f8f7f2); border:2px solid var(--c-acc,#987237); box-sizing:border-box }
+.tok-anchor{ position:absolute; left:calc(var(--tp,0) * 100%); top:-1px; width:72px; height:34px; transform:translate(-50%,-50%); pointer-events:none }
+.braid-card .tok-rail{ bottom:16px }
+.release-stage{ position:relative }
+#inference-transition .learning-transition{ position:relative }
+#inference-transition .tok-anchor{ left:auto; right:7%; top:44px; transform:translate(0,-50%) }
 
 /* rail with compact chapter numbers */
 #rail{ position:fixed; z-index:6; right:max(16px,env(safe-area-inset-right)); top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px; border-radius:999px; background:var(--rail-bg); border:1px solid var(--rail-line); box-shadow:0 12px 30px -18px rgba(0,0,0,.42); transition:background-color .3s ease,border-color .3s ease,box-shadow .3s ease }
@@ -726,6 +742,8 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
     </div>
   </header>
 
+  <div class="bridge wrap" id="b0t"><p class="bridge-cap dyn">The weights are trained before any prompt arrives.</p><svg class="sv skin-light" id="vb0t" viewBox="0 0 480 220" aria-hidden="true"></svg></div>
+
   <!-- Opening: interactive Diagram training walkthrough (Stations 1–5 only; stops at frozen θ* before any prompt). -->
   <section class="braid-band wrap" id="training-line-band" aria-label="Training line Stations 1 to 5">
     <div class="braid-card skin-light">
@@ -743,6 +761,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
       </div>
       <div class="braid-viewport">
         <div class="spine-stage-slot" data-slot-id="braid-opening" data-engine="diagram" data-skin="light" data-step="1.1" data-diagram-pose="0.24"></div>
+        <div class="tok-rail" id="trainRail" aria-hidden="true"><i style="left:0"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><span class="tok-anchor" id="a-train" data-u="72" data-k=".8"></span></div>
       </div>
       <div class="braid-footer">
         <div class="braid-scrub-row">
@@ -759,6 +778,8 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
       </div>
     </div>
   </section>
+
+  <div class="bridge wrap" id="bt1"><p class="bridge-cap dyn">Now the line, one station at a time.</p><svg class="sv skin-light" id="vbt1" viewBox="0 0 480 220" aria-hidden="true"></svg></div>
 
   <!-- 1 -->
   <section class="chapter" id="ch1" aria-labelledby="ch1-h" style="--sc:1.2fr;--tc:1fr">
@@ -839,6 +860,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
         <div class="stage skin-bp release-stage">
           <div class="chapter-stage-head"><span id="releaseStageTitle">Diagram · Station 5 · Evaluation &amp; Release Gate</span><span class="chapter-stage-sub" id="releaseStageSub">Checking candidate θ…</span></div>
           <div class="spine-stage-slot" data-slot-id="braid-switchyard" data-engine="diagram" data-skin="bp" data-step="5.1" data-diagram-pose="4.14"></div>
+          <div class="tok-rail" id="relRail" aria-hidden="true" style="--c-bg:#123354;--c-acc:#e6bf80;border-top-color:rgba(230,191,128,.8)"><i style="left:0"></i><i style="left:50%"></i><i style="left:100%"></i><span class="tok-anchor" id="a-rel" data-u="72" data-k=".8"></span></div>
         </div>
       </div>
       <div class="steps release-steps">
@@ -873,13 +895,15 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
   </section>
 
   <section class="wrap" id="inference-transition" aria-labelledby="inference-heading">
-    <div class="learning-transition">
+    <div class="learning-transition"><span class="tok-anchor" id="a-frozen" data-u="72" data-k=".8" aria-hidden="true"></span>
       <h2 id="inference-heading">Training is complete.<br>Now send a new prompt.</h2>
       <div class="learning-checkpoint"><span>Pretrain → fine-tune</span><b aria-hidden="true">→</b><span>Evaluate → release</span><b aria-hidden="true">→</b><span><strong>Frozen weights</strong></span></div>
       <p>The training occurrence of “ sat” is gone; learning left changes in the weights. A new occurrence arrives in “The cat sat”. We now follow its activations, the next-token scores, and the completion “ on the mat”. Ordinary inference changes request state, not model weights.</p>
       <a href="#ch4">Follow the new prompt through the model →</a>
     </div>
   </section>
+
+  <div class="bridge wrap" id="br4"><p class="bridge-cap dyn">The frozen weights are the tower.</p><svg class="sv skin-bp" id="vbr4" viewBox="0 0 480 220" aria-hidden="true"></svg></div>
 
   <!-- 4 -->
   <section class="chapter" id="ch4" aria-labelledby="ch4-h" style="--sc:1.35fr;--tc:1fr">
@@ -922,7 +946,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
   <!-- 5 -->
   <section class="chapter" id="ch5" aria-labelledby="ch5-h" style="--sc:1.25fr;--tc:1fr">
     <div class="wrap scrolly">
-      <div class="stage-wrap"><div class="stage skin-light"><svg class="sv" id="s5" viewBox="0 0 480 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schematic: client, gate, batch, prefill, decode with KV cache, sampler, guardrail and stream, wired in a loop around the model tower node, with request particles."></svg><div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch5-serving" data-engine="diagram" data-skin="light" data-step="6.2" data-local-t="0.35"></div></div></div>
+      <div class="stage-wrap"><div class="stage skin-light"><svg class="sv" id="s5" viewBox="0 0 480 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schematic: client, gate, batch, prefill, decode with KV cache, sampler, guardrail and stream, wired in a loop around the model tower node, with request particles. A word conveyor under the stream node carries the sentence The cat sat on the mat as each token arrives."></svg><div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch5-serving" data-engine="diagram" data-skin="light" data-step="6.2" data-local-t="0.35"></div></div></div>
       <div class="steps">
         <header class="ch-head">
           <h2 id="ch5-h" class="dyn" tabindex="-1">Your request,<br><span class="acc">streamed in milliseconds.</span></h2>
@@ -967,6 +991,8 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
       </div>
     </div>
   </section>
+
+  <div class="bridge wrap" id="b67"><p class="bridge-cap dyn">From training text to the answer on your screen.</p><svg class="sv skin-light" id="vb67" viewBox="0 0 480 220" aria-hidden="true"></svg></div>
 
   <footer class="outro wrap" id="outro">
     <div class="outro-grid">
@@ -1019,6 +1045,11 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
 <script src="./shared/vendor/three-r160.min.js"></script>
 <script src="./shared/three-loader.js"></script>
 <script src="./shared/theme-tokens.js"></script>
+<script>
+/* theme-tokens.js writes light-only values (--ink, --muted, ...) inline on <html>, which beat the Journey's own html.on-dark palette and left dark scenes with dark ink.
+   The 3D and Diagram engines read window.ReaderTheme directly, so the inline properties are dropped here and the Journey stylesheet stays in charge. */
+(() => { const s = document.documentElement.style; Object.keys((window.ReaderTheme && window.ReaderTheme.css) || {}).forEach(k => s.removeProperty('--' + k)); })();
+</script>
 <script src="./one-token/stops-manifest.js"></script>
 <script src="./one-token/scene-diagram.js"></script>
 <script src="./one-token/spatial-models.js"></script>
@@ -1463,7 +1494,20 @@ function buildS5(svg) {
   T(r, 256, 326, 'KV CACHE · inference only', 'tiny');
   E('rect', { x: 250, y: 334, width: 218, height: 48, rx: 10, fill: '#F4F6FA', stroke: '#D5DAE5' }, r);
   const KVL = ['The', 'cat', '', 'on', 'the', 'mat']; const kv = KVL.map((l, i) => { const x = 254 + i * 35; E('rect', { x, y: 346, width: 32, height: 24, rx: 6, fill: '#E6EAF2' }, r); const f = E('rect', { x, y: 346, width: 32, height: 24, rx: 6, fill: 'url(#gAccF)', opacity: 0 }, r); const t = l ? T(r, x + 16, 362, l, 'tiny', { 'text-anchor': 'middle' }) : null; return { f, t }; });
-  const outs = [['the', 24, 50], ['mat', 80, 50]].map(([s, x, w]) => { const g = E('g', null, r); E('rect', { x, y: 322, width: w, height: 22, rx: 11, fill: 'url(#gAccF)' }, g); const t = T(g, x + w / 2, 337, '', 'mono-i', { 'text-anchor': 'middle' }); t.style.fill = '#fff'; const sp = E('tspan', { 'font-size': 10, opacity: 0.8 }, t); sp.textContent = '␣'; const ts = E('tspan', null, t); ts.textContent = s; return g; });
+  /* Word conveyor under the stream node. The sentence rolls along the belt as each token arrives: earlier words slide left, the new one drops on at the head and takes the orange highlight. The travelling "sat" token rides its own tile. */
+  const CV = { x: 24, y: 322, w: 212, h: 34, head: 228 }, CGAP = 5;
+  const CW = [34, 42, 50, 36, 42, 42], CL = ['The', 'cat', 'sat', 'on', 'the', 'mat'], CT = [0.56, 0.595, 0.63, 0.665, 0.82, 0.86], SATI = 2;
+  const cdefs = svg.querySelector('defs') || E('defs', null, svg);
+  E('rect', { x: CV.x + 2, y: CV.y + 2, width: CV.w - 4, height: CV.h - 4, rx: 15 }, E('clipPath', { id: 'clip-conv' }, cdefs));
+  const belt = E('g', { id: 'wordConveyor', 'data-shift': '0', 'data-tokens': '0' }, r);
+  E('rect', { x: CV.x, y: CV.y, width: CV.w, height: CV.h, rx: 17, fill: '#F4F6FA', stroke: '#D5DAE5' }, belt);
+  const roll = E('line', { x1: CV.x + 16, y1: CV.y + CV.h - 3.5, x2: CV.x + CV.w - 16, y2: CV.y + CV.h - 3.5, stroke: '#B9C1D0', 'stroke-width': 1.5, 'stroke-dasharray': '3 6', 'stroke-linecap': 'round' }, belt);
+  const tilesG = E('g', { 'clip-path': 'url(#clip-conv)' }, belt);
+  const tiles = CL.map((l, i) => { const g = E('g', null, tilesG); if (i === SATI) return { g, w: CW[i] };
+    E('rect', { x: 0, y: CV.y + 4, width: CW[i], height: 24, rx: 12, fill: '#E6EAF2' }, g);
+    const hot = E('rect', { x: 0, y: CV.y + 4, width: CW[i], height: 24, rx: 12, fill: '#e5672f', opacity: 0 }, g);
+    const t = T(g, CW[i] / 2, CV.y + 20, '', 'mono-i', { 'text-anchor': 'middle' }); if (i > 0) { const sp = E('tspan', { fill: '#2b5b84', 'font-size': 10 }, t); sp.textContent = '␣'; } const ts = E('tspan', null, t); ts.textContent = l;
+    return { g, hot, t, w: CW[i] }; });
   const check = E('path', { d: 'M200 262 l4 4 l9 -9', fill: 'none', stroke: '#2b5b84', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
   const lefts = [T(r, 24, 370, 'example PD pools · small-batch decode', 'tiny'), T(r, 24, 390, 'TTFT 0.2 s · 180 tok/s (illustrative)', 'tiny')];
   const a = anchorRect(r, 50, 24, 50 / 72);
@@ -1477,14 +1521,22 @@ function buildS5(svg) {
     Object.keys(nodes).forEach(nm => { const v = hlv[nm] || 0; op(nodes[nm].hl, v); nodes[nm].t.style.fill = v > 0.5 ? '#fff' : ''; });
     pchips.forEach((c, i) => op(c.h, i === 2 ? 0 : bump(p, 0.42, 0.58, 0.04)));
     kv.forEach((c, i) => { const v = i < 4 ? seg(p, 0.46, 0.54) : seg(p, i === 4 ? 0.64 : 0.72, i === 4 ? 0.68 : 0.76); op(c.f, v); if (c.t) c.t.style.fill = v > 0.5 ? '#fff' : ''; });
-    op(outs[0], seg(p, 0.84, 0.88)); op(outs[1], seg(p, 0.9, 0.94)); check.style.strokeDashoffset = (1 - seg(p, 0.85, 0.9)).toFixed(4);
+    const arr = CT.map(t0 => RM ? (p >= t0 ? 1 : 0) : seg(p, t0, t0 + 0.035)); let C = 0, satCx = CV.head;
+    const L = arr.reduce((s, v, i) => s + v * (CW[i] + CGAP), 0);
+    tiles.forEach((tl, i) => { C += CW[i] + CGAP; const right = CV.head - (L - C), v = arr[i];
+      tr(tl.g, `translate(${(right - tl.w).toFixed(2)} ${(RM ? 0 : -16 * (1 - v)).toFixed(2)})`); op(tl.g, Math.min(1, v * 1.6));
+      if (i === SATI) satCx = right - tl.w / 2;
+      else { const hv = v * (1 - (arr[i + 1] || 0)); op(tl.hot, hv); tl.t.style.fill = hv > 0.5 ? '#141c27' : ''; } });
+    roll.setAttribute('stroke-dashoffset', (-(L + (RM ? 0 : time * 8))).toFixed(1)); belt.dataset.shift = L.toFixed(1); belt.dataset.tokens = arr.reduce((s, v) => s + v, 0).toFixed(2);
+    check.style.strokeDashoffset = (1 - seg(p, 0.85, 0.9)).toFixed(4);
     const z = RM ? (p >= 0.4 && p < 0.8 ? 1 : 0) : seg(p, 0.4, 0.47) * (1 - seg(p, 0.77, 0.83));
     const s = 1 + 0.78 * z; tr(mG, `translate(250 182) scale(${s.toFixed(4)}) translate(-250 -182)`);
     op(inset, z); op(mShadow, z); op(mSub, 1 - z); op(mHl, Math.max(hlv.prefill || 0, hlv.decode || 0));
     op(mBus, z); mBus.style.strokeDashoffset = RM ? 0 : (-(time * 16) % 8).toFixed(2);
     insetKV.forEach(c => c.setAttribute('width', Math.max(0.1, 9 * seg(p, 0.46, 0.54)).toFixed(2)));
-    const u = sseg(p, 0.42, 0.53), aw = lerp(50, 32, u); a.setAttribute('width', aw.toFixed(1)); a.dataset.u = aw.toFixed(1); a.dataset.k = (aw / 72).toFixed(3);
-    const q = ptr.at(p); place(a, q.x, q.y);
+    const u = sseg(p, 0.42, 0.53), aw = lerp(lerp(50, 32, u), 46, sseg(p, 0.56, 0.63)); a.setAttribute('width', aw.toFixed(1)); a.dataset.u = aw.toFixed(1); a.dataset.k = (aw / 72).toFixed(3);
+    let q = ptr.at(p); const hand = sseg(p, 0.55, 0.64); if (hand > 0) q = { x: lerp(q.x, satCx, hand), y: lerp(q.y, CV.y + CV.h / 2, hand) };
+    place(a, q.x, q.y);
   };
   return self;
 }
@@ -1614,6 +1666,86 @@ function buildB56(svg) {
   } };
 }
 
+
+/* ---------- Bridges between the remaining scenes: intro -> Training Line, Training Line -> ch1, release -> ch4, ch6 -> summary ---------- */
+function sentenceStrip(r, y) {
+  const W = [64, 72, 72, 58], LB = ['The', 'cat', '', 'on']; let x = 83, slotCx = 0;
+  W.forEach((w, i) => { const cx = x + w / 2;
+    if (i === 2) slotCx = cx;
+    else { E('rect', { x, y, width: w, height: 36, rx: 18, class: 'chip' }, r); const t = T(r, cx, y + 24, '', 'disp', { 'text-anchor': 'middle', 'font-size': 20 }); if (i > 0) { const sp = E('tspan', { 'font-size': 12, opacity: 0.7 }, t); sp.textContent = '␣'; } const ts = E('tspan', null, t); ts.textContent = LB[i]; }
+    x += w + 16; });
+  return slotCx;
+}
+function buildB0T(svg) {
+  const r = E('g', null, svg); const acc = grad(svg, 'acc-b0t', 60, 0, 420, 0, '#2b5b84', '#4ea5b8');
+  const slotCx = sentenceStrip(r, 24);
+  const slot = E('rect', { x: slotCx - 36, y: 24, width: 72, height: 36, rx: 18, class: 'ln dash' }, r);
+  const X = [60, 150, 240, 330, 420];
+  E('line', { x1: 60, y1: 168, x2: 420, y2: 168, class: 'ln faint' }, r);
+  const prog = E('path', { d: 'M60 168 H420', class: 'acc', stroke: acc, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+  const dots = X.map((x, i) => { E('circle', { cx: x, cy: 168, r: 11, class: 'chip' }, r); const hl = E('circle', { cx: x, cy: 168, r: 11, fill: 'url(#gAccF)', opacity: 0 }, r); E('circle', { cx: x, cy: 168, r: 11, class: 'ln' }, r); const t = T(r, x, 172, String(i + 1), 'mono-i', { 'text-anchor': 'middle' }); return { hl, t }; });
+  T(r, 240, 206, 'Training Line · Stations 1–5', 'tiny', { 'text-anchor': 'middle' });
+  const a = anchorRect(r, 72, 36, 1);
+  const trk = makeTrack([[0.1, 0.8, cubicPts([slotCx, 42], [slotCx, 118], [60, 92], [60, 168], 24)]]);
+  return { anchor: a, render(t) {
+    op(slot, seg(t, 0.12, 0.3)); const pr = sseg(t, 0.6, 0.96); prog.style.strokeDashoffset = (1 - pr).toFixed(4);
+    dots.forEach((d, i) => { const v = lin(pr, i / 4 - 0.04, i / 4 + 0.04); op(d.hl, i === 0 ? sseg(t, 0.7, 0.8) : v); d.t.style.fill = (i === 0 ? t > 0.75 : v > 0.5) ? '#fff' : ''; });
+    const aw = lerp(72, 40, sseg(t, 0.3, 0.85)); a.setAttribute('width', aw.toFixed(1)); a.setAttribute('height', (aw / 2).toFixed(1)); a.dataset.u = aw.toFixed(1); a.dataset.k = (aw / 72).toFixed(3);
+    const q = trk.at(t); place(a, q.x, q.y);
+  } };
+}
+function buildBT1(svg) {
+  const r = E('g', null, svg);
+  const X = [60, 150, 240, 330, 420], NAMES = ['Corpus', 'Tokenizer', 'Pretrain', 'Post-train', 'Freeze θ*'];
+  const line = E('line', { x1: 60, y1: 70, x2: 420, y2: 70, class: 'ln' }, r);
+  const nodes = X.map((x, i) => { const g = E('g', null, r); E('circle', { cx: x, cy: 70, r: 16, class: 'chip' }, g); E('circle', { cx: x, cy: 70, r: 16, class: 'ln strong' }, g); T(g, x, 76, String(i + 1), 'mono-i', { 'text-anchor': 'middle' }); const lab = T(g, x, 108, NAMES[i], 'tiny', { 'text-anchor': 'middle' }); return { g, lab }; });
+  const a = anchorRect(r, 44, 22, 44 / 72);
+  const trk = makeTrack([[0.06, 0.55, cubicPts([420, 70], [392, 6], [88, 6], [60, 70], 24)]]);
+  return { anchor: a, render(t) {
+    const e = RM ? (t < 0.5 ? 0 : 1) : expo(clamp((t - 0.55) / 0.4)), s = lerp(1, 3, e);
+    tr(nodes[0].g, `translate(${(lerp(60, 240, e) - 60 * s).toFixed(2)} ${(lerp(70, 118, e) - 70 * s).toFixed(2)}) scale(${s.toFixed(4)})`);
+    svg.style.setProperty('--sw', (1.25 / s / (svg.__sc || 1)).toFixed(3) + 'px');
+    nodes.forEach((n, i) => { if (i) op(n.g, 1 - e); }); op(nodes[0].lab, 1 - clamp(e * 3)); op(line, 1 - e);
+    const q = trk.at(t); const x = lerp(q.x, 240, e), y = lerp(q.y, 118, e);
+    const aw = lerp(44, 60, e); a.setAttribute('width', aw.toFixed(1)); a.setAttribute('height', (aw / 2).toFixed(1)); a.dataset.u = aw.toFixed(1); a.dataset.k = (aw / 72).toFixed(3);
+    place(a, x, y);
+  } };
+}
+function buildBR4(svg) {
+  const r = E('g', null, svg);
+  const box = E('g', null, r); E('rect', { x: 36, y: 76, width: 96, height: 76, rx: 10, class: 'ln strong' }, box); E('rect', { x: 36, y: 76, width: 96, height: 76, rx: 10, fill: 'rgba(255,255,255,.07)' }, box);
+  T(box, 84, 124, 'θ*', 'disp', { 'text-anchor': 'middle', 'font-size': 38 }); T(box, 84, 142, 'frozen', 'tiny', { 'text-anchor': 'middle' });
+  const arrow = E('path', { d: 'M140 114 H262', class: 'ln strong', 'marker-end': 'url(#mD)', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, r);
+  const tg = E('g', null, r); tower(tg, 300, 14, 64, 190, '#fff', 7);
+  const lab = T(r, 338, 216, 'THE TOWER', 'tiny', { 'text-anchor': 'middle' });
+  const a = anchorRect(r, 64, 32, 64 / 72);
+  const trk = makeTrack([[0.12, 0.78, [[84, 114], [196, 114], [292, 191], [338, 191]]]]);
+  return { anchor: a, render(t) {
+    arrow.style.strokeDashoffset = (1 - seg(t, 0.1, 0.5)).toFixed(4);
+    const tw = seg(t, 0.2, 0.55); op(tg, tw); op(lab, tw); op(box, 1 - 0.6 * sseg(t, 0.5, 0.9));
+    const aw = lerp(64, 36, sseg(t, 0.2, 0.8)); a.setAttribute('width', aw.toFixed(1)); a.setAttribute('height', (aw / 2).toFixed(1)); a.dataset.u = aw.toFixed(1); a.dataset.k = (aw / 72).toFixed(3);
+    const q = trk.at(t); place(a, q.x, q.y);
+  } };
+}
+function buildB67(svg) {
+  const r = E('g', null, svg);
+  const WS = [56, 56, 72, 48, 56, 62], LB = ['The', 'cat', '', 'on', 'the', 'mat'], GAP = 12;
+  let x = 240 - (WS.reduce((s, w) => s + w, 0) + GAP * 5) / 2, slotCx = 0; const chips = [];
+  WS.forEach((w, i) => { const cx = x + w / 2; const g = E('g', null, r);
+    if (i === 2) { slotCx = cx; E('rect', { x, y: 92, width: w, height: 36, rx: 18, class: 'ln dash' }, g); chips.push(null); }
+    else { E('rect', { x, y: 92, width: w, height: 36, rx: 18, class: 'chip' }, g); const hot = E('rect', { x, y: 92, width: w, height: 36, rx: 18, fill: '#e5672f', opacity: 0 }, g);
+      const t = T(g, cx, 116, '', 'disp', { 'text-anchor': 'middle', 'font-size': 20 }); if (i > 0) { const sp = E('tspan', { 'font-size': 12, opacity: 0.7 }, t); sp.textContent = '␣'; } const ts = E('tspan', null, t); ts.textContent = LB[i]; chips.push({ g, hot, t, fresh: i >= 4 }); }
+    x += w + GAP; });
+  T(r, 240, 176, 'The cat sat on the mat', 'tiny', { 'text-anchor': 'middle' });
+  const a = anchorRect(r, 72, 36, 1);
+  const trk = makeTrack([[0.05, 0.6, cubicPts([24, 196], [130, 196], [slotCx - 110, 110], [slotCx, 110], 24)]]);
+  return { anchor: a, render(t) {
+    const e = [4, 5].map(i => RM ? (t < 0.5 ? 0 : 1) : seg(t, 0.62 + (i - 4) * 0.14, 0.8 + (i - 4) * 0.14));
+    chips.forEach((c, i) => { if (!c || !c.fresh) return; const k = i - 4, ek = e[k], nxt = k === 0 ? e[1] : 0; tr(c.g, `translate(0 ${(-34 * (1 - ek)).toFixed(2)})`); op(c.g, ek); const h = ek * (1 - nxt); op(c.hot, h); c.t.style.fill = h > 0.5 ? '#141c27' : ''; });
+    const q = trk.at(t); place(a, q.x, q.y);
+  } };
+}
+
 /* ---------- setup ---------- */
 const bg = $('#bg'), gDots = $('.g-dots'), gLines = $('.g-lines'), gMaj = $('.g-major');
 const thread = $('#thread'), tPill = $('.t-pill'), tDot = $('.t-dot'), tRing = $('.t-ring');
@@ -1659,11 +1791,24 @@ const BUILD = { ch1: buildS1, ch2: buildS2, ch3: buildS3, ch4: buildS4, ch5: bui
 const chapters = Object.keys(BUILD).map((id, i) => { const el = document.getElementById(id); const svg = $('svg.sv', el); const api = BUILD[id](svg); return { id, num: i + 1, el, svg, api, stage: $('.stage', el), wrapEl: $('.stage-wrap', el), steps: $$('.step', el), n: $$('.step', el).length, p: 0, lastP: -1, idx: -1, top: 0, bottom: 0, sT: 0, sB: 1 }; });
 const BB = { b12: buildB12, b23: buildB23, b34: buildB34, b45: buildB45, b56: buildB56 };
 const bridges = Object.keys(BB).map((id, i) => { const el = document.getElementById(id); const svg = $('svg', el); return { id, k: i + 1, el, svg, api: BB[id](svg), t: 0, lastT: -1, top: 0, bottom: 0 }; });
+const BX = { b0t: [buildB0T, 1], bt1: [buildBT1, 1], br4: [buildBR4, 4], b67: [buildB67, 6] };
+/* Added bridges share a skin with both neighbours, so their page colour index c stays flat while the picture plays. */
+const bridgesX = Object.keys(BX).map(id => { const el = document.getElementById(id); const svg = $('svg', el); return { id, k: 0, flat: true, c: BX[id][1], el, svg, api: BX[id][0](svg), t: 0, lastT: -1, top: 0, bottom: 0 }; });
+const allBridges = bridges.concat(bridgesX), bridgeById = Object.fromEntries(allBridges.map(b => [b.id, b]));
 const hero = { el: $('#intro'), anchor: $('#a-hero') }, outro = { el: $('#outro'), anchor: $('#a-outro') };
 const ch4 = chapters[3];
-const regions = [{ kind: 'hero', el: hero.el, anchor: () => hero.anchor }];
-chapters.forEach((c, i) => { regions.push({ kind: 'ch', ch: c, el: c.el, anchor: () => c.api.anchor }); if (bridges[i]) regions.push({ kind: 'br', br: bridges[i], el: bridges[i].el, anchor: () => bridges[i].api.anchor }); });
-regions.push({ kind: 'outro', el: outro.el, anchor: () => outro.anchor });
+const brRegion = id => { const b = bridgeById[id]; return { kind: 'br', br: b, el: b.el, anchor: () => b.api.anchor }; };
+const chRegion = i => { const c = chapters[i]; return { kind: 'ch', ch: c, el: c.el, anchor: () => c.api.anchor }; };
+/* Every scene is a region, in page order, and each one hands the token to the next: hero, Training Line, six chapters, release gate, the summary, with a bridge between each pair. */
+const regions = [
+  { kind: 'hero', el: hero.el, anchor: () => hero.anchor }, brRegion('b0t'),
+  { kind: 'band', c: 1, el: document.getElementById('training-line-band'), anchor: () => $('#a-train') }, brRegion('bt1'),
+  chRegion(0), brRegion('b12'), chRegion(1), brRegion('b23'), chRegion(2), brRegion('b34'),
+  { kind: 'rel', c: 4, el: document.getElementById('release-gate'), anchor: () => $('#a-rel') },
+  { kind: 'inf', c: 4, el: document.getElementById('inference-transition'), anchor: () => $('#a-frozen') }, brRegion('br4'),
+  chRegion(3), brRegion('b45'), chRegion(4), brRegion('b56'), chRegion(5), brRegion('b67'),
+  { kind: 'outro', el: outro.el, anchor: () => outro.anchor }
+];
 const navTargets = [hero.el].concat(chapters.map(c => c.el), [outro.el]);
 const navLabels = ['Intro', '1 · Data & tokens', '2 · Pretraining at scale', '3 · Post-training & RL', '4 · Inside the model', '5 · Serving a request', '6 · Agents & tool loop', 'Summary'];
 
@@ -1674,7 +1819,8 @@ const ST = [SL, SL, SD, SB, SB, SL, SL];
 const L_DARK = lumOf(hex('#121522')), L_LIGHT = lumOf(hex('#F4F6FB'));
 
 let vw = innerWidth, vh = innerHeight, mobile = vw < 820, FOCUS = mobile ? 0.7 : 0.5, dpr = Math.min(2, devicePixelRatio || 1);
-let needLayout = true, time = 0, lastC = -1, onDark = false, thW = [1, 0, 0];
+let needLayout = true, time = 0, lastC = -1, onDark = false, thW = [1, 0, 0], tokLifted = false;
+doc.classList.add('tok-docked');
 const th = { x: vw / 2, y: vh / 2, s: 1, init: false };
 const vis = { ch2: false, ch4: false, ch5: false, b23: false };
 const absTop = el => el.getBoundingClientRect().top + scrollY;
@@ -1712,7 +1858,7 @@ setJourneyPhase(qs.has('state') ? 'preview' : 'training');
 
 /* Interactive Opening Training Line (Stations 1–5 only, strictly capped at Release θ* before Station 6) */
 const openingSlot = $('[data-slot-id="braid-opening"]');
-const releaseGateEl = document.getElementById('release-gate');
+const releaseGateEl = document.getElementById('release-gate'), relRail = document.getElementById('relRail'), trainRail = document.getElementById('trainRail');
 const releaseSwitchSlot = $('[data-slot-id="braid-switchyard"]');
 const releaseBeats = $$('.release-beat', releaseGateEl);
 const inferTransEl = document.getElementById('inference-transition');
@@ -1772,6 +1918,7 @@ function applyTrainingPose(g, syncSlider = true) {
     openingSlot.dataset.localT = clamp(safeG - Math.floor(safeG), 0, 0.92).toFixed(3);
   }
   trainStnBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === stnIdx)));
+  trainRail?.style.setProperty('--tp', trainProgress.toFixed(3));
   if (syncSlider && trainRange) trainRange.value = String(Math.round(trainProgress * 100));
   if (trainPctOut) trainPctOut.value = meta.label;
   if (trainCapEl && trainCapEl.textContent !== meta.cap) trainCapEl.textContent = meta.cap;
@@ -1857,7 +2004,7 @@ function layout() {
   chapters.forEach(c => { c.top = absTop(c.el); c.bottom = c.top + c.el.offsetHeight; const f = c.steps[0], l = c.steps[c.steps.length - 1]; c.sT = absTop(f); c.sB = absTop(l) + l.offsetHeight; c.lastP = -1; c.focusF = mobile ? Math.min(0.86, c.wrapEl.offsetHeight / vh + 0.04) : 0.5; c.api.mobile = mobile;
     c.stepEdges = [...c.steps.map(absTop), c.sB];
     const cw = c.svg.clientWidth || 1, chh = c.svg.clientHeight || 1; if (c === ch4) { c.api.aspect = chh / cw; c.api.cw = cw; } else if (c === chapters[4]) { c.api.aspect = chh / cw; c.svg.style.setProperty('--sw', (1.25 / Math.min(cw / (mobile ? 320 : 480), chh / (mobile ? 320 * chh / cw : 400))).toFixed(3) + 'px'); } else c.svg.style.setProperty('--sw', (1.25 / Math.min(cw / 480, chh / 400)).toFixed(3) + 'px'); });
-  bridges.forEach(b => { b.top = absTop(b.el); b.bottom = b.top + b.el.offsetHeight; b.lastT = -1; const sc = (b.svg.clientWidth || 480) / 480; b.svg.__sc = sc; b.svg.style.setProperty('--sw', (1.25 / sc).toFixed(3) + 'px'); });
+  allBridges.forEach(b => { b.top = absTop(b.el); b.bottom = b.top + b.el.offsetHeight; b.lastT = -1; const sc = (b.svg.clientWidth || 480) / 480; b.svg.__sc = sc; b.svg.style.setProperty('--sw', (1.25 / sc).toFixed(3) + 'px'); });
   if (releaseGateEl && releaseBeats.length) {
     releaseGateTop = absTop(releaseGateEl);
     releaseGateBottom = releaseGateTop + releaseGateEl.offsetHeight;
@@ -2211,15 +2358,15 @@ function update(dt) {
   }
   const A4 = ch4.api; if (A4.m !== A4.mt) { if (RM || SHOT) A4.m = A4.mt; else { modeT += dt; const mu = clamp(modeT / MODE_DUR); A4.m = mu >= 1 ? A4.mt : lerp(modeFrom, A4.mt, MODE_EASE(mu)); } busy = true; ch4.lastP = -1; }
   modes.style.setProperty('--blend',String(still?.mix??A4.m));
-  for (const b of bridges) { const tt = clamp((focus - b.top) / (b.bottom - b.top)); const target = RM ? (tt < 0.5 ? 0 : 1) : tt; if (RM || SHOT || b.lastT < 0) b.t = target; else { b.t += (target - b.t) * (1 - Math.exp(-dt * 9)); if (Math.abs(target - b.t) < 1e-4) b.t = target; else busy = true; } b.near = b.bottom > y - vh * 0.3 && b.top < y + vh * 1.3; }
+  for (const b of allBridges) { const tt = clamp((focus - b.top) / (b.bottom - b.top)); const target = RM ? (tt < 0.5 ? 0 : 1) : tt; if (RM || SHOT || b.lastT < 0) b.t = target; else { b.t += (target - b.t) * (1 - Math.exp(-dt * 9)); if (Math.abs(target - b.t) < 1e-4) b.t = target; else busy = true; } if (b.t > (b.maxT || 0)) b.maxT = b.t; b.near = b.bottom > y - vh * 0.3 && b.top < y + vh * 1.3; }
   let ri = 0; for (let i = 0; i < regions.length; i++) if (regions[i].top <= focus) ri = i;
   const R = regions[ri]; let c = 1;
-  if (R.kind === 'ch') c = R.ch.num; else if (R.kind === 'br') c = R.br.k + (RM ? (R.br.t < 0.5 ? 0 : 1) : blendOf(R.br.t)); else if (R.kind === 'outro') c = 6;
+  if (R.kind === 'ch') c = R.ch.num; else if (R.kind === 'br') c = R.br.flat ? R.br.c : R.br.k + (RM ? (R.br.t < 0.5 ? 0 : 1) : blendOf(R.br.t)); else if (R.kind === 'outro') c = 6; else if (R.c != null) c = R.c;
   let ni = 0; navTargets.forEach((t, i) => { if (absTopCached(i) <= focus) ni = i; }); setNav(ni);
   if(previewStop){c=previewStop.ch+1;const ch=chapters[previewStop.ch];ch.idx=previewStop.step;ch.p=previewStop.p;ch.near=true;ch.steps.forEach((n,j)=>n.classList.toggle('is-active',j===ch.idx));setNav(ch.num)}
   if (Math.abs(c - lastC) > 0.0005) { applyStyle(c); lastC = c; }
   for (const ch of chapters) { if (!ch.near) continue; const timed = ch.api.timeAnim && !RM && ((ch === chapters[1] && vis.ch2) || (ch === ch4 && vis.ch4) || (ch === chapters[4] && vis.ch5)); if ((ch!==ch4 || !instrument || !mainDrawing.classList.contains("live")) && (timed || Math.abs(ch.p - ch.lastP) > 1e-5)) { ch.api.render(ch.p, time, dt); ch.lastP = ch.p; } }
-  for (const b of bridges) { if (!b.near) continue; const timed = b.api.timeAnim && vis.b23 && !RM; if (timed || Math.abs(b.t - b.lastT) > 1e-5) { b.api.render(b.t, time, dt); b.lastT = b.t; } }
+  for (const b of allBridges) { if (!b.near) continue; const timed = b.api.timeAnim && vis.b23 && !RM; if (timed || Math.abs(b.t - b.lastT) > 1e-5) { b.api.render(b.t, time, dt); b.lastT = b.t; } }
 
   const ns = window.__storyNarrState;
 
@@ -2293,6 +2440,7 @@ function update(dt) {
       const g5 = lerp(4.08, 4.90, RM && ns?.releaseSweepU == null ? (relU < 0.34 ? 0.18 : relU < 0.67 ? 0.55 : 0.96) : relU);
       const relIdx = g5 < 4.36 ? 0 : g5 < 4.68 ? 1 : 2;
       releaseBeats.forEach((bEl, k) => bEl.classList.toggle('is-active', k === relIdx));
+      relRail?.style.setProperty('--tp', clamp((g5 - 4.08) / 0.82).toFixed(3));
       releaseSwitchSlot.dataset.step = stepFromTrainingPose(g5);
       releaseSwitchSlot.dataset.diagramPose = g5.toFixed(3);
       releaseSwitchSlot.dataset.localT = clamp(g5 - 4, 0, 0.90).toFixed(3);
@@ -2377,6 +2525,8 @@ function update(dt) {
     if (bestSlot) stagePool.sync({ slot: bestSlot });
     else stagePool.sync({ slot: '__none__' });
   }
+  const lifted = y > 24 || window.JourneyTour?.state.status === 'playing';
+  if (lifted !== tokLifted) { tokLifted = lifted; doc.classList.toggle('tok-lifted', lifted); doc.classList.toggle('tok-docked', !lifted); }
   const W = vh * 0.2; let bi = 0; for (let i = 0; i < regions.length; i++) if (regions[i].top - W <= focus) bi = i;
   const u = bi === 0 ? 1 : clamp((focus - (regions[bi].top - W)) / (2 * W));
   const B = anchorInfo(regions[bi].anchor()); let tgt = B, from = bi;
@@ -2423,7 +2573,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { ne
 const io = new IntersectionObserver(es => { es.forEach(e => { vis[e.target.dataset.vis] = e.isIntersecting; }); kick(); }, { rootMargin: '10% 0px' });
 [[chapters[1].stage, 'ch2'], [ch4.stage, 'ch4'], [chapters[4].stage, 'ch5'], [bridges[1].svg, 'b23']].forEach(([el, k]) => { el.dataset.vis = k; io.observe(el); });
 matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', e => setRM(e.matches));
-function setRM(v) { RM = !!v; doc.classList.toggle('rm', RM); chapters.forEach(c => { c.lastP = -1; }); bridges.forEach(b => { b.lastT = -1; }); lastC = -1; stagePool?.sync(); kick(); }
+function setRM(v) { RM = !!v; doc.classList.toggle('rm', RM); chapters.forEach(c => { c.lastP = -1; }); allBridges.forEach(b => { b.lastT = -1; }); lastC = -1; stagePool?.sync(); kick(); }
 
 const instrument=null;let still=null;const mainDrawing=document.querySelector(".s4-draw");
 
@@ -2433,7 +2583,7 @@ function jumpShot(name) {
   still={mix:name==='ch4-mid'?.5:null};
   if(name==='ch4-mid'||name==='ch4-router'){setMode('train');ch4.api.m=0;}
   chapters.forEach(c=>c.lastP=-1);kick();
-  let yy = 0; const c = chapters.find(x => x.id === s[0]), b = bridges.find(x => x.id === s[0]);
+  let yy = 0; const c = chapters.find(x => x.id === s[0]), b = allBridges.find(x => x.id === s[0]);
   if (c) {
     const step = s[1] * c.n, idx = Math.min(c.n - 1, Math.floor(step));
     yy = lerp(c.stepEdges[idx], c.stepEdges[idx + 1], step - idx) - vh * c.focusF;
@@ -2772,6 +2922,8 @@ if(window.SuiteLinks)SuiteLinks.mountReturnChip(document.getElementById('storyRe
 const JourneyTourEngine = (() => {
   const rate = clamp(Number(qs.get('tourRate')) || 1, 0.25, 16); // test hook: ?tourRate=8 plays clips and holds 8x faster
   const STATION_HOLD = 3, RELEASE_HOLD = 3.2, CLIP_GAP = 0.25;
+  /* Stops that follow a bridge. Moving forward into one of them scrolls through that bridge (BRIDGE_S, eased) so the transition and the token's flight are seen, then the stop's clip starts. */
+  const BRIDGE_S = 2.3, BRIDGE_BEFORE = { 'station-1': 'b0t', 'step-1': 'bt1', 'step-5': 'b12', 'step-9': 'b23', 'release': 'b34', 'step-13': 'br4', 'step-22': 'b45', 'step-27': 'b56', 'outro': 'b67' };
   const RELEASE_CAPTION = 'Evaluation & release gate complete — weights are frozen as θ* before any user prompt.';
   const btn = document.getElementById('tourPlay'), muteBtn = document.getElementById('tourMute');
   const cap = document.getElementById('narrCap'), dock = document.getElementById('tourDock');
@@ -2795,7 +2947,8 @@ const JourneyTourEngine = (() => {
     if (s.i === 11) add({ id: 'release', kind: 'release', label: 'Release gate · Freeze θ*', dur: RELEASE_HOLD, cues: [{ t: 0, s: RELEASE_CAPTION }] });
   }
   add({ id: 'outro', kind: 'outro', label: 'Summary', clip: outroClip, dur: outroClip?.dur || 6, cues: outroClip?.cues || [{ t: 0, s: 'Thirty stops, one token.' }] });
-  const TOTAL = stops.reduce((n, s) => n + s.dur, 0);
+  stops.forEach(s => { s.bridge = BRIDGE_BEFORE[s.id] || null; s.lead = s.bridge ? BRIDGE_S : 0; });
+  const TOTAL = stops.reduce((n, s) => n + s.dur + s.lead, 0);
 
   const S = { status: 'idle', reason: null, index: 0, t: 0, clock: 0, resumeT: 0, muted: qs.get('mute') === '1', audio: null, audioOk: false,
     audioIdx: -1, lastMediaT: 0, lastMediaWall: 0, tween: null, timer: 0, waiting: false, token: 0, lastTick: 0, align: 0 };
@@ -2807,7 +2960,7 @@ const JourneyTourEngine = (() => {
   const remaining = () => {
     if (S.status === 'idle' || S.status === 'finished') return TOTAL;
     let r = Math.max(0, cur().dur - S.t);
-    for (let i = S.index + 1; i < stops.length; i++) r += stops[i].dur;
+    for (let i = S.index + 1; i < stops.length; i++) r += stops[i].dur + stops[i].lead;
     return r;
   };
 
@@ -2837,18 +2990,38 @@ const JourneyTourEngine = (() => {
     const tw = S.tween; if (!tw) return;
     cancelAnimationFrame(tw.raf); clearTimeout(tw.timer); S.tween = null;
   }
-  function scrollTween(y, done) {
+
+  /* Monotone cubic through (ts, ys) with zero end slopes: the camera eases out of one stop, cruises through the bridge, and eases into the next. */
+  function hermite(ts, ys, u) {
+    const n = ys.length, h = [], d = [], m = new Array(n).fill(0);
+    for (let k = 0; k < n - 1; k++) { h[k] = ts[k + 1] - ts[k]; d[k] = (ys[k + 1] - ys[k]) / h[k]; }
+    for (let k = 1; k < n - 1; k++) m[k] = d[k - 1] * d[k] <= 0 ? 0 : (2 * d[k - 1] * d[k]) / (d[k - 1] + d[k]);
+    let k = 0; while (k < n - 2 && u > ts[k + 1]) k++;
+    const t = clamp((u - ts[k]) / h[k]), t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * ys[k] + (t3 - 2 * t2 + t) * h[k] * m[k] + (-2 * t3 + 3 * t2) * ys[k + 1] + (t3 - t2) * h[k] * m[k + 1];
+  }
+  /* Scroll knots for a run through one bridge: its first and last quarter-inch of progress bracket the flight, so the whole picture plays on screen. */
+  function routeKnots(b, from, to) {
+    const foc = vh * FOCUS, yAt = t => Math.round(b.top + t * (b.bottom - b.top) - foc), dir = Math.sign(to - from);
+    const y1 = yAt(0.04), y2 = yAt(0.96), dA = (y1 - from) * dir, dB = (y2 - y1) * dir, dE = (to - y2) * dir;
+    if (!dir || dA < 8 || dB < 8 || dE < 8) return null;
+    const fB = 0.52, rest = 1 - fB, a = rest * dA / (dA + dE);
+    return { ys: [from, y1, y2, to], ts: [0, Math.max(0.12, a), Math.max(0.12, a) + fB, 1] };
+  }
+  function scrollTween(y, done, via) {
     cancelTween();
     const maxY = Math.max(0, doc.scrollHeight - vh), to = clamp(Math.round(y), 0, maxY), from = scrollY, dist = to - from;
     if (RM || Math.abs(dist) < 2) { window.scrollTo({ top: to, behavior: 'instant' }); kick(); done?.(); return; }
-    const dur = clamp(550 + Math.abs(dist) * 0.32, 650, 1700) / Math.min(rate, 6);
+    let dur = clamp(550 + Math.abs(dist) * 0.32, 650, 1700) / Math.min(rate, 6);
+    const route = via ? routeKnots(via, from, to) : null;
+    if (route) dur = BRIDGE_S * 1000 / Math.min(rate, 6);
     const tw = { raf: 0, timer: 0, fired: false };
     const fin = () => { if (tw.fired) return; tw.fired = true; clearTimeout(tw.timer); if (S.tween === tw) S.tween = null; done?.(); };
     const t0 = performance.now();
     const stepFrame = now => {
       if (S.tween !== tw) return;
       const u = clamp((now - t0) / dur), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-      window.scrollTo({ top: Math.round(lerp(from, to, e)), behavior: 'instant' }); kick();
+      window.scrollTo({ top: Math.round(route ? hermite(route.ts, route.ys, u) : lerp(from, to, e)), behavior: 'instant' }); kick();
       if (u < 1) tw.raf = requestAnimationFrame(stepFrame); else fin();
     };
     S.tween = tw; tw.timer = setTimeout(() => { if (S.tween === tw) { window.scrollTo({ top: to, behavior: 'instant' }); fin(); } }, dur + 400);
@@ -2947,11 +3120,23 @@ const JourneyTourEngine = (() => {
   function beginSession() { tourSession = true; suspendStageLockOnScrollUp(); }
   function enterStop(i, play) {
     stopAudio(); cancelTween();
+    const prev = S.index;
     S.index = i; S.t = 0; S.clock = 0; S.resumeT = 0; S.waiting = false; S.token++;
     S.status = play ? 'playing' : 'paused'; S.reason = play ? null : 'manual'; S.align = performance.now();
-    const st = cur();
-    progress(st, 0); caption(st, 0); scrollTween(targetY(st));
-    if (play) { startAudio(st, 0); startTimer(); } else stopTimer();
+    const st = cur(), via = play && !RM && i === prev + 1 && st.bridge ? bridgeById[st.bridge] : null;
+    progress(st, 0);
+    if (via) {
+      /* silent flight through the bridge: the clock holds, the previous caption stays, then the stop's clip starts */
+      const tok = S.token; S.waiting = true;
+      scrollTween(targetY(st), () => {
+        if (tok !== S.token || S.status !== 'playing') return;
+        S.waiting = false; S.clock = S.t = 0; S.align = performance.now(); caption(st, 0); startAudio(st, 0);
+      }, via);
+      startTimer();
+    } else {
+      caption(st, 0); scrollTween(targetY(st));
+      if (play) { startAudio(st, 0); startTimer(); } else stopTimer();
+    }
     applyMode(); emit('tour:stop', detail());
   }
   function advance() {
@@ -3103,11 +3288,11 @@ window.JourneyTour = JourneyTourEngine;
   }
 }
 window.__stageLock={get state(){return {active:stageLock.active,paused:stageLock.paused,id:stageLock.gate?.id||null,u:stageLock.u,scrollY:stageLock.scrollY,barrierY:activeBarrierY(),completed:[...completedGates]}},engage:id=>engageStageLock(STAGE_GATES.find(g=>g.id===id))};
-window.__journey={get state(){return {active,opened,pos,phase:currentJourneyPhase}},refresh:refreshHost,stagePool};
+window.__journey={get state(){return {active,opened,pos,phase:currentJourneyPhase}},get bridges(){return allBridges.map(b=>({id:b.id,t:+b.t.toFixed(3),max:+(b.maxT||0).toFixed(3),top:Math.round(b.top),bottom:Math.round(b.bottom)}))},refresh:refreshHost,stagePool};
 window.__tokenJourney = { DBG, setRM, setMode, jumpShot, kick, layout: () => { needLayout = true; kick(); } };
 setNav(0);
 chapters.forEach(c => { try { c.api.render(0, 0, 0); } catch (e) { console.error(e); } });
-bridges.forEach(b => { try { b.api.render(0, 0, 0); } catch (e) { console.error(e); } });
+allBridges.forEach(b => { try { b.api.render(0, 0, 0); } catch (e) { console.error(e); } });
 if (SHOT) { addEventListener('load', () => { jumpShot(SHOT); needLayout = false; kick(); }); jumpShot(SHOT); }
 kick();
 })();

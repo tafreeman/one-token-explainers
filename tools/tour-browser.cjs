@@ -180,6 +180,8 @@ async function verifyFullRun(browser, base) {
     assert(page.frames().some(f => f.url().includes('obs-core')), 'the Observatory loads at the finale');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !window.__journey.state.opened);
+    const passed = await page.evaluate(() => window.__journey.bridges.map(b => [b.id, b.max]));
+    assert.deepEqual(passed.filter(([, m]) => m <= 0.5), [], 'the run passed through every bridge: ' + JSON.stringify(passed));
     assert.equal(await page.locator('.other-ways a').count(), 4, 'one Other ways to explore block holds the edition links');
     assert.deepEqual(errors, [], 'no console errors across the full run');
     console.log('Tour: full accelerated run reached the summary,', ids.all.length, 'stops, no 3D before it, capstone opened the studio, no console errors');
@@ -224,8 +226,199 @@ async function verifyReducedMotionAndPhone(browser, base) {
   } finally { await phone.page.close(); }
 }
 
+
+// Scenes in page order. Every adjacent pair needs a bridge between them; the inference-transition text belongs to the release gate.
+const SCENES = ['#intro', '#training-line-band', '#ch1', '#ch2', '#ch3', '#release-gate', '#ch4', '#ch5', '#ch6', '#outro'];
+const BRIDGES = ['b0t', 'bt1', 'b12', 'b23', 'b34', 'br4', 'b45', 'b56', 'b67'];
+const lum = css => { const m = css.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number); const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
+const hexLum = hex => lum('rgb(' + [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(',') + ')');
+const settle = page => page.waitForFunction(() => { const y = scrollY, now = performance.now(), s = window.__lastY || (window.__lastY = {y, t: now}); if (Math.abs(s.y - y) > 1) { s.y = y; s.t = now; return false; } return now - s.t > 350; }, null, {timeout: 20000, polling: 100});
+const clearSettle = page => page.evaluate(() => { window.__lastY = null; });
+const ink = page => page.evaluate(() => document.getElementById('thread') && [...document.getElementById('thread').children].reduce((n, c) => n + (+getComputedStyle(c).opacity), 0));
+
+async function verifyTokenAndBridges(browser, base) {
+  const {page, errors} = await openTour(browser, base);
+  try {
+    // The hero word is the token, boxed in an accent capsule; the travelling token waits docked until the reader moves.
+    await page.waitForTimeout(600);
+    const hero = await page.evaluate(() => {
+      const s = getComputedStyle(document.getElementById('a-hero')), w = getComputedStyle(document.querySelector('#a-hero > span'));
+      return {border: s.borderStyle, width: parseFloat(s.borderTopWidth), bg: s.backgroundColor, word: w.opacity, vis: w.visibility, thread: getComputedStyle(document.getElementById('thread')).opacity, cls: document.documentElement.className};
+    });
+    assert.equal(hero.border, 'solid', 'hero capsule is a solid accent outline');
+    assert(hero.width >= 2 && hero.bg !== 'rgba(0, 0, 0, 0)', 'capsule has weight and a tint');
+    assert(hero.word === '1' && hero.vis === 'visible', 'the word sat is readable inside the capsule');
+    assert(Number(hero.thread) < 0.05, 'the travelling token is docked in the capsule at rest');
+    assert(/tok-docked/.test(hero.cls));
+    await startTour(page);
+    await page.waitForFunction(() => document.documentElement.classList.contains('tok-lifted'));
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('thread')).opacity === '1');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('a-hero')).borderStyle), 'dashed', 'the capsule is left as an empty socket');
+    assert((await ink(page)) > 0.9, 'the token object is drawn once it lifts out');
+    await page.evaluate(() => window.JourneyTour.pause());
+
+    // Every adjacent pair of scenes has a bridge between them.
+    const order = await page.evaluate(({scenes, bridges}) => {
+      const pos = sel => { const el = document.querySelector(sel); return el; };
+      const out = [];
+      for (let i = 0; i < scenes.length - 1; i++) {
+        const a = pos(scenes[i]), b = pos(scenes[i + 1]);
+        const between = bridges.filter(id => { const x = document.getElementById(id); return x && x.classList.contains('bridge') && (a.compareDocumentPosition(x) & 4) && (x.compareDocumentPosition(b) & 4); });
+        out.push([scenes[i] + ' -> ' + scenes[i + 1], between.length]);
+      }
+      return out;
+    }, {scenes: SCENES, bridges: BRIDGES});
+    for (const [pair, n] of order) assert.equal(n, 1, 'one bridge sits between ' + pair);
+    assert.equal(await page.locator('.bridge').count(), BRIDGES.length, 'nine bridges in all');
+
+    // Token presence: at every stop the travelling token is drawn inside that scene's stage.
+    const stops = await page.evaluate(() => window.JourneyTour.stops.map(s => ({id: s.id, kind: s.kind})));
+    const bad = [];
+    for (const s of stops) {
+      if (s.kind === 'intro' || s.kind === 'outro') continue;
+      await clearSettle(page);
+      await page.evaluate(id => window.JourneyTour.goTo(id, {play: false}), s.id);
+      await settle(page);
+      await page.waitForTimeout(250);
+      const r = await page.evaluate(kind => {
+        const pill = document.querySelector('#thread > div'), q = pill.getBoundingClientRect(), x = (q.left + q.right) / 2, y = (q.top + q.bottom) / 2;
+        const op = [...document.getElementById('thread').children].reduce((n, c) => n + (+getComputedStyle(c).opacity), 0);
+        const inside = el => { if (!el) return false; const b = el.getBoundingClientRect(); return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom; };
+        const stage = kind === 'station' ? document.querySelector('#training-line-band .braid-card') : kind === 'release' ? document.querySelector('#release-gate .release-stage') : [...document.querySelectorAll('.chapter .stage')].find(inside);
+        return {on: inside(stage), op, onScreen: x > 0 && x < innerWidth && y > 0 && y < innerHeight, docked: getComputedStyle(document.getElementById('thread')).opacity};
+      }, s.kind);
+      if (!(r.on && r.op > 0.5 && r.onScreen && r.docked === '1')) bad.push(s.id + ' ' + JSON.stringify(r));
+    }
+    assert.deepEqual(bad, [], 'the token marker rides inside every stage');
+    console.log('Token: hero capsule lifts into the travelling token; nine bridges, one between every scene; the token sits in every stage across', stops.length - 2, 'stops');
+
+    // Dark skin: the Journey palette wins over theme-tokens, so ink is light while html.on-dark is set.
+    await page.evaluate(() => window.JourneyTour.goTo('step-6', {play: false}));
+    await page.waitForFunction(() => document.documentElement.classList.contains('on-dark'));
+    const dark = await page.evaluate(() => ({ink: getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(), inline: document.documentElement.style.getPropertyValue('--ink'), card: getComputedStyle(document.querySelector('#step-6 .card h3')).color}));
+    assert.equal(dark.inline, '', 'no inline --ink left on <html>');
+    assert(hexLum(dark.ink) > 0.7, '--ink is light on a dark scene: ' + dark.ink);
+    assert(lum(dark.card) > 0.5, 'card heading is light on its dark card: ' + dark.card);
+    // Bridge captions read on every skin (mid-blend worst case), and the travelling token (#thread) is drawn in every bridge. #fx only carries the ch2/ch5 particle fields.
+    const axePath = require.resolve('axe-core/axe.min.js');
+    await page.addScriptTag({path: axePath});
+    const capIssues = [];
+    for (const id of BRIDGES) {
+      await page.evaluate(b => { const el = document.getElementById(b), t = el.getBoundingClientRect().top + scrollY; window.scrollTo({top: t + el.offsetHeight * 0.5 - innerHeight * 0.5, behavior: 'instant'}); }, id);
+      await page.waitForTimeout(700);
+      const r = await page.evaluate(id => {
+        const cap = document.querySelector('#' + id + ' .bridge-cap'), c = getComputedStyle(cap).color, bg = getComputedStyle(document.body).backgroundColor;
+        const fx = document.getElementById('fx'), d = fx.getContext('2d').getImageData(0, 0, fx.width, fx.height).data; let ink = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) ink++;
+        const t = document.querySelector('#thread > div').getBoundingClientRect();
+        return {c, bg, ink, token: [...document.getElementById('thread').children].reduce((n, e) => n + (+getComputedStyle(e).opacity), 0) > 0.5 && t.right > 0 && t.left < innerWidth && t.bottom > 0 && t.top < innerHeight};
+      }, id);
+      const L = a => lum(a), ratio = (Math.max(L(r.c), L(r.bg)) + 0.05) / (Math.min(L(r.c), L(r.bg)) + 0.05);
+      if (ratio < 3) capIssues.push(id + ' caption contrast ' + ratio.toFixed(2)); // captions are large text: AA is 3:1
+      if (!r.token) capIssues.push(id + ' token is not drawn');
+    }
+    assert.deepEqual(capIssues, [], 'bridge captions pass AA and the token is drawn in every bridge');
+    await page.evaluate(() => window.JourneyTour.goTo('step-6', {play: false}));
+    await settle(page);
+    const axe = await page.evaluate(async () => (await axe.run(document.getElementById('ch2'), {runOnly: ['color-contrast']})).violations.map(v => v.id + ': ' + v.nodes.map(n => n.target.join(' ')).slice(0, 4).join(' | ')));
+    assert.deepEqual(axe, [], 'axe color-contrast on a dark chapter');
+    assert.deepEqual(errors, []);
+    console.log('Dark skin: --ink is light on dark scenes, captions pass AA on all nine bridges, axe color-contrast clean on ch2');
+  } finally { await page.close(); }
+}
+
+async function verifyConveyor(browser, base) {
+  const {page, errors} = await openTour(browser, base);
+  try {
+    const read = () => page.evaluate(() => { const g = document.getElementById('wordConveyor'); return {shift: +g.dataset.shift, n: +g.dataset.tokens, dash: g.querySelector('line').getAttribute('stroke-dashoffset')}; });
+    await page.evaluate(() => window.JourneyTour.goTo('step-22', {play: false}));
+    await page.waitForTimeout(800);
+    const gate = await read();
+    await clearSettle(page); await page.evaluate(() => window.JourneyTour.goTo('step-25', {play: false})); await settle(page); await page.waitForTimeout(500);
+    const decode = await read();
+    await clearSettle(page); await page.evaluate(() => window.JourneyTour.goTo('step-26', {play: false})); await settle(page); await page.waitForTimeout(500);
+    const stream = await read();
+    assert(gate.n < 0.5 && decode.n >= 3.5 && decode.n < 4.5, 'the belt is empty at the gate and carries the sentence at decode: ' + JSON.stringify([gate, decode]));
+    assert(stream.n > decode.n + 1.5 && stream.shift > decode.shift + 40, 'the conveyor advances between the two decode stops: ' + JSON.stringify([decode, stream]));
+    const tile = await page.evaluate(() => [...document.querySelectorAll('#wordConveyor g[clip-path] > g')].map(g => g.textContent.trim()));
+    assert.deepEqual(tile.filter(Boolean).map(s => s.replace('␣', '')), ['The', 'cat', 'on', 'the', 'mat'], 'sentence words ride the belt; sat is the token itself');
+    assert.deepEqual(errors, []);
+    console.log('Conveyor: belt empty at the gate, sentence rolls on at decode (' + decode.n + ' tokens), advances to ' + stream.n + ' at sample/stream');
+  } finally { await page.close(); }
+  const rm = await openTour(browser, base, {reducedMotion: 'reduce'});
+  try {
+    const {page} = rm;
+    await page.evaluate(() => window.JourneyTour.goTo('step-26', {play: false}));
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => document.querySelector('#wordConveyor line').getAttribute('stroke-dashoffset'));
+    await page.waitForTimeout(600);
+    const b = await page.evaluate(() => document.querySelector('#wordConveyor line').getAttribute('stroke-dashoffset'));
+    assert.equal(a, b, 'the conveyor holds still under reduced motion');
+    assert.deepEqual(rm.errors, []);
+  } finally { await rm.page.close(); }
+}
+
+// At normal speed the tour scrolls through a bridge in about two seconds, silently, then the next stop's clip starts.
+async function verifyBridgeFlight(browser, base) {
+  const slow = await browser.newPage({viewport: {width: 1440, height: 900}});
+  const errs = [];
+  slow.on('pageerror', e => errs.push(e.message)); slow.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  try {
+    await slow.route('https://fonts.googleapis.com/**', r => r.fulfill({contentType: 'text/css', body: ''}));
+    await slow.goto(base + '?tourRate=1&mute=1', {waitUntil: 'load'});
+    await slow.waitForFunction(() => window.__ready && window.JourneyTour && window.__stageLock, null, {timeout: 60000});
+    await slow.evaluate(() => window.JourneyTour.goTo('step-4', {play: false}));
+    await settle(slow);
+    await slow.evaluate(() => window.JourneyTour.play());
+    await slow.waitForFunction(() => window.JourneyTour.state.status === 'playing' && window.JourneyTour.state.t > 0.2, null, {timeout: 20000});
+    const flight = await slow.evaluate(() => new Promise(resolve => {
+      const log = [], t0 = performance.now(), b = () => window.__journey.bridges.find(x => x.id === 'b12');
+      window.JourneyTour.next();
+      const tick = () => { const now = performance.now() - t0; log.push([now, scrollY, b().t, window.JourneyTour.state.t]); if (now > 4500) return resolve(log); requestAnimationFrame(tick); };
+      tick();
+    }));
+    const moved = flight.filter(r => Math.abs(r[1] - flight[0][1]) > 2), end = flight.findLast(r => Math.abs(r[1] - flight.at(-1)[1]) > 2) || flight[0];
+    const dur = (end[0] - moved[0][0]) / 1000, maxT = Math.max(...flight.map(r => r[2]));
+    assert(dur >= 1.5 && dur <= 3, 'bridge flight lasts ' + dur.toFixed(2) + ' s');
+    assert(maxT > 0.5, 'bridge progress reached ' + maxT.toFixed(2));
+    const heldAt = flight.filter(r => r[0] < dur * 1000 - 200).every(r => r[3] === 0);
+    assert(heldAt, 'the next stop\'s clock holds silently during the flight');
+    const speeds = []; for (let i = 1; i < flight.length; i++) if (flight[i][0] - flight[i - 1][0] > 0) speeds.push(Math.abs(flight[i][1] - flight[i - 1][1]) / (flight[i][0] - flight[i - 1][0]) * 1000);
+    assert(Math.max(...speeds) < 3200, 'eased flight, not a jump (peak ' + Math.round(Math.max(...speeds)) + ' px/s)');
+    await slow.waitForFunction(() => window.JourneyTour.state.id === 'step-5');
+    // Takeover mid-flight pauses and Back to tour resumes at the stop.
+    await slow.evaluate(() => window.JourneyTour.goTo('step-8', {play: true}));
+    await slow.waitForTimeout(1800);
+    await slow.evaluate(() => window.JourneyTour.next());
+    await slow.waitForTimeout(500);
+    await slow.mouse.move(600, 500); await slow.mouse.wheel(0, 300);
+    await slow.waitForFunction(() => window.JourneyTour.state.status === 'paused' && window.JourneyTour.state.reason === 'user');
+    await slow.waitForTimeout(300);
+    const y0 = await slow.evaluate(() => scrollY); await slow.waitForTimeout(500);
+    assert(Math.abs(await slow.evaluate(() => scrollY) - y0) < 4, 'the flight stops when the viewer takes over');
+    assert(await slow.locator('#tourReturn').isVisible(), 'Back to tour is offered');
+    await slow.locator('#tourReturn').click();
+    await slow.waitForFunction(() => window.JourneyTour.state.status === 'playing');
+    await slow.waitForFunction(() => { const r = document.getElementById('step-9').getBoundingClientRect(); return Math.abs((r.top + r.bottom) / 2 - innerHeight * 0.5) < innerHeight * 0.2; }, null, {timeout: 15000});
+    assert.deepEqual(errs, []);
+    console.log('Tour: a bridge flight takes ' + dur.toFixed(1) + ' s at normal speed, silent, eased; wheel takeover stops it and Back to tour resumes');
+  } finally { await slow.close(); }
+  const rm = await openTour(browser, base, {reducedMotion: 'reduce'});
+  try {
+    const {page} = rm;
+    await page.evaluate(() => window.JourneyTour.goTo('step-4', {play: true}));
+    await page.evaluate(() => window.JourneyTour.next());
+    await page.waitForFunction(() => { const r = document.getElementById('step-5').getBoundingClientRect(); return Math.abs((r.top + r.bottom) / 2 - innerHeight * 0.5) < innerHeight * 0.2; }, null, {timeout: 1500});
+    assert.equal(await page.evaluate(() => window.JourneyTour.state.id), 'step-5');
+    assert.deepEqual(rm.errors, []);
+    console.log('Tour: reduced motion cuts straight through the bridge');
+  } finally { await rm.page.close(); }
+}
+
 async function verifyTour(browser, base) {
   await verifyBarAndApi(browser, base);
+  await verifyTokenAndBridges(browser, base);
+  await verifyConveyor(browser, base);
+  await verifyBridgeFlight(browser, base);
   await verifyPlaybackAndTakeover(browser, base);
   await verifyFullRun(browser, base);
   await verifyReducedMotionAndPhone(browser, base);
