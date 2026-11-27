@@ -304,7 +304,20 @@
     }
 
     function clearLiveSlots() {
-      for (const s of slots) s.classList.remove('is-live');
+      for (const s of slots) { s.classList.remove('is-live'); delete s.dataset.tok; }
+    }
+
+    /* Hosts can dock their own token marker onto the drawing: the slot carries the token's projected
+       position as --tok-x / --tok-y (px from its top-left) and data-tok="1" while that point is on screen. */
+    function publishToken(slot, token, camera, w, h) {
+      if (!token || !camera) { delete slot.dataset.tok; return; }
+      const point = token.clone().project(camera);
+      const x = (point.x + 1) * w / 2, y = (1 - point.y) * h / 2;
+      const inside = point.z >= -1 && point.z <= 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+      if (!inside) { delete slot.dataset.tok; return; }
+      slot.style.setProperty('--tok-x', x.toFixed(1) + 'px');
+      slot.style.setProperty('--tok-y', y.toFixed(1) + 'px');
+      slot.dataset.tok = '1';
     }
 
     function hideOverlay() {
@@ -748,6 +761,7 @@
 
         for (const s of slots) s.classList.toggle('is-live', s === slot);
 
+        publishToken(slot, pinState?.token, current.camera, width, height);
         const gliding = placePin(pinState, current.camera, width, height);
         if ((moving || gliding) && !reduced.matches) schedule();
       } catch (err) {

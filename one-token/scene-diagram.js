@@ -905,10 +905,12 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       const uPool = clamp((t - s0) / Math.max(0.01, e0 - s0), 0, 0.999);
       active = pool[Math.min(pool.length - 1, Math.floor(uPool * pool.length))];
     }
-    if (state.opening || state.recap || fullLine || !active) return { anchor: p, label: '“ Paris”', activeCoverage, moving };
+    // token: where the token block sits, so a host page can dock its own token marker onto the drawing.
+    const token = p.clone();
+    if (state.opening || state.recap || fullLine || !active) return { anchor: p, label: '“ Paris”', activeCoverage, moving, token };
     const [label, position] = active;
     const anchor = typeof position === 'function' ? position(t) : position.clone();
-    return { anchor: anchor.add(V(i * SP, 0, 0)), label: typeof label === 'function' ? label(t) : label, moving };
+    return { anchor: anchor.add(V(i * SP, 0, 0)), label: typeof label === 'function' ? label(t) : label, moving, token };
   }
 
   // Opening, story and full-line shots are different framings of the hall, not one path.

@@ -337,6 +337,11 @@ html.tok-lifted:not(.rm) .t-pill{ animation:tlift .55s var(--ease) both }
 .tok-rail{ position:absolute; left:7%; right:7%; bottom:14px; height:0; pointer-events:none; border-top:2px dotted rgba(152,114,55,.7); z-index:2 }
 .tok-rail > i{ position:absolute; top:-6px; width:10px; height:10px; margin-left:-5px; border-radius:50%; background:var(--c-bg,#f8f7f2); border:2px solid var(--c-acc,#987237); box-sizing:border-box }
 .tok-anchor{ position:absolute; left:calc(var(--tp,0) * 100%); top:-1px; width:72px; height:34px; transform:translate(-50%,-50%); pointer-events:none }
+/* Training Line: the token docks onto the drawing's own token block, riding just below it as its label (the station callouts sit above); the stage pool
+   publishes the block's position on the slot. The bottom rail is only the fallback (static poster, no WebGL). */
+#a-train-tok{ left:var(--tok-x,50%); top:calc(var(--tok-y,50%) + 30px); z-index:1 }
+.braid-viewport .tok-rail{ transition:opacity .3s var(--ease) }
+.braid-viewport:has(> .spine-stage-slot.is-live[data-tok="1"]) .tok-rail{ opacity:0 }
 .braid-card .tok-rail{ bottom:16px }
 .release-stage{ position:relative }
 #inference-transition .learning-transition{ position:relative }
@@ -760,7 +765,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
         </div>
       </div>
       <div class="braid-viewport">
-        <div class="spine-stage-slot" data-slot-id="braid-opening" data-engine="diagram" data-skin="light" data-step="1.1" data-diagram-pose="0.24"></div>
+        <div class="spine-stage-slot" data-slot-id="braid-opening" data-engine="diagram" data-skin="light" data-step="1.1" data-diagram-pose="0.24"><span class="tok-anchor" id="a-train-tok" data-u="72" data-k=".8" aria-hidden="true"></span></div>
         <div class="tok-rail" id="trainRail" aria-hidden="true"><i style="left:0"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><span class="tok-anchor" id="a-train" data-u="72" data-k=".8"></span></div>
       </div>
       <div class="braid-footer">
@@ -1797,12 +1802,15 @@ const bridgesX = Object.keys(BX).map(id => { const el = document.getElementById(
 const allBridges = bridges.concat(bridgesX), bridgeById = Object.fromEntries(allBridges.map(b => [b.id, b]));
 const hero = { el: $('#intro'), anchor: $('#a-hero') }, outro = { el: $('#outro'), anchor: $('#a-outro') };
 const ch4 = chapters[3];
+/* The Training Line token rides the drawing's token block while the stage pool draws it, else the bottom rail. */
+const trainDock = $('#a-train-tok'), trainRailAnchor = $('#a-train');
+const trainAnchor = () => { const s = trainDock?.parentElement; return s && s.classList.contains('is-live') && s.dataset.tok === '1' ? trainDock : trainRailAnchor; };
 const brRegion = id => { const b = bridgeById[id]; return { kind: 'br', br: b, el: b.el, anchor: () => b.api.anchor }; };
 const chRegion = i => { const c = chapters[i]; return { kind: 'ch', ch: c, el: c.el, anchor: () => c.api.anchor }; };
 /* Every scene is a region, in page order, and each one hands the token to the next: hero, Training Line, six chapters, release gate, the summary, with a bridge between each pair. */
 const regions = [
   { kind: 'hero', el: hero.el, anchor: () => hero.anchor }, brRegion('b0t'),
-  { kind: 'band', c: 1, el: document.getElementById('training-line-band'), anchor: () => $('#a-train') }, brRegion('bt1'),
+  { kind: 'band', c: 1, el: document.getElementById('training-line-band'), anchor: trainAnchor }, brRegion('bt1'),
   chRegion(0), brRegion('b12'), chRegion(1), brRegion('b23'), chRegion(2), brRegion('b34'),
   { kind: 'rel', c: 4, el: document.getElementById('release-gate'), anchor: () => $('#a-rel') },
   { kind: 'inf', c: 4, el: document.getElementById('inference-transition'), anchor: () => $('#a-frozen') }, brRegion('br4'),

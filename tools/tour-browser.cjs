@@ -299,6 +299,20 @@ async function verifyTokenAndBridges(browser, base) {
       if (!(r.on && r.op > 0.5 && r.onScreen && r.docked === '1')) bad.push(s.id + ' ' + JSON.stringify(r));
     }
     assert.deepEqual(bad, [], 'the token marker rides inside every stage');
+    // Training Line: the marker docks just below the drawing's own token block, and the bottom rail steps aside.
+    await clearSettle(page);
+    await page.evaluate(() => window.JourneyTour.goTo('station-2', {play: false}));
+    await settle(page);
+    await page.waitForFunction(() => document.querySelector('[data-slot-id="braid-opening"]').dataset.tok === '1', null, {timeout: 10000});
+    await page.waitForTimeout(600);
+    const dock = await page.evaluate(() => {
+      const slot = document.querySelector('[data-slot-id="braid-opening"]'), sr = slot.getBoundingClientRect(), cs = getComputedStyle(slot);
+      const bx = sr.left + parseFloat(cs.getPropertyValue('--tok-x')), by = sr.top + parseFloat(cs.getPropertyValue('--tok-y'));
+      const q = document.querySelector('.t-pill').getBoundingClientRect();
+      return {dx: (q.left + q.right) / 2 - bx, dy: (q.top + q.bottom) / 2 - by, rail: getComputedStyle(document.getElementById('trainRail')).opacity};
+    });
+    assert(Math.abs(dock.dx) < 12 && dock.dy > 15 && dock.dy < 45, 'the marker sits just below the token block in the drawing ' + JSON.stringify(dock));
+    assert.equal(dock.rail, '0', 'the fallback rail hides while the marker is docked');
     console.log('Token: hero capsule lifts into the travelling token; nine bridges, one between every scene; the token sits in every stage across', stops.length - 2, 'stops');
 
     // Dark skin: the Journey palette wins over theme-tokens, so ink is light while html.on-dark is set.
