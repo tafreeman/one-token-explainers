@@ -6,7 +6,7 @@ const {pathToFileURL} = require('node:url');
 const {stops, tracks} = require('../one-token/stops-manifest.js');
 
 const axePath = require.resolve('axe-core/axe.min.js');
-const fileReader = pathToFileURL(path.resolve(__dirname, '../index.html')).href;
+const fileReader = pathToFileURL(path.resolve(__dirname, '../one-token/index.html')).href;
 const desktop = {width: 1440, height: 900};
 const phone = {width: 390, height: 844};
 const timeout = 30000;
@@ -449,7 +449,8 @@ async function inspect(browser, url, local, artifacts) {
     const back = drawer.getByRole('button', {name: 'Back to lesson'});
     await back.waitFor();
     assert.match(await drawer.locator('h2').textContent(), /CSA.*HCA/);
-    assert.equal(await drawer.locator('iframe').count(), 0, 'cutaway must load lazily');
+    await drawer.locator('iframe').waitFor();
+    assert.equal(await drawer.locator('.inspect-cutaway').evaluate(node => node.open), true, 'cutaway starts expanded');
     await page.keyboard.press('Escape');
     await drawer.waitFor({state: 'hidden'});
 
@@ -466,7 +467,6 @@ async function inspect(browser, url, local, artifacts) {
     assert.ok(await drawer.locator('[data-lab="kv"]').count(), 'the KV lab should be mounted');
     const tourHref = await drawer.locator('.inspect-links a').first().getAttribute('href');
     assert.match(tourHref, /from=reader&pos=7\.2/);
-    await drawer.getByText('Explore the 3D cutaway', {exact: true}).click();
     const frame = drawer.locator('iframe');
     await frame.waitFor();
     const frameUrl = new URL(await frame.getAttribute('src'), url);
@@ -480,7 +480,7 @@ async function inspect(browser, url, local, artifacts) {
     assert.ok(await trigger.evaluate(node => node === document.activeElement), 'closing inspector did not restore focus');
     assert.ok(Math.abs(await page.evaluate(() => scrollY) - before) <= 1, 'closing inspector moved the lesson');
     assert.equal((await stat(page)).suspended, false);
-    console.log('Reader inspector focus, restoration, labs, and lazy cutaway passed over', local ? 'file://' : 'HTTP');
+    console.log('Reader inspector focus, restoration, labs, and expanded cutaway passed over', local ? 'file://' : 'HTTP');
   } finally {
     await page.close();
   }
@@ -714,7 +714,7 @@ async function visibility(browser, url) {
 }
 
 async function verifyReader(browser, base, artifacts) {
-  const url = new URL('./', base).href;
+  const url = new URL('one-token/', base).href;
   await layouts(browser, url, artifacts);
   await visualStops(browser, url, artifacts);
   await cameraNavigation(browser, url);
@@ -727,14 +727,13 @@ async function verifyReader(browser, base, artifacts) {
   await inspect(browser, fileReader, true);
   await fallbacks(browser, url, artifacts);
 
-  // Legacy /one-token/ alias redirects cleanly to root and preserves fragments.
+  // Legacy /journey-story/ alias redirects cleanly to root and preserves fragments.
   const alias = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
   try {
-    await alias.goto(new URL('one-token/#step-7.2', base).href);
-    await ready(alias);
-    await step(alias, '7.2');
-    assert.match(alias.url(), /\/index\.html#step-7\.2$/);
-    console.log('Reader /one-token/ redirect alias preserved fragment at root');
+    await alias.goto(new URL('journey-story/#ch4', base).href);
+    await alias.waitForFunction(() => window.__ready, null, {timeout});
+    assert.match(alias.url(), /\/(?:index\.html)?#ch4$/);
+    console.log('Story /journey-story/ redirect alias preserved fragment at root');
   } finally {
     await alias.close();
   }
@@ -744,7 +743,7 @@ async function verifyReaderWarp(browser, base, budget = 160) {
   const page = await browser.newPage({viewport: desktop, reducedMotion: 'reduce'});
   try {
     await trackAnimationFrames(page);
-    await page.goto(new URL('./', base).href);
+    await page.goto(new URL('one-token/', base).href);
     await ready(page);
     await gotoStep(page, '7.2');
     const adapter = await page.evaluate(() => {

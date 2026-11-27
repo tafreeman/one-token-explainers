@@ -17,9 +17,9 @@ const check = (name, ok, detail = '') => {
 };
 
 const PAGES = {
-  reader: 'index.html',
+  reader: 'one-token/index.html',
   core: 'shared/obs-core.html',
-  story: 'journey-story/index.html',
+  story: 'index.html',
   tour: 'journey-tour/index.html',
   swiss: 'end-to-end-swiss/index.html',
   beamline: 'end-to-end-beamline/index.html',
@@ -85,7 +85,7 @@ check('Story benchmark labels the reported Think Max mode', /V4-PRO[^'\n]*THINK 
 check('Story does not invent a red-team pass', !/\['Red-team safety',\s*'PASS'/.test(src.story));
 
 // Phase 6 epistemic hygiene & suite link integrity.
-const landing = read('index.html');
+const landing = read('one-token/index.html');
 const microLabsSrc = read('shared/micro-labs.js');
 const compMathSrc = read('journey-story/component-math.js');
 const conceptSrc = read('shared/concept-links.js');

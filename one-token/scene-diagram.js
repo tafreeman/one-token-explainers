@@ -791,6 +791,49 @@ const lerp=(a,b,u)=>a+(b-a)*u;
   const openingClose = cam(-10, 0, -5.3, 8, 6.5, 5.3, -38, 24);
   const overview = cam(-14, -1, -6, LINE1, 17, 6, -73, 27);
 
+  /* Pose follow. The diagram is a pure function of pose g, so easing g glides the camera, token
+     and stations together instead of stepping with each wheel notch or stage seam. Leaving or
+     entering the opening or full-line shots, and jumps over a stage, still cut (the host
+     crossfades those). Critical damping matches the spatial rig; one stalled frame can only
+     advance the follow by about the recent frame pace, so a hitch never reads as a leap. */
+  const POSE_SMOOTH = .18, MAX_GLIDE = 1, POSE_EPS = .0004, POSE_VEL_EPS = .004;
+  const STEP_FLOOR = 1 / 30, STEP_PACE_CAP = 2, PACE_RATE = .15;
+  const follow = { ready: false, g: 0, v: 0, t: 0, pace: 1 / 60, moving: false, shot: '' };
+  const poseGoal = state => state.opening ? 0.22 : clamp(state.diagramPose ?? 0, 0, 12);
+  const shotKind = state => state.opening ? 'opening'
+    : (state.overview || (state.recap && state.camera === 'overhead')) ? 'line' : 'story';
+  // Without a frame clock (tests, headless reconstruction) every pose is exact and order-independent.
+  function cuts(state) {
+    return typeof performance === 'undefined' || !follow.ready || !!state.reducedMotion || !!state.snapCamera
+      || follow.shot !== shotKind(state)
+      || Math.abs(poseGoal(state) - follow.g) > MAX_GLIDE;
+  }
+  function followPose(state) {
+    const goal = poseGoal(state);
+    const clock = typeof performance !== 'undefined' ? performance.now() : 0;
+    const gap = follow.ready ? Math.max(0, (clock - follow.t) / 1000) : 0;
+    const snap = cuts(state);
+    follow.t = clock;
+    follow.shot = shotKind(state);
+    follow.ready = true;
+    if (!snap) {
+      const step = Math.min(gap, Math.max(STEP_FLOOR, follow.pace * STEP_PACE_CAP));
+      // The first frame of a new flight has no meaningful gap; the next one starts the clock.
+      const dt = follow.moving ? step : 0;
+      if (follow.moving) follow.pace += (step - follow.pace) * PACE_RATE;
+      if (dt) {
+        const omega = 2 / POSE_SMOOTH, e = Math.exp(-omega * dt);
+        const change = follow.g - goal, temp = (follow.v + omega * change) * dt;
+        follow.g = goal + (change + temp) * e;
+        follow.v = (follow.v - omega * temp) * e;
+      }
+    }
+    const still = Math.abs(follow.g - goal) < POSE_EPS && Math.abs(follow.v) < POSE_VEL_EPS;
+    if (snap || still) { follow.g = goal; follow.v = 0; }
+    follow.moving = !snap && !still;
+    return follow.g;
+  }
+
   let activeStepId = '';
   function update(state, aspect, viewportWidth) {
     const settings = state.settings || {};
@@ -806,8 +849,8 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       settingsKey = nextSettings;
     }
 
-    const pose = clamp(state.diagramPose ?? 0, 0, 12);
-    const g = state.opening ? 0.22 : pose;
+    const g = followPose(state);
+    const moving = follow.moving;
     const { p, s, i, t } = tokenAt(g);
     const compact = (typeof window !== 'undefined' ? window.innerWidth < 768 : viewportWidth < 500) || aspect < 0.85;
     const fullLine = Boolean(state.overview || (state.recap && state.camera === 'overhead'));
@@ -862,13 +905,16 @@ const lerp=(a,b,u)=>a+(b-a)*u;
       const uPool = clamp((t - s0) / Math.max(0.01, e0 - s0), 0, 0.999);
       active = pool[Math.min(pool.length - 1, Math.floor(uPool * pool.length))];
     }
-    if (state.opening || state.recap || fullLine || !active) return { anchor: p, label: '“ Paris”', activeCoverage };
+    if (state.opening || state.recap || fullLine || !active) return { anchor: p, label: '“ Paris”', activeCoverage, moving };
     const [label, position] = active;
     const anchor = typeof position === 'function' ? position(t) : position.clone();
-    return { anchor: anchor.add(V(i * SP, 0, 0)), label: typeof label === 'function' ? label(t) : label };
+    return { anchor: anchor.add(V(i * SP, 0, 0)), label: typeof label === 'function' ? label(t) : label, moving };
   }
 
-  return { scene, camera, update };
+  // Opening, story and full-line shots are different framings of the hall, not one path.
+  const shotChanges = state => follow.ready && follow.shot !== shotKind(state);
+
+  return { scene, camera, update, cuts, shotChanges };
 }
 
 window.ReaderDiagram = Object.freeze({ create });

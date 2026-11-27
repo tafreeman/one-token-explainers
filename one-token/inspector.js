@@ -26,7 +26,7 @@
       <h2 id="inspect-title"></h2>
       <p class="inspect-lesson"></p>
       <details class="inspect-cutaway">
-        <summary>Explore the 3D cutaway</summary>
+        <summary>Zoom into 3D Observatory cutaway</summary>
         <p class="inspect-status" role="status"></p>
         <div class="inspect-frame"></div>
       </details>
@@ -190,8 +190,11 @@
       const otherLabs = more.querySelector('div');
       otherLabs.replaceChildren();
       window.MicroLabs.dock(labs, primary, options);
-      window.MicroLabs.dock(otherLabs, labNames.filter(name => !primary.includes(name)), options);
-      labs.querySelector('details').open = true;
+      const stage = Number(target.step.split('.')[0]);
+      const available = stage < 4 ? ['bpe'] : stage < 6 ? ['bpe', 'kl'] : labNames;
+      window.MicroLabs.dock(otherLabs, available.filter(name => !primary.includes(name)), options);
+      window.LearningPanels.openLabs(labs);
+      window.LearningPanels.openLabs(otherLabs);
       const steering = document.createElement('details');
       steering.className = 'micro-lab inspect-steering';
       steering.dataset.lab = 'steer';
@@ -201,11 +204,16 @@
       steering.addEventListener('toggle', () => {
         if (!steering.open || steering.children.length > 1) return;
         const vDrawer = JourneyMath.vectorDrawer();
-        for (const section of vDrawer.querySelectorAll('.steer-section, .lens-section')) {
+        const lens = vDrawer.querySelector('.lens-slider')?.closest('section');
+        for (const section of [lens, vDrawer.querySelector('.steer-section')].filter(Boolean)) {
           steering.append(section);
         }
       });
-      (target.slug === 'mhc-residual' ? labs : otherLabs).append(steering);
+      if (stage >= 7) {
+        (target.slug === 'mhc-residual' ? labs : otherLabs).append(steering);
+        steering.open = true;
+      }
+      more.hidden = !otherLabs.children.length;
     }
 
     function mountLinks(target) {
@@ -252,11 +260,12 @@
       title.textContent = target.label;
       const map = window.ConceptMap;
       lessonNote.textContent = 'Lesson ' + target.step + ' · Observatory: ' + target.obs.map(code => map.componentLabel(code, {tag: false})).join(', ');
-      cutaway.open = more.open = false;
+      cutaway.open = more.open = true;
       status.textContent = '';
       mountLabs(target);
       mountLinks(target);
       sizeDrawer();
+      startCutaway();
       drawer.scrollTop = 0;
       back.focus({preventScroll: true});
     }
@@ -297,6 +306,7 @@
     const observer = new ResizeObserver(sizeDrawer);
     for (const el of [lesson, mast, rail, figure]) if (el) observer.observe(el);
     window.addEventListener('resize', sizeDrawer);
+    window.LearningPanels.watchLabs(drawer);
 
     return {open, close, get isOpen() { return !!saved; }};
   }

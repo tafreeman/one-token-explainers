@@ -39,6 +39,15 @@
         ],
         "createdAt": "2026-11-26T05:15:08.757Z",
         "reason": "agent decision: the only pulse is the Narrate button dot while narration audio is playing (reader.css .mast nav button[data-playing=true]); live state, disabled under prefers-reduced-motion; pre-existing"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-27T07:05:50.294Z",
+        "reason": "Agent: DESIGN.md pins Studio parchment #ECEAE3 (+ Keynote #101720 + Blueprint #0F3358) for the Story & Tour world promoted to root index.html"
       }
     ]
   }

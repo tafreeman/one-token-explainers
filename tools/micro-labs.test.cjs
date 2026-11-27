@@ -243,14 +243,15 @@ test('concept registry resolves all 7 concepts, aliases, and Swiss<->Beamline st
   assert.equal(links.beamlineBeatToSwissG('5e'), 6.436);
   assert.equal(links.beamlineBeatToStep('5g'), '7.5');
   assert.equal(links.editionHref('beamline', 'reader', {stage: 7, step: links.beamlineBeatToStep('5g'), pos: '5g', label: 'Beat 5g'}),
-    '../index.html?from=beamline&pos=5g&fromLabel=Beat+5g#step-7.5');
+    '../one-token/index.html?from=beamline&pos=5g&fromLabel=Beat+5g#step-7.5');
   assert.equal(links.stageFromStop(17), '7.3');
   assert.equal(links.editionHref('reader', 'beamline', {stage: 7, step: '7.3', pos: '7.3', label: 'Step 7.3'}),
-    './end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');
+    '../end-to-end-beamline/index.html?from=reader&pos=7.3&fromLabel=Step+7.3&beat=5e');
   assert.equal(links.editionHref('tour', 'reader', {stage: '7', step: '7.3', pos: '17', label: 'Stop 17'}),
-    '../index.html?from=tour&pos=17&fromLabel=Stop+17#step-7.3');
-  assert.equal(links.returnHref('tour', '17', false, 'reader'), './journey-tour/index.html#stop-17');
-  assert.equal(links.returnHref('obs', 'MD-2g', false, 'reader'), './shared/obs-core.html?focus=MD-2g');
+    '../one-token/index.html?from=tour&pos=17&fromLabel=Stop+17#step-7.3');
+  assert.equal(links.returnHref('tour', '17', false, 'reader'), '../journey-tour/index.html#stop-17');
+  assert.equal(links.returnHref('obs', 'MD-2g', false, 'reader'), '../shared/obs-core.html?focus=MD-2g');
+  assert.equal(links.returnHref('tour', '17', false, 'story'), './journey-tour/index.html#stop-17');
 });
 
 test('Ch. 4 causal feature steering preserves 100% probability sum and shifts predictions on clamp', () => {
