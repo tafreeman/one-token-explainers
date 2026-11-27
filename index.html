@@ -223,15 +223,16 @@ html.rm .step > .card{ opacity:1; transform:none }
 .fact cite{ font-style:normal; color:var(--c-ink2); border:1px solid var(--c-line); border-radius:999px; padding:3px 9px; font-size:.75rem; white-space:nowrap }
 .fact .ill{ color:var(--c-ink2) }
 .step.is-active .card{ border-color:var(--c-acc); box-shadow:var(--c-shadow-act) }
-body[data-depth="basic"] .step:not([data-card-deep="true"]) .card > code.eq,
-body[data-depth="basic"] .step:not([data-card-deep="true"]) .card > p.fact{ display:none }
+body[data-card-view="basic"] .step:not([data-card-deep="true"]) .card > code.eq,
+body[data-card-view="basic"] .step:not([data-card-deep="true"]) .card > p.fact{ display:none }
 .card-deep-toggle{
   display:none; align-items:center; gap:6px; margin:6px 0 10px; min-height:36px; padding:5px 11px;
   border-radius:6px; border:1px solid var(--c-line); background:transparent; color:var(--c-ink);
   font:600 12px/1.32 var(--mono); cursor:pointer; transition:border-color .16s var(--ease), background-color .16s var(--ease);
 }
+.card-deep-toggle[aria-expanded="true"]{ border-color:var(--c-acc); background:color-mix(in srgb,var(--c-acc) 14%,transparent) }
 .card-deep-toggle:hover,.card-deep-toggle:focus-visible{ border-color:var(--c-acc); background:color-mix(in srgb,var(--c-acc) 14%,transparent) }
-body[data-depth="basic"] .card-deep-toggle{ display:inline-flex }
+body[data-card-view="basic"] .card-deep-toggle{ display:inline-flex }
 .ch4-subband{
   margin:20px 0 -4px; padding:8px 12px; max-width:31rem; border-radius:6px;
   border:1px solid #567696; background:#0f2c4c;
@@ -344,6 +345,7 @@ html.on-dark #rail a[aria-current="true"] .r-dot{ border-color:#c9a15a; backgrou
 
 /* Present mode indicator */
 body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0,0,.48), 0 0 0 2px var(--c-acc) }
+.studio-bar .studio-right{ flex-wrap:nowrap }
 
 @media (max-width:819px){
   body{ font-size:16px }
@@ -559,9 +561,69 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
 
 /* Narration captions */
 .narr-cap{ position:fixed; z-index:60; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); max-width:min(44rem,calc(100vw - 32px)); padding:8px 14px; border-radius:6px; background:rgba(14,18,24,.93); color:#f4f1e8; font:500 15px/1.45 var(--sans); text-align:center; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.25) }
-.narr-cap[hidden],#narrRun[hidden]{ display:none!important }
+.narr-cap[hidden]{ display:none!important }
 @media (max-width:819px){ .narr-cap{ left:var(--gutL); right:var(--gutR); transform:none; max-width:none; bottom:calc(76px + env(safe-area-inset-bottom,0px)) } }
-.narr-dur{ font-variant-numeric:tabular-nums }
+
+/* Narrated tour: primary Play/Pause + sound toggle in the bar, a dock for Back-to-tour / Go deeper, spotlight while playing */
+.tour-play{
+  appearance:none; display:inline-flex; align-items:center; gap:8px; min-height:36px; padding:4px 16px 4px 12px;
+  border-radius:999px; border:1.5px solid #202d3d; background:#202d3d; color:#f7f5ee;
+  font:700 13px/1.2 var(--sans); cursor:pointer; white-space:nowrap;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease);
+}
+.tour-play:hover{ background:#2f4259; border-color:#2f4259 }
+.tour-play svg{ width:15px; height:15px; fill:currentColor; flex:none }
+.tour-play .ti-pause{ display:none }
+.tour-play[data-state="playing"] .ti-play{ display:none }
+.tour-play[data-state="playing"] .ti-pause{ display:block }
+.tour-play[data-state="playing"]{ background:#b8320d; border-color:#b8320d; color:#ffffff }
+.tour-play[data-state="playing"]:hover{ background:#8f2608; border-color:#8f2608 }
+.tour-play-time{ font:600 12px/1 var(--mono); font-variant-numeric:tabular-nums; opacity:.88; padding-left:8px; border-left:1px solid color-mix(in srgb,currentColor 40%,transparent) }
+.tour-play-time:empty{ display:none }
+html.on-dark .tour-play{ background:#c9a15a; border-color:#c9a15a; color:#141c27 }
+html.on-dark .tour-play:hover{ background:#e0ba76; border-color:#e0ba76 }
+html.on-dark .tour-play[data-state="playing"]{ background:#e5672f; border-color:#e5672f; color:#141c27 }
+.tour-mute{
+  appearance:none; display:inline-grid; place-items:center; width:36px; height:36px; padding:0; border-radius:999px;
+  border:1px solid #8c96a4; background:rgba(255,255,255,.78); color:#1c2532; cursor:pointer;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease);
+}
+.tour-mute:hover{ border-color:#1c2532; background:#fff }
+.tour-mute svg{ width:20px; height:20px; fill:currentColor; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
+.tour-mute svg .ti-wave{ fill:none }
+.tour-mute .ti-muted{ display:none }
+.tour-mute[aria-pressed="true"] .ti-muted{ display:block }
+.tour-mute[aria-pressed="true"] .ti-sound{ display:none }
+.tour-mute[aria-pressed="true"]{ background:#202d3d; border-color:#202d3d; color:#fff }
+html.on-dark .tour-mute{ background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.36); color:#f4f6fb }
+html.on-dark .tour-mute:hover{ border-color:#e6bf80 }
+html.on-dark .tour-mute[aria-pressed="true"]{ background:#c9a15a; border-color:#c9a15a; color:#141c27 }
+.tour-play:focus-visible,.tour-mute:focus-visible,.tour-return:focus-visible,.tour-deeper:focus-visible{ outline:3px solid #e6bf80; outline-offset:2px }
+.tour-dock{
+  position:fixed; z-index:62; left:50%; transform:translateX(-50%); display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+  bottom:calc(86px + env(safe-area-inset-bottom,0px)); max-width:calc(100vw - 28px);
+}
+.tour-dock[hidden],.tour-return[hidden],.tour-deeper[hidden]{ display:none !important }
+.tour-return,.tour-deeper{
+  appearance:none; display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 18px; border-radius:999px;
+  font:700 14px/1.2 var(--sans); cursor:pointer; box-shadow:0 14px 34px -12px rgba(0,0,0,.55); max-width:100%; box-sizing:border-box;
+}
+.tour-return{ background:#e6bf80; border:2px solid #fff3d6; color:#141c27 }
+.tour-return:hover{ background:#f2d29b }
+.tour-return-lbl{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 }
+.tour-deeper{ background:#141c27; border:2px dashed #e6bf80; color:#f7f5ee }
+.tour-deeper:hover{ background:#223045; border-style:solid }
+.tour-return svg,.tour-deeper svg{ width:16px; height:16px; flex:none }
+@media (max-width:819px){ .tour-dock{ bottom:calc(150px + env(safe-area-inset-bottom,0px)) } .tour-play{ padding:4px 12px 4px 10px } .tour-mute{ width:44px; height:44px } .tour-play{ min-height:44px } }
+@media (max-width:420px){ .tour-play-time{ display:none } }
+body.tour-spot .step:not(.is-active) > .card{ opacity:.42 }
+body.tour-spot .step.is-active > .card{ border-color:var(--c-acc); box-shadow:0 28px 64px -24px rgba(0,0,0,.55), 0 0 0 3px var(--c-acc) }
+body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34px 80px -34px rgba(0,0,0,.6) }
+@media (min-width:820px){
+  html:not(.rm) body.tour-spot .step.is-active > .card{ transform:scale(1.025); transform-origin:left center }
+  html:not(.rm) body.tour-spot .chapter .stage{ transform:scale(1.02); transition:transform .5s var(--ease), box-shadow .35s var(--ease) }
+}
+.braid-hint{ margin:0; font:500 12px/1.4 var(--mono); color:var(--c-ink2) }
 
 /* Hero tower labels */
 #hero-outline text{ font-size:11px; letter-spacing:.02em; font-family:var(--mono,ui-monospace,monospace) }
@@ -611,15 +673,24 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
     <div class="studio-left">
       <a class="suite-home" href="#intro"><svg class="suite-mark" aria-hidden="true" viewBox="0 0 20 20"><path d="m3 6 7-4 7 4v8l-7 4-7-4z M3 6l7 4 7-4 M10 10v8"/></svg>One Token</a><span class="suite-edition">Journey</span><span id="storyReturnSlot"></span>
     </div>
-    <div class="studio-right">
-      <button type="button" class="bar-ctl" id="storyDepthBtn" aria-pressed="true" title="Basic: clean cards · Deep: equations &amp; specs">Deep</button>
-      <button type="button" class="bar-ctl" id="storyPresentBtn" aria-pressed="false" title="Step-by-step presentation mode">Present</button>
-      <button class="bar-ctl narr-btn" id="narrRun" type="button" aria-pressed="false" hidden><span class="narr-lbl">Narrate</span> <span class="narr-dur"></span></button>
-      <button type="button" class="bar-ctl bar-ctl-studio" id="topStudioBtn">3D Studio</button>
+    <div class="studio-right" role="group" aria-label="Narrated tour">
+      <button type="button" class="tour-play" id="tourPlay" data-state="idle" title="Narrated tour of the whole journey">
+        <svg class="ti-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.5v11l9-5.5z"/></svg>
+        <svg class="ti-pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>
+        <span class="tour-play-lbl">Play tour</span><span class="tour-play-time"></span>
+      </button>
+      <button type="button" class="tour-mute" id="tourMute" aria-pressed="false" aria-label="Mute narration" title="Mute narration (captions stay on)">
+        <svg class="ti-sound" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5h3l4-3.5v12l-4-3.5H3z"/><path class="ti-wave" d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10"/></svg>
+        <svg class="ti-muted" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5h3l4-3.5v12l-4-3.5H3z"/><path class="ti-wave" d="M13.5 7.5l4.5 5M18 7.5l-4.5 5"/></svg>
+      </button>
     </div>
     <span class="mast-progress" aria-hidden="true"></span>
   </nav>
   <div class="narr-cap" id="narrCap" aria-live="polite" hidden></div>
+  <div class="tour-dock" id="tourDock" hidden>
+    <button type="button" class="tour-return" id="tourReturn" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 3 2.5 7l4 4M3 7h6.5a4 4 0 0 1 0 8H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tour-return-lbl">Back to tour</span></button>
+    <button type="button" class="tour-deeper" id="tourDeeper" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Go deeper</span></button>
+  </div>
   <div class="stage-lock-hud" id="stageLockHud" role="status" aria-live="polite" hidden>
     <span class="stage-lock-label" id="stageLockLabel">Playing stage</span>
     <span class="stage-lock-track" aria-hidden="true"><span class="stage-lock-fill" id="stageLockFill"></span></span>
@@ -664,10 +735,7 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
           <button type="button" class="stage-pill" data-train-stn="3" aria-pressed="false">4 · Post-train</button>
           <button type="button" class="stage-pill" data-train-stn="4" aria-pressed="false">5 · Freeze θ*</button>
         </div>
-        <div class="braid-actions">
-          <button type="button" class="stage-pill is-primary" id="trainLinePlay" aria-pressed="false">Play stations 1–5</button>
-          <button type="button" class="stage-pill" id="trainLineNarrate">Narrate training</button>
-        </div>
+        <p class="braid-hint">Explore a station here, or press <strong>Play tour</strong> in the top bar for the narrated walk-through.</p>
       </div>
       <div class="braid-viewport">
         <div class="spine-stage-slot" data-slot-id="braid-opening" data-engine="diagram" data-skin="light" data-step="1.1" data-diagram-pose="0.24"></div>
@@ -1699,10 +1767,8 @@ const trainCapEl = document.getElementById('trainLineCap');
 const trainTokEl = document.getElementById('trainLineTok');
 const trainWeightsEl = document.getElementById('trainLineWeights');
 const trainLaunchEl = document.getElementById('trainLineLaunch');
-const trainPlayBtn = document.getElementById('trainLinePlay');
-const trainNarrBtn = document.getElementById('trainLineNarrate');
 const trainStnBtns = $$('[data-train-stn]');
-let trainPlaying = false, trainProgress = 0.06;
+let trainPlaying = false, trainProgress = 0.06; // trainPlaying stays false: the narrated tour owns playback
 
 function stepFromTrainingPose(g) {
   const clamped = clamp(g, 0.06, 4.90);
@@ -1743,19 +1809,13 @@ function applyTrainingPose(g, syncSlider = true) {
   if (trainWeightsEl && trainWeightsEl.textContent !== meta.weights) trainWeightsEl.textContent = meta.weights;
   if (trainLaunchEl) trainLaunchEl.href = `./end-to-end-swiss/index.html?from=story&pos=ch${Math.min(3, stnIdx + 1)}&g=${safeG.toFixed(2)}`;
 }
-function stopTrainPlay() {
-  if (!trainPlaying) return;
-  trainPlaying = false;
-  if (trainPlayBtn) {
-    trainPlayBtn.setAttribute('aria-pressed', 'false');
-    trainPlayBtn.textContent = trainProgress >= 0.99 ? 'Replay stations 1–5' : 'Play stations 1–5';
-  }
-}
+function stopTrainPlay() { trainPlaying = false; }
 applyTrainingPose(0.24, true);
 trainStnBtns.forEach(btn => btn.addEventListener('click', () => {
   stopTrainPlay();
   const stn = TRAIN_STATIONS[Number(btn.dataset.trainStn) || 0];
   applyTrainingPose(stn.g, true);
+  if (Number(btn.dataset.trainStn) === 4) completedGates.add('opening'); // reaching Station 5 completes the opening gate
   kick();
 }));
 if (trainRange) {
@@ -1764,30 +1824,6 @@ if (trainRange) {
     const u = clamp(Number(trainRange.value) / 100, 0, 1);
     applyTrainingPose(lerp(0.08, 4.90, u), false);
     kick();
-  });
-}
-if (trainPlayBtn) {
-  trainPlayBtn.addEventListener('click', () => {
-    if (trainPlaying) { stopTrainPlay(); return; }
-    const band = document.getElementById('training-line-band');
-    if (band) band.scrollIntoView({ block: 'center', behavior: RM ? 'instant' : 'smooth' });
-    if (trainProgress >= 0.98) applyTrainingPose(0.08, true);
-    if (RM) {
-      const nextIdx = Math.min(4, Math.floor(lerp(0.08, 4.90, trainProgress)) + 1);
-      applyTrainingPose(TRAIN_STATIONS[nextIdx].g, true);
-      kick();
-      return;
-    }
-    trainPlaying = true;
-    trainPlayBtn.setAttribute('aria-pressed', 'true');
-    trainPlayBtn.textContent = 'Pause';
-    kick();
-  });
-}
-if (trainNarrBtn) {
-  trainNarrBtn.addEventListener('click', () => {
-    stopTrainPlay();
-    if (typeof window.__storyNarrStartTraining === 'function') window.__storyNarrStartTraining();
   });
 }
 if (window.LearningPanels?.watchLabs && document.getElementById('training-line-band')) {
@@ -1925,6 +1961,7 @@ const STAGE_GATES = [
   { id: 'ch5', kind: 'chapter', chIdx: 5, dur: 4.0, label: 'Ch 6 · Beamline Tool Loop', el: () => chapters[5]?.el, frameEl: () => chapters[5]?.stage }
 ];
 const completedGates = new Set();
+let tourSession = false; // true once the narrated tour has started: the tour drives the camera, so stage gates never block
 const gateProgress = new Map();
 const stageLock = { active: false, paused: false, gate: null, scrollY: 0, u: 0, dur: 4, holdGate: null, holdU: 1 };
 let lastTouchY = null;
@@ -1950,7 +1987,7 @@ function gateLockScrollY(gate) {
 }
 
 function barrierBypassed() {
-  return Boolean(RM || opened || previewStop || SHOT || window.__storyNarrState?.on || location.hash.startsWith('#concept='));
+  return Boolean(RM || opened || previewStop || SHOT || tourSession || window.__storyNarrState?.on || location.hash.startsWith('#concept='));
 }
 
 function nextBarrierGate() {
@@ -2043,10 +2080,20 @@ if (trainRange) {
     if (Number(trainRange.value) >= 99) completedGates.add('opening');
   });
 }
-document.getElementById('narrRun')?.addEventListener('click', () => suspendStageLockOnScrollUp(), true);
 
+/* True when a nested scroller under the pointer can still scroll in the wheel direction, so the page barrier must not swallow it. */
+function innerScrollerCanMove(target, dy) {
+  for (let el = target instanceof Element ? target : null; el && el !== document.body && el !== doc; el = el.parentElement) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+      if (dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0) return true;
+    }
+  }
+  return false;
+}
 window.addEventListener('wheel', e => {
   if (stageLock.holdGate && Math.abs(e.deltaY) > 1) stageLock.holdGate = null;
+  if (e.ctrlKey || e.metaKey || innerScrollerCanMove(e.target, e.deltaY)) return;
   const gate = nextBarrierGate();
   if (!gate) return;
   const barY = gateLockScrollY(gate);
@@ -2212,17 +2259,7 @@ function update(dt) {
   for (const ch of chapters) { if (!ch.near) continue; const timed = ch.api.timeAnim && !RM && ((ch === chapters[1] && vis.ch2) || (ch === ch4 && vis.ch4) || (ch === chapters[4] && vis.ch5)); if ((ch!==ch4 || !instrument || !mainDrawing.classList.contains("live")) && (timed || Math.abs(ch.p - ch.lastP) > 1e-5)) { ch.api.render(ch.p, time, dt); ch.lastP = ch.p; } }
   for (const b of bridges) { if (!b.near) continue; const timed = b.api.timeAnim && vis.b23 && !RM; if (timed || Math.abs(b.t - b.lastT) > 1e-5) { b.api.render(b.t, time, dt); b.lastT = b.t; } }
 
-  // Advance interactive training-line walkthrough if playing; halts at Station 5 (0 idle RAF).
-  if (trainPlaying) {
-    trainProgress = Math.min(1, trainProgress + dt / 12.5);
-    applyTrainingPose(lerp(0.08, 4.90, trainProgress), true);
-    if (trainProgress >= 1) stopTrainPlay();
-    else busy = true;
-  }
   const ns = window.__storyNarrState;
-  if (ns?.on && ns.introU != null) {
-    applyTrainingPose(lerp(0.10, 1.55, ns.introU), true);
-  }
 
   // Inject the right phase stylesheet into document.head as the learner crosses training -> inference -> observatory.
   if (stateName || previewStop) {
@@ -2399,10 +2436,6 @@ function update(dt) {
   const wkey = wv.map(v => v.toFixed(3)).join() + '|' + (tgt.lab == null ? 1 : tgt.lab).toFixed(2);
   if (wkey !== lastW) { lastW = wkey; [tPill, tDot, tRing].forEach((n, i) => { const v = wv[i]; n.style.opacity = v.toFixed(3); n.style.transform = `scale(${(0.35 + 0.65 * v).toFixed(3)})`; }); tRing.style.setProperty('--lab', (clamp((wv[2] - 0.8) / 0.2) * (tgt.lab == null ? 1 : tgt.lab)).toFixed(3)); }
   drawFx(dt, fx2, fx5);
-  if (!opened && !previewStop && typeof window.__storyNarrFollow === 'function') {
-    const activeCh = chapters.find(ch => focus >= ch.top && focus < ch.bottom && y + vh * ch.focusF >= ch.sT && y + vh * ch.focusF < ch.sB);
-    if (activeCh) window.__storyNarrFollow(offsets[activeCh.num - 1] + activeCh.idx);
-  }
   if (stageLock.active && !stageLock.paused && stageLock.u >= 1) {
     completeStageLock(stageLock.gate);
   }
@@ -2559,47 +2592,25 @@ for (const s of STOPS) {
   }
 }
 
-/* Basic | Deep global toggle */
-const depthBtn = document.getElementById('storyDepthBtn');
-function applyDepth(next) {
-  const depth = next === 'deep' ? 'deep' : 'basic';
-  document.body.dataset.depth = depth;
-  const deep = depth === 'deep';
-  if (depthBtn) {
-    depthBtn.setAttribute('aria-pressed', String(deep));
-    depthBtn.textContent = deep ? 'Deep' : 'Basic';
-  }
+/* Cards default to the basic view (equations and specs collapsed); "Go deeper" or a card's own toggle opens them.
+   body[data-depth="deep"] stays as a legacy hook: labs and learning panels start expanded. */
+function applyCardView(next) {
+  document.body.dataset.cardView = next === 'deep' ? 'deep' : 'basic';
   needLayout = true;
   kick();
 }
 {
-  let savedDepth = null;
-  try { savedDepth = sessionStorage.getItem('oneTokenStoryDepth'); } catch {}
   const forceDeep = qs.get('rm') === '1' || qs.has('state') || qs.get('depth') === 'deep';
-  applyDepth(qs.get('depth') === 'basic' ? 'basic' : forceDeep ? 'deep' : (savedDepth === 'basic' ? 'basic' : 'deep'));
+  applyCardView(forceDeep ? 'deep' : 'basic');
   LearningPanels.journey();
   LearningPanels.watchLabs(document.querySelector('main'));
 }
-if (depthBtn) {
-  depthBtn.addEventListener('click', () => {
-    const next = document.body.dataset.depth === 'deep' ? 'basic' : 'deep';
-    try { sessionStorage.setItem('oneTokenStoryDepth', next); } catch {}
-    applyDepth(next);
-  });
-}
 
-/* Present mode toggle */
-const presentBtn = document.getElementById('storyPresentBtn');
-function togglePresentMode(force) {
-  const on = typeof force === 'boolean' ? force : !document.body.classList.contains('present-mode');
+/* Tour spotlight: the former Present treatment, applied automatically while the tour plays. */
+function setTourSpotlight(on) {
   document.body.classList.toggle('present-mode', on);
-  if (presentBtn) {
-    presentBtn.setAttribute('aria-pressed', String(on));
-    presentBtn.textContent = on ? 'Exit Present' : 'Present';
-  }
-  if (on && active < 0) stepToStop(0);
+  document.body.classList.toggle('tour-spot', on);
 }
-if (presentBtn) presentBtn.addEventListener('click', () => togglePresentMode());
 
 function stepToStop(index) {
   const idx = Math.max(0, Math.min(STOPS.length - 1, index));
@@ -2733,9 +2744,10 @@ function setFlipVars(fromRect){
 }
 function openDrawer(all=false){
   if(!api||opened)return;
+  if(!all&&items.findIndex(e=>e.s.i===active)<0)return;
   releaseStageLock('studio');
   const originRect=hosted?rectOf(hosted):null;
-  const focusOpener=all?document.activeElement||document.getElementById('topStudioBtn'):expand;
+  const focusOpener=all?document.activeElement||document.getElementById('tourPlay'):expand;
   saved={x:scrollX,y:scrollY,focus:focusOpener,active,overflow:doc.style.overflow,originRect};catalog=all;items=all?api.components().map(c=>({id:c.id,s:STOPS.find(s=>s.ids.includes(c.id))||{i:-1,ch:c.id==='TR-6'?2:0,step:3,title:c.shortLabel,ids:[c.id],skin:c.id==='TR-6'?'blueprint':'light',css:c.id==='TR-6'?'skin-bp':'skin-light',realm:c.realm,p:0.9}})):sequence;pos=all?-1:items.findIndex(e=>e.s.i===active);
   if(!all&&pos<0)return;opened=true;closing=false;stagePool?.suspend();api.resume();togglePageInert(true);doc.style.overflow='hidden';
   setFlipVars(all?null:originRect);
@@ -2766,7 +2778,7 @@ journeyFrameKeys(sceneFrame, key => {
   stepToStop(next);
 });
 function movePart(delta){if(pos+delta<(catalog?-1:0)||pos+delta>=items.length)return;pos+=delta;drawerContent(true)}
-expand.onclick=()=>openDrawer();document.getElementById('allTour').onclick=()=>openDrawer(true);document.getElementById('topStudioBtn').onclick=()=>openDrawer(true);closeButton.onclick=scrim.onclick=closeDrawer;prevPart.onclick=()=>movePart(-1);nextPart.onclick=()=>movePart(1);
+expand.onclick=()=>openDrawer();document.getElementById('allTour').onclick=()=>openDrawer(true);closeButton.onclick=scrim.onclick=closeDrawer;prevPart.onclick=()=>movePart(-1);nextPart.onclick=()=>movePart(1);
 window.addEventListener('keydown',e=>{
   if(opened){
     if(e.key==='Escape'){e.preventDefault();closeDrawer()}
@@ -2784,13 +2796,12 @@ window.addEventListener('keydown',e=>{
   }
   if(e.defaultPrevented||e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
   if(e.key==='Escape'){
-    if(document.body.classList.contains('present-mode'))togglePresentMode(false);
-    if(typeof window.__storyNarrInterrupt==='function')window.__storyNarrInterrupt();
+    window.JourneyTour?.pause();
     return;
   }
   if(isNativeControl(e.target))return;
-  if(e.key==='ArrowRight'){e.preventDefault();releasePreview();stepToStop(active<0?0:active+1);}
-  else if(e.key==='ArrowLeft'){e.preventDefault();releasePreview();stepToStop(active<=0?0:active-1);}
+  if(e.key==='ArrowRight'){e.preventDefault();releasePreview();window.JourneyTour?window.JourneyTour.next():stepToStop(active<0?0:active+1);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();releasePreview();window.JourneyTour?window.JourneyTour.prev():stepToStop(active<=0?0:active-1);}
   else if(e.key==='Home'){e.preventDefault();releasePreview();stepToStop(0);}
   else if(e.key==='End'){e.preventDefault();releasePreview();stepToStop(STOPS.length-1);}
 },true);
@@ -2816,17 +2827,303 @@ function resolveStoryConcept(){
 }
 addEventListener('hashchange',resolveStoryConcept);
 if(location.hash.startsWith('#concept='))addEventListener('load',resolveStoryConcept,{once:true});
-if(window.SuiteLinks){
-  const storySuiteState=()=>{
-    const stopIdx=opened&&pos>=0&&items[pos]?items[pos].s.i:(active>=0?active:-1);
-    if(stopIdx<0)return {};
-    const stopNum=stopIdx+1;
-    const stepKey=SuiteLinks.stageFromStop(stopNum);
-    return {stage:stepKey.split('.')[0],step:stepKey,pos:'step-'+stopNum,label:'Stop '+stopNum};
+if(window.SuiteLinks)SuiteLinks.mountReturnChip(document.getElementById('storyReturnSlot'),'story');
+/* ---------- Narrated tour: one Play button drives intro -> Training Line stations 1-5 -> ch1..ch6 -> summary ---------- */
+const JourneyTourEngine = (() => {
+  const rate = clamp(Number(qs.get('tourRate')) || 1, 0.25, 16); // test hook: ?tourRate=8 plays clips and holds 8x faster
+  const STATION_HOLD = 3, RELEASE_HOLD = 3.2, CLIP_GAP = 0.25;
+  const RELEASE_CAPTION = 'Evaluation & release gate complete — weights are frozen as θ* before any user prompt.';
+  const btn = document.getElementById('tourPlay'), muteBtn = document.getElementById('tourMute');
+  const cap = document.getElementById('narrCap'), dock = document.getElementById('tourDock');
+  const retBtn = document.getElementById('tourReturn'), deepBtn = document.getElementById('tourDeeper');
+  if (!btn || !muteBtn || !cap || !dock || !retBtn || !deepBtn) return null;
+
+  let manifest = null;
+  try { manifest = JSON.parse(document.getElementById('narration-manifest').textContent); } catch (_) { manifest = null; }
+  const clips = Array.isArray(manifest?.clips) ? manifest.clips : [];
+  const clipByStop = new Map(); let introClip = null, outroClip = null;
+  for (const c of clips) { if (c.stop == null) { if (!introClip) introClip = c; else outroClip = c; } else clipByStop.set(c.stop, c); }
+
+  /* Stop list. Stop 19 (the training clip) has no card in the frozen-model chapter, so it is held silently with its card title as caption. */
+  const stops = [];
+  const add = s => { s.index = stops.length; stops.push(s); };
+  add({ id: 'intro', kind: 'intro', label: 'Intro', clip: introClip, dur: introClip?.dur || 6, cues: introClip?.cues || [{ t: 0, s: 'Follow one token through a frontier model.' }] });
+  TRAIN_STATIONS.forEach((m, k) => add({ id: 'station-' + (k + 1), kind: 'station', n: k, label: 'Station ' + (trainStnBtns[k]?.textContent || (k + 1)), dur: STATION_HOLD, cues: [{ t: 0, s: m.cap }] }));
+  for (const s of STOPS) {
+    const clip = s.i === 19 ? null : clipByStop.get(s.i) || null;
+    add({ id: 'step-' + (s.i + 1), kind: 'stop', stop: s.i, label: s.title, clip, dur: clip ? clip.dur : STATION_HOLD, cues: clip?.cues?.length ? clip.cues : [{ t: 0, s: s.title + '.' }] });
+    if (s.i === 11) add({ id: 'release', kind: 'release', label: 'Release gate · Freeze θ*', dur: RELEASE_HOLD, cues: [{ t: 0, s: RELEASE_CAPTION }] });
+  }
+  add({ id: 'outro', kind: 'outro', label: 'Summary', clip: outroClip, dur: outroClip?.dur || 6, cues: outroClip?.cues || [{ t: 0, s: 'Thirty stops, one token.' }] });
+  const TOTAL = stops.reduce((n, s) => n + s.dur, 0);
+
+  const S = { status: 'idle', reason: null, index: 0, t: 0, clock: 0, resumeT: 0, muted: qs.get('mute') === '1', audio: null, audioOk: false,
+    audioIdx: -1, lastMediaT: 0, lastMediaWall: 0, tween: null, timer: 0, waiting: false, token: 0, lastTick: 0, align: 0 };
+  const narr = window.__storyNarrState = { on: false, stop: null, u: 0, introU: null, releaseSweepU: null };
+  const syncNarr = patch => { Object.assign(narr, patch); kick(); };
+  const cur = () => stops[S.index];
+  const emit = (name, detail) => document.dispatchEvent(new CustomEvent(name, { detail }));
+  const fmt = sec => { const s = Math.max(0, Math.ceil(sec)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const remaining = () => {
+    if (S.status === 'idle' || S.status === 'finished') return TOTAL;
+    let r = Math.max(0, cur().dur - S.t);
+    for (let i = S.index + 1; i < stops.length; i++) r += stops[i].dur;
+    return r;
   };
-  SuiteLinks.mountSuiteMenu(document.querySelector('.suite-edition') || document.querySelector('.suite-home'),{currentPage:'story',getState:storySuiteState});
-  SuiteLinks.mountReturnChip(document.getElementById('storyReturnSlot'),'story');
-}
+
+  /* ---- where each stop lives on the page ---- */
+  function targetY(st) {
+    if (needLayout) layout();
+    const maxY = Math.max(0, doc.scrollHeight - vh);
+    let y = 0;
+    if (st.kind === 'station') y = gateLockScrollY(STAGE_GATES[0]) ?? 0;
+    else if (st.kind === 'release') y = gateLockScrollY(STAGE_GATES[4]) ?? (releaseGateEl ? absTop(releaseGateEl) : 0);
+    else if (st.kind === 'outro') { const g = $('.outro-grid'); y = g ? absTop(g) - 72 : maxY; }
+    else if (st.kind === 'stop') {
+      const s = STOPS[st.stop], ch = chapters[s.ch], el = ch.steps[s.step];
+      y = absTop(el) + el.offsetHeight / 2 - vh * ch.focusF;
+    }
+    return clamp(Math.round(y), 0, maxY);
+  }
+  function nearestIndex() {
+    if (scrollY < vh * 0.4) return 0;
+    let best = 0, bd = Infinity;
+    stops.forEach((st, i) => { const d = Math.abs(targetY(st) - scrollY); if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+
+  /* ---- eased scroll (instant under reduced motion); the camera follows through narr.u ---- */
+  function cancelTween() {
+    const tw = S.tween; if (!tw) return;
+    cancelAnimationFrame(tw.raf); clearTimeout(tw.timer); S.tween = null;
+  }
+  function scrollTween(y, done) {
+    cancelTween();
+    const maxY = Math.max(0, doc.scrollHeight - vh), to = clamp(Math.round(y), 0, maxY), from = scrollY, dist = to - from;
+    if (RM || Math.abs(dist) < 2) { window.scrollTo({ top: to, behavior: 'instant' }); kick(); done?.(); return; }
+    const dur = clamp(550 + Math.abs(dist) * 0.32, 650, 1700) / Math.min(rate, 6);
+    const tw = { raf: 0, timer: 0, fired: false };
+    const fin = () => { if (tw.fired) return; tw.fired = true; clearTimeout(tw.timer); if (S.tween === tw) S.tween = null; done?.(); };
+    const t0 = performance.now();
+    const stepFrame = now => {
+      if (S.tween !== tw) return;
+      const u = clamp((now - t0) / dur), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      window.scrollTo({ top: Math.round(lerp(from, to, e)), behavior: 'instant' }); kick();
+      if (u < 1) tw.raf = requestAnimationFrame(stepFrame); else fin();
+    };
+    S.tween = tw; tw.timer = setTimeout(() => { if (S.tween === tw) { window.scrollTo({ top: to, behavior: 'instant' }); fin(); } }, dur + 400);
+    tw.raf = requestAnimationFrame(stepFrame);
+  }
+
+  /* ---- narration audio: the media clock leads; a silent clock takes over when audio is blocked or stalled ---- */
+  function audioFor(st) {
+    if (!st.clip) return null;
+    if (!st.audio) {
+      const a = new Audio(st.clip.src.replace(/^\.\.\//, './')); a.preload = 'auto'; a.playbackRate = rate;
+      if ('preservesPitch' in a) a.preservesPitch = true;
+      st.audio = a;
+    }
+    return st.audio;
+  }
+  function stopAudio() { const a = S.audio; if (a) { a.pause(); a.onerror = null; } S.audio = null; S.audioOk = false; S.audioIdx = -1; }
+  function startAudio(st, fromT) {
+    const a = audioFor(st);
+    if (S.audio && S.audio !== a) stopAudio();
+    if (!a) { S.audio = null; S.audioOk = false; return; }
+    S.audio = a; S.audioIdx = st.index; S.audioOk = true; a.muted = S.muted; a.playbackRate = rate;
+    try { a.currentTime = fromT; } catch (_) { /* metadata not loaded yet: starts from 0 */ }
+    S.lastMediaT = fromT; S.lastMediaWall = performance.now();
+    a.onerror = () => { S.audioOk = false; };
+    const p = a.play(); if (p && p.catch) p.catch(() => { S.audioOk = false; });
+    const next = stops.slice(st.index + 1).find(x => x.clip); if (next) audioFor(next);
+  }
+
+  /* ---- presentation ---- */
+  const cueAt = (st, t) => { let s = st.cues[0]?.s || ''; for (const q of st.cues) if (t >= q.t) s = q.s; return s; };
+  const cueStart = (st, t) => { let s = 0; for (const q of st.cues) if (t >= q.t - 0.05) s = q.t; return s; };
+  function caption(st, t) {
+    const s = cueAt(st, t);
+    if (cap.textContent !== s) cap.textContent = s;
+    cap.hidden = !s;
+  }
+  const stepCard = st => { const s = STOPS[st.stop]; return chapters[s.ch].steps[s.step]?.querySelector('.card'); };
+  const hasDeep = st => st.kind === 'stop' && !!stepCard(st)?.querySelector('.card-deep-toggle,.learning-toggle,details.micro-lab,code.eq');
+  function applyMode() {
+    const playing = S.status === 'playing', heldHere = S.status === 'paused' && S.reason !== 'user';
+    syncNarr({ on: playing || heldHere });
+    setTourSpotlight(playing || heldHere);
+    ui();
+  }
+  function ui() {
+    const st = cur(), rem = remaining();
+    const label = S.status === 'playing' ? 'Pause' : S.status === 'paused' ? 'Resume' : S.status === 'finished' ? 'Replay' : 'Play tour';
+    btn.dataset.state = S.status;
+    btn.querySelector('.tour-play-lbl').textContent = label;
+    btn.querySelector('.tour-play-time').textContent = fmt(rem);
+    muteBtn.setAttribute('aria-pressed', String(S.muted));
+    muteBtn.setAttribute('aria-label', S.muted ? 'Unmute narration' : 'Mute narration');
+    const away = S.status === 'paused' && (S.reason === 'user' || S.reason === 'deeper');
+    const canDeep = (S.status === 'playing' || (S.status === 'paused' && S.reason === 'manual')) && hasDeep(st);
+    retBtn.hidden = !away; deepBtn.hidden = !canDeep; dock.hidden = !away && !canDeep;
+    if (away) { const l = 'Back to tour · ' + st.label, el = retBtn.querySelector('.tour-return-lbl'); if (el.textContent !== l) el.textContent = l; }
+  }
+  const detail = () => { const st = cur(); return { index: st.index, id: st.id, kind: st.kind, label: st.label, stop: st.kind === 'stop' ? st.stop : null, total: stops.length, status: S.status, reason: S.reason }; };
+
+  /* ---- per-frame progress inside the current stop ---- */
+  function progress(st, t) {
+    const u = clamp(t / Math.max(0.1, st.dur), 0, 1);
+    if (st.kind === 'stop') syncNarr({ on: true, stop: st.stop, u, introU: null, releaseSweepU: null });
+    else if (st.kind === 'release') syncNarr({ on: true, stop: null, u: 0, introU: null, releaseSweepU: u });
+    else if (st.kind === 'station') {
+      applyTrainingPose(RM ? st.n + 0.55 : lerp(st.n + 0.10, st.n + 0.90, u), true); kick();
+    } else syncNarr({ on: true, stop: null, u: 0, introU: null, releaseSweepU: null });
+  }
+  function tick() {
+    const now = performance.now(), dt = Math.min(0.25, (now - S.lastTick) / 1000); S.lastTick = now;
+    if (S.status !== 'playing' || S.waiting) return;
+    const st = cur(), a = S.audio;
+    let t;
+    if (a && S.audioOk && S.audioIdx === st.index && !a.paused && !a.ended) {
+      t = a.currentTime;
+      if (t > S.lastMediaT + 0.001) { S.lastMediaT = t; S.lastMediaWall = now; }
+      else if (now - S.lastMediaWall > 3000) { S.audioOk = false; a.pause(); } // stalled: keep the tour moving on clip timing
+      S.clock = t;
+    } else {
+      if (a && S.audioIdx === st.index && a.ended) S.clock = Math.max(S.clock, st.dur);
+      S.clock += dt * rate; t = S.clock;
+    }
+    S.t = t; caption(st, t); progress(st, t);
+    if (now - S.align > 1000) { // layout settled after fonts/panels: drift back onto the stop without a jump
+      S.align = now;
+      if (!S.tween && Math.abs(targetY(st) - scrollY) > 80) scrollTween(targetY(st));
+    }
+    if (t >= st.dur + (st.clip ? CLIP_GAP : 0)) advance();
+    else ui();
+  }
+  const startTimer = () => { clearInterval(S.timer); S.lastTick = performance.now(); S.timer = setInterval(tick, 50); };
+  const stopTimer = () => { clearInterval(S.timer); S.timer = 0; };
+
+  /* ---- transport ---- */
+  function beginSession() { tourSession = true; suspendStageLockOnScrollUp(); }
+  function enterStop(i, play) {
+    stopAudio(); cancelTween();
+    S.index = i; S.t = 0; S.clock = 0; S.resumeT = 0; S.waiting = false; S.token++;
+    S.status = play ? 'playing' : 'paused'; S.reason = play ? null : 'manual'; S.align = performance.now();
+    const st = cur();
+    progress(st, 0); caption(st, 0); scrollTween(targetY(st));
+    if (play) { startAudio(st, 0); startTimer(); } else stopTimer();
+    applyMode(); emit('tour:stop', detail());
+  }
+  function advance() {
+    if (S.index + 1 >= stops.length) { finish(); return; }
+    enterStop(S.index + 1, true);
+  }
+  function finish() {
+    stopTimer(); stopAudio(); cancelTween(); S.status = 'finished'; S.reason = null; S.t = 0;
+    syncNarr({ on: false, stop: null, u: 0, introU: null, releaseSweepU: null });
+    cap.hidden = true; applyMode();
+    emit('tour:finale', { total: stops.length, id: 'outro', index: stops.length - 1 });
+  }
+  function pause(reason = 'manual') {
+    if (S.status === 'paused') { if (reason === 'user' && S.reason === 'manual') { S.reason = 'user'; cancelTween(); applyMode(); emit('tour:state', detail()); } return; }
+    if (S.status !== 'playing') return;
+    const st = cur();
+    S.resumeT = reason === 'manual' ? S.t : cueStart(st, S.t);
+    S.token++; S.waiting = false; S.status = 'paused'; S.reason = reason;
+    stopTimer(); S.audio?.pause(); if (reason === 'user') cancelTween();
+    applyMode(); emit('tour:state', detail());
+  }
+  function play() {
+    if (S.status === 'playing') return;
+    beginSession();
+    if (S.status === 'idle' || S.status === 'finished') { enterStop(S.status === 'finished' ? 0 : nearestIndex(), true); return; }
+    const st = cur(), tok = ++S.token, away = S.reason !== 'manual' || Math.abs(targetY(st) - scrollY) > 60;
+    S.status = 'playing'; S.reason = null; S.waiting = true; applyMode();
+    const resume = () => {
+      if (tok !== S.token || S.status !== 'playing') return;
+      S.waiting = false; S.clock = S.t = S.resumeT; S.align = performance.now();
+      caption(st, S.t); startAudio(st, S.resumeT); startTimer(); ui(); emit('tour:state', detail());
+    };
+    if (away) scrollTween(targetY(st), resume); else resume();
+  }
+  function goTo(target, opts = {}) {
+    const i = typeof target === 'number' ? target : stops.findIndex(s => s.id === target);
+    if (!(i >= 0 && i < stops.length)) return false;
+    beginSession();
+    enterStop(i, opts.play ?? S.status === 'playing');
+    return true;
+  }
+  function step(d) {
+    if (S.status === 'idle' || S.status === 'finished') {
+      const i = S.status === 'finished' ? stops.length - 1 : nearestIndex();
+      const near = S.status === 'finished' || Math.abs(targetY(stops[i]) - scrollY) < 80;
+      goTo(clamp(i + (near ? d : 0), 0, stops.length - 1));
+    } else goTo(clamp(S.index + d, 0, stops.length - 1));
+  }
+  function goDeeper() {
+    const st = cur();
+    if (S.status === 'idle' || S.status === 'finished' || !hasDeep(st)) return false;
+    pause('deeper');
+    S.reason = 'deeper';
+    const card = stepCard(st), tgl = card.querySelector('.card-deep-toggle'), lt = card.querySelector('.learning-toggle');
+    if (tgl && tgl.getAttribute('aria-expanded') !== 'true') tgl.click();
+    if (lt && lt.getAttribute('aria-expanded') === 'false') lt.click();
+    const focusEl = card.querySelector('code.eq, .learning-card, details.micro-lab') || card, r = focusEl.getBoundingClientRect();
+    scrollTween(r.top + scrollY + Math.min(r.height, vh * 0.5) / 2 - vh * 0.5);
+    (tgl || lt)?.focus({ preventScroll: true });
+    applyMode(); emit('tour:state', { ...detail(), deeper: true });
+    return true;
+  }
+  function setMuted(m) {
+    S.muted = !!m; if (S.audio) S.audio.muted = S.muted;
+    ui(); emit('tour:state', detail());
+  }
+
+  /* ---- takeover: wheel, touch, drag, keyboard scroll, or any lab/control use pauses narration and offers the way back ---- */
+  const inTourUI = t => t instanceof Element && !!t.closest('.studio-bar,.tour-dock');
+  const INTERACTIVE = 'input,select,textarea,button,summary,a[href],label,canvas,[contenteditable],[role="slider"],.micro-lab,.learning-card,.braid-toolbar,.braid-footer,.stage,.obs-host,#rail';
+  function takeover() {
+    if (opened || (S.status !== 'playing' && S.status !== 'paused')) return;
+    if (S.status === 'playing' || S.reason === 'manual') pause('user');
+  }
+  addEventListener('wheel', e => { if (e.isTrusted && !e.ctrlKey && !e.metaKey && !inTourUI(e.target) && (e.deltaY || e.deltaX)) takeover(); }, { passive: true, capture: true });
+  addEventListener('touchmove', e => { if (e.isTrusted && !inTourUI(e.target)) takeover(); }, { passive: true, capture: true });
+  addEventListener('pointerdown', e => {
+    if (!e.isTrusted || inTourUI(e.target)) return;
+    const onScrollbar = (e.target === doc || e.target === document.body) && e.clientX >= doc.clientWidth;
+    if (onScrollbar || (e.target instanceof Element && e.target.closest(INTERACTIVE))) takeover();
+  }, { passive: true, capture: true });
+  addEventListener('input', e => { if (e.isTrusted && !inTourUI(e.target)) takeover(); }, { passive: true, capture: true });
+  addEventListener('keydown', e => {
+    if (!e.isTrusted || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key) || (e.key === ' ' && !isNativeControl(e.target))) {
+      if (!inTourUI(e.target)) takeover();
+    }
+  }, { passive: true, capture: true });
+
+  btn.addEventListener('click', () => { if (S.status === 'playing') pause('manual'); else play(); });
+  muteBtn.addEventListener('click', () => setMuted(!S.muted));
+  retBtn.addEventListener('click', () => play());
+  deepBtn.addEventListener('click', () => goDeeper());
+
+  const api = {
+    version: 1, rate,
+    play, pause: () => pause('manual'), toggle: () => (S.status === 'playing' ? pause('manual') : play()),
+    goTo, next: () => step(1), prev: () => step(-1), goDeeper, backToTour: play,
+    mute: setMuted, toggleMute: () => setMuted(!S.muted),
+    openStudio(all = true) { if (S.status === 'playing') pause('manual'); openDrawer(all); },
+    get stops() { return stops.map(s => ({ index: s.index, id: s.id, kind: s.kind, label: s.label, stop: s.kind === 'stop' ? s.stop : null, dur: s.dur, deep: hasDeep(s), clip: s.clip?.id || null })); },
+    get audio() { return S.audio; },
+    get state() {
+      const st = cur();
+      return { status: S.status, reason: S.reason, index: S.index, id: st.id, kind: st.kind, label: st.label, stop: st.kind === 'stop' ? st.stop : null,
+        t: S.t, dur: st.dur, remaining: remaining(), total: TOTAL, muted: S.muted, rate, session: tourSession, away: S.status === 'paused' && S.reason !== 'manual' };
+    }
+  };
+  ui();
+  return api;
+})();
+window.JourneyTour = JourneyTourEngine;
 window.__stageLock={get state(){return {active:stageLock.active,paused:stageLock.paused,id:stageLock.gate?.id||null,u:stageLock.u,scrollY:stageLock.scrollY,barrierY:activeBarrierY(),completed:[...completedGates]}},engage:id=>engageStageLock(STAGE_GATES.find(g=>g.id===id))};
 window.__journey={get state(){return {active,opened,pos,phase:currentJourneyPhase}},refresh:refreshHost,stagePool};
 window.__tokenJourney = { DBG, setRM, setMode, jumpShot, kick, layout: () => { needLayout = true; kick(); } };
@@ -2837,120 +3134,6 @@ if (SHOT) { addEventListener('load', () => { jumpShot(SHOT); needLayout = false;
 kick();
 })();
 
-/* ---------- narration engine (center-focused Diagram training walkthrough; stops at Release before inference) ---------- */
-function makeNarrator(o){
-  const N={clips:null,byStop:new Map(),intro:null,outro:null,cur:null,audio:null,on:false,paused:false,internal:false,trainingCap:false,resumeInference:false};
-  const btn=o.btn,cap=o.cap;
-  const notify=(patch={})=>{if(o.onProgress)o.onProgress(patch)};
-  async function load(){
-    if(N.clips)return N.clips;let d=null;
-    if(location.protocol!=='file:'){try{const r=await fetch('./shared/journey-narration/manifest.json',{cache:'no-cache'});if(r.ok)d=await r.json()}catch(_){d=null}}
-    if(!d){const el=document.getElementById('narration-manifest');if(el){try{d=JSON.parse(el.textContent)}catch(_){d=null}}}
-    if(!d||!Array.isArray(d.clips)||!d.clips.length)return null;
-    N.clips=d.clips.filter(c=>c.stop!==19);N.clips.forEach(c=>{if(c.stop==null){if(!N.intro)N.intro=c;else N.outro=c}else N.byStop.set(c.stop,c)});
-    const s=Math.round(N.clips.reduce((total,clip)=>total+(clip.dur||0),0)),m=Math.floor(s/60),r=s%60;
-    btn.querySelector('.narr-dur').textContent=m+':'+String(r).padStart(2,'0');
-    btn.hidden=false;return N.clips;
-  }
-  function setBtn(){
-    btn.setAttribute('aria-pressed',N.on?'true':'false');
-    btn.querySelector('.narr-lbl').textContent=N.on?'Pause':N.paused?'Resume':N.resumeInference?'Narrate inference':o.label;
-  }
-  function caption(c,t){if(!c||!c.cues||!c.cues.length){cap.hidden=true;return}let s=c.cues[0].s;for(const q of c.cues)if(t>=q.t)s=q.s;if(cap.textContent!==s)cap.textContent=s;cap.hidden=false}
-  function drop(){if(o.onCancelRelease)o.onCancelRelease();const a=N.audio;if(a){a.onended=null;a.onerror=null;a.ontimeupdate=null;a.pause()}N.audio=null}
-  function finish(keepInferenceReady=false){
-    N.on=false;N.paused=false;N.resumeInference=keepInferenceReady;
-    drop();N.cur=null;
-    notify({on:false,stop:null,u:0,introU:null,releaseSweepU:null});
-    if(!keepInferenceReady)cap.hidden=true;
-    setBtn();if(o.onFinish)o.onFinish();
-  }
-  function pause(){if(!N.on)return;N.on=false;N.paused=true;if(N.audio)N.audio.pause();notify({on:false});setBtn()}
-  function runReleaseFinale(){
-    drop();
-    if(o.onReleaseComplete){
-      N.internal=true;
-      o.onReleaseComplete(cap,()=>{N.internal=false;finish(true)});
-    }else finish(true);
-  }
-  function play(c){
-    drop();N.cur=c;if(!c){finish();return}
-    const audioSrc=c.src.replace(/^\.\.\//,'./');
-    const a=new Audio(audioSrc);a.preload='auto';N.audio=a;
-    notify({on:true,stop:c.stop,u:0,introU:c===N.intro?0:null,releaseSweepU:null});
-    a.ontimeupdate=()=>{
-      caption(c,a.currentTime);
-      const u=Math.min(1,Math.max(0,a.currentTime/Math.max(0.1,c.dur||1)));
-      notify(c===N.intro?{on:true,stop:null,introU:u}:{on:true,stop:c.stop,u,introU:null});
-    };
-    a.onended=next;a.onerror=next;caption(c,0);
-    const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==='NotAllowedError')pause();else next()});
-    const nx=c===N.intro?N.byStop.get(0):c===N.outro||(N.trainingCap&&c.stop===11)?null:(N.byStop.get(c.stop===18?20:c.stop+1)||N.outro);
-    if(nx){const pre=new Audio();pre.preload='auto';pre.src=nx.src.replace(/^\.\.\//,'./')}
-  }
-  function go(n){N.internal=true;try{o.goStop(n)}finally{N.internal=false}play(N.byStop.get(n))}
-  function next(){
-    if(!N.on)return;const c=N.cur;
-    if(c===N.intro){go(0);return}
-    if(!c||c===N.outro){finish();return}
-    if(N.trainingCap&&c.stop>=11){runReleaseFinale();return}
-    if(c.stop>=29){if(N.outro){if(o.onOutro)o.onOutro();play(N.outro)}else finish();return}
-    go(c.stop===18?20:c.stop+1);
-  }
-  async function startTrainingOnly(){
-    if(!await load())return;
-    N.trainingCap=true;N.resumeInference=false;N.paused=false;N.on=true;setBtn();
-    if(o.onStart)o.onStart();
-    play(N.intro);
-  }
-  async function toggle(){
-    if(N.on){pause();return}
-    if(N.paused&&N.audio){N.on=true;N.paused=false;notify({on:true});setBtn();const p=N.audio.play();if(p&&p.catch)p.catch(()=>pause());return}
-    if(!await load())return;
-    N.on=true;N.paused=false;
-    if(N.resumeInference){N.resumeInference=false;N.trainingCap=false;setBtn();go(12);return}
-    const s=o.getStop();
-    N.trainingCap=(s==null||s<=11);
-    setBtn();
-    if(s==null&&o.onStart)o.onStart();
-    if(s===19){go(20);return}
-    play(s==null?N.intro:N.byStop.get(s));
-  }
-  btn.addEventListener('click',toggle);load();
-  return{followStop(n){if(N.on&&!N.internal&&(!N.cur||N.cur.stop!==n)){if(N.trainingCap&&n>11){runReleaseFinale();return}const c=N.byStop.get(n);if(c)play(c);else pause()}},interrupt(){if(N.on&&!N.internal)pause()},startTrainingOnly};
-}
-
-const narrRM=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||new URLSearchParams(location.search).get('rm')==='1';
-window.__storyNarrState = { on: false, stop: null, u: 0, introU: null, releaseSweepU: null };
-let storyRelTimer = 0;
-const syncStoryNarr = patch => { Object.assign(window.__storyNarrState, patch); window.__tokenJourney?.kick?.(); };
-const narrSteps=()=>[...document.querySelectorAll('section[id^="ch"] .step')];
-const narrTo=el=>{if(el)el.scrollIntoView({block:'center',behavior:narrRM()?'instant':'smooth'})};
-const narr=makeNarrator({btn:document.getElementById('narrRun'),cap:document.getElementById('narrCap'),label:'Narrate',
-  goStop:n=>narrTo(narrSteps()[n]),getStop:()=>{const a=window.__journey?.state?.active;return a>=0?a:null},
-  onProgress:syncStoryNarr,
-  onCancelRelease:()=>{if(storyRelTimer){clearInterval(storyRelTimer);storyRelTimer=0;}},
-  onReleaseComplete:(capEl,done)=>{
-    const rel=document.getElementById('release-gate');
-    if(rel)rel.scrollIntoView({block:'center',behavior:narrRM()?'instant':'smooth'});
-    capEl.textContent='Evaluation & release gate complete — weights are frozen as θ* before any user prompt.';
-    capEl.hidden=false;
-    const t0=performance.now(),dur=narrRM()?120:2200;
-    storyRelTimer=setInterval(()=>{
-      const u=Math.min(1,(performance.now()-t0)/dur);
-      syncStoryNarr({on:true,stop:null,introU:null,releaseSweepU:u});
-      if(u>=1){
-        clearInterval(storyRelTimer);storyRelTimer=0;
-        done();
-        setTimeout(()=>{if(!window.__storyNarrState.on)capEl.hidden=true},2400);
-      }
-    },45);
-  },
-  onStart:()=>{const b=document.getElementById('training-line-band')||document.getElementById('intro');if(b)b.scrollIntoView({block:'center',behavior:narrRM()?'instant':'smooth'})},
-  onOutro:()=>{const o=document.getElementById('outro');if(o)o.scrollIntoView({block:'start',behavior:narrRM()?'instant':'smooth'})}});
-window.__storyNarrFollow=n=>narr.followStop(n);
-window.__storyNarrInterrupt=()=>narr.interrupt();
-window.__storyNarrStartTraining=()=>narr.startTrainingOnly();
 </script>
 
 </body></html>

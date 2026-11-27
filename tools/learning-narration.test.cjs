@@ -2,35 +2,29 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
 const path = require('node:path');
 
-test('Journey narration stays in inference after release and skips the retired training recap', async () => {
-  const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-  const source = html.slice(html.indexOf('function makeNarrator(o){'), html.indexOf('const narrRM='));
-  const manifest = html.match(/id="narration-manifest">(.*?)<\/script>/s)[1];
-  const handlers = {}, fields = {}, visited = [], played = [];
-  class Audio {
-    constructor(src) { this.src = src; this.currentTime = 0; }
-    play() { played.push(this); return Promise.resolve(); }
-    pause() {}
+const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+const inline = JSON.parse(html.match(/id="narration-manifest">(.*?)<\/script>/s)[1]);
+
+test('inline narration manifest matches shared/journey-narration/manifest.json', () => {
+  const shared = JSON.parse(fs.readFileSync(path.join(__dirname, '../shared/journey-narration/manifest.json'), 'utf8'));
+  assert.deepEqual(inline, shared);
+});
+
+test('Journey tour skips the retired training recap clip and keeps one clip per card', () => {
+  assert.match(html, /const clip = s\.i === 19 \? null : clipByStop\.get\(s\.i\)/, 'stop 19 is held silently, not narrated');
+  const stops = inline.clips.filter(c => c.stop != null).map(c => c.stop);
+  assert.equal(new Set(stops).size, stops.length, 'no two clips share a stop');
+  assert.equal(inline.clips.find(c => c.stop === 19).id, '20-training');
+  const narrated = inline.clips.filter(c => c.stop !== 19).reduce((sum, c) => sum + c.dur, 0);
+  assert.equal(Math.round(narrated), 373, 'clip time shown before holds: 6:13');
+});
+
+test('removed top-bar controls are gone and the tour exposes its API hooks', () => {
+  for (const id of ['storyDepthBtn', 'storyPresentBtn', 'narrRun', 'topStudioBtn', 'trainLinePlay', 'trainLineNarrate']) {
+    assert.equal(html.includes('id="' + id + '"'), false, id + ' removed');
   }
-  const button = {
-    querySelector(key) { return fields[key] ||= {}; },
-    addEventListener(name, callback) { handlers[name] = callback; },
-    setAttribute() {}
-  };
-  const context = vm.createContext({Audio, location: {protocol: 'file:'}, document: {getElementById: () => ({textContent: manifest})}});
-  vm.runInContext(source, context);
-  context.makeNarrator({btn: button, cap: {}, label: 'Narrate', getStop: () => 18, goStop: n => visited.push(n)});
-  await handlers.click();
-  assert.match(played.at(-1).src, /19-vocab\.mp3$/);
-  played.at(-1).onended();
-  assert.deepEqual(visited, [20]);
-  assert.match(played.at(-1).src, /21-inference\.mp3$/);
-  played.at(-1).onended();
-  assert.deepEqual(visited, [20, 21]);
-  assert.match(played.at(-1).src, /22-gate\.mp3$/);
-  assert.equal(played.some(audio => /20-training/.test(audio.src)), false);
-  assert.equal(fields['.narr-dur'].textContent, '6:13');
+  assert.match(html, /window\.JourneyTour = /);
+  for (const event of ['tour:stop', 'tour:finale']) assert.ok(html.includes("'" + event + "'"), event + ' dispatched');
 });

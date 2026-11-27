@@ -9,6 +9,7 @@ const {chromium} = require('playwright');
 const {createApp} = require('../server');
 const {verifyReader, verifyReaderWarp} = require('./reader-browser.cjs');
 const {verifyLearning} = require('./learning-browser.cjs');
+const {verifyTour} = require('./tour-browser.cjs');
 
 const root = path.resolve(__dirname, '..');
 const axePath = require.resolve('axe-core/axe.min.js');
@@ -17,7 +18,7 @@ const warp = process.argv.includes('--warp');
 // 24-thread workstation; CI's 4-vCPU runner passes its own calibrated WARP_P95_BUDGET_MS.
 const WARP_P95_BUDGET_MS = Number(process.env.WARP_P95_BUDGET_MS) || 160;
 const WARP_TRIALS = 5;
-// --only=layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors runs a subset; default runs every section.
+// --only=learning,reader,tour,layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors runs a subset; default runs every section.
 const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
 const only = onlyArg ? new Set(onlyArg.slice(7).split(',')) : null;
 const runs = section => !only || only.has(section);
@@ -570,6 +571,7 @@ async function main() {
     }
     if (runs('learning')) await verifyLearning(browser, base, artifacts);
     if (runs('reader')) await verifyReader(browser, base, artifacts);
+    if (runs('tour')) await verifyTour(browser, base);
     if (runs('layout')) await layoutAndAxe(browser, base, artifacts);
     if (runs('keyboard')) {
       await keyboard(browser, base, false);
