@@ -493,7 +493,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
       <article class="step">
         <h3><span class="sn">2.1</span>Byte-pair encoding</h3>
         <p>When training a byte-level BPE tokenizer, frequent adjacent byte sequences are merged to build a vocabulary. Encoding new text applies those learned merge rules. Common words can form one piece with a leading space; this example treats “&nbsp;Paris” as one token. Its segmentation and ID are illustrative.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=2.0#concept=tokenization">Inspect Tokenization (BPE) in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=1.06#concept=tokenization">Inspect Tokenization (BPE) in 3D →</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>ids = tokenizer.encode("is in Paris.")
 # [382, 304, 12842, 13]   illustrative IDs</code></pre>
@@ -754,7 +754,7 @@ keep = not lsh_index.has_near_duplicate(sig)</code></pre>
           </div>
           <output class="effort-out" data-out="kv">V4-Pro at 1M: ≈10% of V3.2’s stored KV. CSA selects compressed history; HCA reads heavily compressed summaries; both keep a recent window*</output>
         </fieldset>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=7.2#concept=csa-hca-kv">Inspect CSA + HCA Attention &amp; KV in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=6.248#concept=csa-hca-kv">Inspect CSA + HCA Attention &amp; KV in 3D →</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>blocks = topk(indexer(q, kv_compressed), k=1024)
 out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
@@ -769,7 +769,7 @@ out    = attend(q, kv_compressed[blocks] ∪ kv[-128:])</code></pre>
       <article class="step">
         <h3><span class="sn">7.3</span>Route to 6 of 384 experts</h3>
         <p>A router scores 384 expert networks and keeps the top 6, and one shared expert always runs. Their outputs are weighted and summed. That’s why only 49B of the 1.6T parameters touch this token.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=7.3#concept=moe-router">Inspect MoE Router (6 of 384) in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=6.436#concept=moe-router">Inspect MoE Router (6 of 384) in 3D →</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>out = shared(x) + Σ_{j ∈ selected} g_j · expert_j(x)
 g_j = 2.5 · s_j / Σ_{k ∈ selected} s_k
@@ -784,7 +784,7 @@ g_j = 2.5 · s_j / Σ_{k ∈ selected} s_k
       <article class="step">
         <h3><span class="sn">7.4</span>Add back, sixty-one times</h3>
         <p>Each sub-block’s output is added back to the stream, and the layer repeats 61 times with different weights each time: a stack, not a loop. The drawing keeps one stream for clarity; DeepSeek‑V4 widens it into four parallel streams mixed by learned doubly-stochastic matrices (manifold-constrained hyper-connections)<span class="rep">*</span>.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=7.4#concept=mhc-residual">Inspect mHC 4-Stream Residual in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=6.624#concept=mhc-residual">Inspect mHC 4-Stream Residual in 3D →</a></p>
         <div class="technical-detail">
           <pre class="eq"><code>for layer in layers:
     h = h + layer.attn(rmsnorm(h))
@@ -818,7 +818,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       <article class="step">
         <h3><span class="sn">8.1</span>Parallel, often compute-bound</h3>
         <p>Prefill computes prompt representations without learning or backpropagation. Parallel matrix operations often keep accelerators busy. Prompt length, reused cache state, scheduling and any generated reasoning all affect time to the first visible answer token.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=8.0#concept=prefill-decode">Inspect Prefill &amp; Decode Serving in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=7.06#concept=prefill-decode">Inspect Prefill &amp; Decode Serving in 3D →</a></p>
       </article>
       <article class="step">
         <h3><span class="sn">8.2</span>Fill the KV cache</h3>
@@ -936,7 +936,7 @@ p = softmax(W_out · rmsnorm(h))     # 129,280 probabilities</code></pre>
       <article class="step">
         <h3><span class="sn">11.1</span>Detokenize</h3>
         <p>Token pieces are decoded into text, and SSE carries UTF-8 data. Token and network chunk boundaries can split a character’s bytes; a streaming UTF-8 decoder buffers incomplete sequences before presenting text.</p>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=11.1#concept=utf8-sse">Inspect UTF-8 Buffer &amp; SSE Stream in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=10.06#concept=utf8-sse">Inspect UTF-8 Buffer &amp; SSE Stream in 3D →</a></p>
       </article>
       <article class="step">
         <h3><span class="sn">11.2</span>Stream</h3>
@@ -985,7 +985,7 @@ data: {"delta": {"type": "input_json_delta",
           </div>
           <output class="effort-out" data-out="cache">Eligible prefix hit ($0.20 / MTok read): reuse matching tools + system (doubled line); prefill the uncached suffix at $8 / MTok</output>
         </fieldset>
-        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=12.2#concept=mcp-loop">Inspect Tool Loop &amp; Prefix Cache in 3D →</a></p>
+        <p class="concept-bridge-row"><a class="concept-bridge" href="../journey-tour/index.html?from=swiss&amp;pos=11.295#concept=mcp-loop">Inspect Tool Loop &amp; Prefix Cache in 3D →</a></p>
       </article>
       <article class="step">
         <h3><span class="sn">12.3</span>The answer</h3>

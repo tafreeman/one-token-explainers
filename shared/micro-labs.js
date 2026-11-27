@@ -111,8 +111,11 @@
   }
   const stopLabs = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
     16: ['mix'], 17: ['moe'], 23: ['pd'], 24: ['roof'], 25: ['roof'], 26: ['stream'], 30: ['cache']};
+  // Observatory cards. Each concept's components (concept-map.js `obs`) carry its Break lab.
+  const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'],
+    'IN-5': ['pd'], 'IN-6': ['pd'], 'IN-7': ['pd'], 'IN-9': ['stream'], 'IN-10': ['stream'], 'IN-11': ['cache'], 'IN-12': ['cache', 'pd']};
   const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope, kvFootprints, maxContext,
-    routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs};
+    routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs, components};
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
 
@@ -595,7 +598,6 @@
     mix: ['Follow the four residual streams', b => couplingLab(b, 'mix'), 'Pick a stream x1 to x4 to see where it flows.', 'Mixing lets the four streams share information while every row and column still sums to one.'],
     kl: ['Inspect the KL penalty', b => couplingLab(b, 'kl'), 'Slide the current policy away from the 0.50 reference and watch the penalty grow.', 'KL is the leash that keeps a tuned model close to its reference.']
   };
-  const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'], 'IN-12': ['cache', 'pd']};
   function dock(parent, names = [], options = {}) {
     for (const name of names) {
       const details = el('details', undefined, 'micro-lab'); details.dataset.lab = name;
@@ -645,6 +647,6 @@
     for (let n = lab; n; n = n.parentElement) if (n.tagName === 'DETAILS') n.open = true;
     requestAnimationFrame(() => lab.querySelector('summary').scrollIntoView({block: 'center', behavior: 'instant'}));
   }
-  window.MicroLabs = Object.freeze({...core, dock, components, routing, routerDrawing, routerCenter, reveal,
+  window.MicroLabs = Object.freeze({...core, dock, routing, routerDrawing, routerCenter, reveal,
     flash, flashAll, setValue, live, intro, reducedMotion});
 })();

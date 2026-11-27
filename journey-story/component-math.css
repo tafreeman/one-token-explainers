@@ -84,7 +84,7 @@
 .vector-sections .vector-second { stroke: var(--coordinate); stroke-width: 2; }
 .lens-slider { display: block; margin: .6rem 0 .15rem; font: .82rem var(--mono); }
 /* the layer you chose is the current value: orange pill */
-.lens-slider [data-layer] { padding: .05rem .5rem; border-radius: 999px; background: var(--ml-orange-hi, #F2A65A); color: var(--ml-orange-ink, #1B1209); font-weight: 700; }
+.lens-slider [data-layer], .lens-slider [data-steer-value] { padding: .05rem .5rem; border-radius: 999px; background: var(--ml-orange-hi, #F2A65A); color: var(--ml-orange-ink, #1B1209); font-weight: 700; }
 .lens-slider input { display: block; width: 100%; margin: 0; height: 1.8rem; accent-color: var(--matrix); }
 .lens-probabilities { display: grid; gap: .3rem; margin-top: .75rem; }
 .lens-probability {
@@ -96,6 +96,7 @@
 }
 .lens-probability [data-percent] { text-align: right; }
 .lens-probability:first-child [data-percent] { color: inherit; }
+.lens-probability[data-top] > span:first-child { font-weight: 700; }
 .lens-track { height: .45rem; border-radius: 2px; background: color-mix(in srgb, currentColor 14%, transparent); }
 .lens-track i { display: block; height: 100%; border-radius: inherit; background: var(--matrix); }
 .lens-probability:last-child .lens-track i { background: currentColor; opacity: .55; }

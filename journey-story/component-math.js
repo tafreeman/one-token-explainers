@@ -110,37 +110,42 @@ const JourneyMath = (() => {
   }
 
   // Illustrative toy attribution graph inspired by Circuit Tracer (not measured DeepSeek-V4-Pro weights).
-  const STEER_STATES = {
-    natural: {
-      caption: 'Natural pass: “Eiffel Tower” activates “Paris”, which drives “France” as the top next token.',
-      edges: { ep: 0.92, pf: 0.88, pi: 0.10 },
-      nodes: { eiffel: 'on', paris: 'on', france: 'on', italy: 'dim' },
-      probs: [['France', 78], ['Paris', 12], ['Europe', 6], ['Other', 4]]
-    },
-    ablate: {
-      caption: 'Ablate “Paris” (0×): severing the intermediate city feature collapses “France” from 78% → 24%.',
-      edges: { ep: 0.16, pf: 0.12, pi: 0.10 },
-      nodes: { eiffel: 'on', paris: 'off', france: 'dim', italy: 'dim' },
-      probs: [['tower', 28], ['France', 24], ['Europe', 16], ['Other', 32]]
-    },
-    swap: {
-      caption: 'Clamp “Paris” → “Rome”: redirecting the mid-layer city concept flips the output from “France” to “Italy” (74%).',
-      edges: { ep: 0.72, pf: 0.14, pi: 0.94 },
-      nodes: { eiffel: 'on', paris: 'swap', france: 'dim', italy: 'on' },
-      probs: [['Italy', 74], ['France', 11], ['Europe', 8], ['Other', 7]]
-    },
-    amplify: {
-      caption: 'Amplify “France” (2×): boosting the late country feature concentrates probability on “France” (93%).',
-      edges: { ep: 0.92, pf: 1.0, pi: 0.06 },
-      nodes: { eiffel: 'on', paris: 'on', france: 'boost', italy: 'dim' },
-      probs: [['France', 93], ['Paris', 3], ['Europe', 2], ['Other', 2]]
-    }
-  };
+  // Two hops: the "Eiffel Tower" feature lights a city feature, which drives a country feature.
+  // Clamping the city node to c× sets the country activation; a weak direct path keeps France
+  // above zero when the city is ablated. Logits were fit so Paris 1× gives France 78%,
+  // 0× gives 24% and swapping in Rome gives Italy 74%.
+  const STEER_TOKENS = ['France', 'Italy', 'Belgium', 'Other'];
+  const STEER_PRESETS = {natural: ['Paris', 1], ablate: ['Paris', 0], amplify: ['Paris', 2], swap: ['Rome', 1]};
 
-  function steerCircuit(mode = 'natural') {
-    const key = Object.hasOwn(STEER_STATES, mode) ? mode : 'natural';
-    const s = STEER_STATES[key];
-    return { mode: key, caption: s.caption, edges: { ...s.edges }, nodes: { ...s.nodes }, probs: s.probs.map(([tok, pct]) => ({ token: tok, pct })) };
+  function percents(weights) { // largest-remainder rounding, so the rows always sum to 100
+    const total = weights.reduce((a, b) => a + b, 0), raw = weights.map(w => 100 * w / total);
+    const out = raw.map(Math.floor);
+    raw.map((r, i) => [r - out[i], i]).sort((a, b) => b[0] - a[0])
+      .slice(0, 100 - out.reduce((a, b) => a + b, 0)).forEach(([, i]) => { out[i]++; });
+    return out;
+  }
+
+  function steerCircuit(mode = 'natural', clamp) {
+    const key = Object.hasOwn(STEER_PRESETS, mode) ? mode : 'natural';
+    const [city, preset] = STEER_PRESETS[key];
+    const c = Math.max(0, Math.min(2, Number.isFinite(clamp) ? clamp : preset));
+    const france = city === 'Paris' ? c : 0, italy = city === 'Rome' ? c : 0;
+    const logits = [-0.773 + 2.418 * france, -1.466 + 3.038 * italy, -1.466, 0];
+    const pct = percents(logits.map(Math.exp));
+    // Fixed row order, so the bars grow and shrink in place while the slider moves.
+    const probs = STEER_TOKENS.map((token, i) => ({token, pct: pct[i]}));
+    const top = probs.reduce((m, p) => (p.pct > m.pct ? p : m)), fr = pct[0];
+    const caption = city === 'Rome'
+      ? `Swap in “Rome” at ${c.toFixed(2)}×: the country feature now reads Italy, so the answer is “${top.token}” (${top.pct}%).`
+      : c === 0 ? `Ablate “Paris” (0×): only a weak direct path is left, so “France” falls to ${fr}%.`
+      : c === 1 ? `Natural pass: “Eiffel Tower” lights “Paris”, which drives “France” (${fr}%).`
+      : `Clamp “Paris” at ${c.toFixed(2)}×: ${c > 1 ? 'more' : 'less'} city signal reaches the country feature, so “France” is ${fr}%.`;
+    const level = v => (v === 0 ? 'off' : v > 1.05 ? 'boost' : v < 0.5 ? 'dim' : 'on');
+    return {
+      mode: key, city, clamp: c, caption, probs, top,
+      edges: {ep: city === 'Paris' && c > 0 ? 0.9 : 0.15, pf: Math.min(1, 0.9 * france), pi: Math.min(1, 0.9 * italy), ef: 0.25},
+      nodes: {eiffel: 'on', paris: city === 'Rome' ? 'swap' : c === 0 ? 'off' : c > 1.05 ? 'boost' : 'on', france: france ? level(france) : 'dim', italy: italy ? level(italy) : 'dim'}
+    };
   }
 
   function vectorDrawer() {
@@ -209,9 +214,9 @@ const JourneyMath = (() => {
         </section>
         <section class="steer-section">
           <h4>Causal feature steering (illustrative)</h4>
-          <p class="ml-try"><b>Try this</b> Click Ablate “Paris”, then Clamp → “Rome”, and watch the answer change.</p>
-          <p>Prompt: “The Eiffel Tower is in …”. Clamp a feature node in this illustrative attribution graph to watch downstream next-token probabilities shift live (inspired by Circuit Tracer; not measured DeepSeek-V4-Pro weights).</p>
-          <svg class="steer-svg" viewBox="0 0 296 108" role="img" aria-label="Illustrative causal feature steering graph connecting Eiffel Tower through Paris to France or Italy">
+          <p class="ml-try"><b>Try this</b> Drag the “Paris” clamp to 0×, then press Swap → “Rome”, and watch the answer change.</p>
+          <p>Prompt: “The Eiffel Tower is in the country of …”. Clamp the city feature in this illustrative attribution graph and the next-token probabilities shift live (inspired by Circuit Tracer; not measured DeepSeek-V4-Pro weights).</p>
+          <svg class="steer-svg" viewBox="0 0 296 108" role="img" aria-label="Illustrative causal feature steering graph: Eiffel Tower drives a city feature, which drives France or Italy">
             <g class="steer-cols">
               <line class="math-guide" x1="48" y1="14" x2="48" y2="96"/>
               <line class="math-guide" x1="154" y1="14" x2="154" y2="96"/>
@@ -221,6 +226,7 @@ const JourneyMath = (() => {
               <text x="250" y="10" text-anchor="middle">L48 → Out</text>
             </g>
             <g fill="none" stroke-linecap="round">
+              <path data-edge="ef" stroke-dasharray="3 3" d="M92 60 C150 104 196 66 216 46"/>
               <path data-edge="ep" d="M92 52 C108 52 108 38 122 38"/>
               <path data-edge="pf" d="M186 38 C200 38 204 38 216 38"/>
               <path data-edge="pi" d="M186 42 C202 46 202 76 216 76"/>
@@ -238,14 +244,17 @@ const JourneyMath = (() => {
               <rect width="68" height="28" rx="4"/><text x="34" y="17" text-anchor="middle">Italy</text>
             </g>
           </svg>
-          <div class="math-controls" role="group" aria-label="Causal feature clamping interventions">
-            <button type="button" data-steer="natural">Natural</button>
-            <button type="button" data-steer="ablate">Ablate “Paris”</button>
-            <button type="button" data-steer="swap">Clamp → “Rome”</button>
-            <button type="button" data-steer="amplify">Boost “France” 2×</button>
+          <label class="lens-slider">Clamp <span data-steer-city>“Paris”</span> at <span data-steer-value>1.00×</span>
+            <input type="range" min="0" max="200" step="5" value="100" data-steer-clamp aria-label="Clamp the city feature, 0 to 2 times its natural activation">
+          </label>
+          <div class="math-controls" role="group" aria-label="Causal feature clamping presets">
+            <button type="button" data-steer="natural">Natural 1×</button>
+            <button type="button" data-steer="ablate">Ablate “Paris” 0×</button>
+            <button type="button" data-steer="amplify">Boost “Paris” 2×</button>
+            <button type="button" data-steer="swap">Swap → “Rome”</button>
           </div>
           <div class="lens-probabilities" data-steer-probs>
-            ${[0, 1, 2, 3].map(() => `
+            ${STEER_TOKENS.map(() => `
               <div class="lens-probability"><span data-tok></span><span class="lens-track" aria-hidden="true"><i></i></span><span data-percent></span></div>`).join('')}
           </div>
           <p class="math-caption" data-steer-caption aria-live="polite"></p>
@@ -296,11 +305,19 @@ const JourneyMath = (() => {
     const steerRows = circuit.querySelectorAll('[data-steer-probs] .lens-probability');
     const steerCap = circuit.querySelector('[data-steer-caption]');
     const parisLbl = circuit.querySelector('[data-paris-lbl]');
+    const clampInput = circuit.querySelector('[data-steer-clamp]');
+    const clampValue = circuit.querySelector('[data-steer-value]');
+    const clampCity = circuit.querySelector('[data-steer-city]');
     const lastState = {};
-    function renderSteer(mode) {
-      const s = steerCircuit(mode);
+    let steerCity = 'Paris';
+    function renderSteer(mode, clamp) {
+      const s = steerCircuit(mode, clamp);
+      steerCity = s.city;
       const changed = [];
-      steerBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.steer === s.mode)));
+      steerBtns.forEach(b => {
+        const [city, preset] = STEER_PRESETS[b.dataset.steer];
+        b.setAttribute('aria-pressed', String(city === s.city && preset === s.clamp));
+      });
       for (const [key, w] of Object.entries(s.edges)) {
         const edge = circuit.querySelector(`[data-edge="${key}"]`);
         if (!edge) continue;
@@ -315,19 +332,24 @@ const JourneyMath = (() => {
         if (node) node.dataset.state = st;
       }
       ML().flashAll?.(changed); // nodes that changed state pulse
-      if (parisLbl) parisLbl.textContent = s.mode === 'swap' ? 'Rome*' : (s.mode === 'ablate' ? 'Paris ×' : 'Paris');
+      if (parisLbl) parisLbl.textContent = s.city === 'Rome' ? 'Rome*' : (s.clamp === 0 ? 'Paris ×' : 'Paris');
+      clampCity.textContent = '“' + s.city + '”';
+      clampValue.textContent = s.clamp.toFixed(2) + '×';
+      clampInput.value = String(Math.round(s.clamp * 100));
+      clampInput.setAttribute('aria-valuetext', `${s.city} clamped at ${s.clamp.toFixed(2)} times, ${s.top.token} ${s.top.pct} percent`);
       s.probs.forEach(({token, pct}, i) => {
         const row = steerRows[i];
         row.querySelector('[data-tok]').textContent = token;
+        row.toggleAttribute('data-top', token === s.top.token);
         row.querySelector('i').style.width = pct + '%';
         setText(row.querySelector('[data-percent]'), pct + '%');
       });
       steerCap.textContent = s.caption;
     }
+    // The slider keeps the current city (Paris, or Rome after a swap) and only changes its clamp.
+    clampInput.addEventListener('input', () => renderSteer(steerCity === 'Rome' ? 'swap' : 'natural', clampInput.valueAsNumber / 100));
     steerBtns.forEach(b => b.addEventListener('click', () => renderSteer(b.dataset.steer)));
-    circuit.querySelector('[data-node="paris"]')?.addEventListener('click', () => renderSteer(
-      circuit.querySelector('[data-steer="ablate"]').getAttribute('aria-pressed') === 'true' ? 'swap' : 'ablate'
-    ));
+    circuit.querySelector('[data-node="paris"]')?.addEventListener('click', () => renderSteer(lastState.paris === 'off' ? 'swap' : 'ablate'));
     circuit.querySelector('[data-node="france"]')?.addEventListener('click', () => renderSteer('amplify'));
     circuit.querySelector('[data-node="eiffel"]')?.addEventListener('click', () => renderSteer('natural'));
     circuit.querySelector('[data-node="italy"]')?.addEventListener('click', () => renderSteer('swap'));

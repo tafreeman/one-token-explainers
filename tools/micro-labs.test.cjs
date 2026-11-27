@@ -118,6 +118,37 @@ test('Guided Tour and Story offer the same component labs at all twelve lab stop
   assert.deepEqual(lab.storyStops, expected);
 });
 
+test('every Break lab sits on its concept card in Story, Tour, Observatory and Beamline Study', () => {
+  const links = require('../shared/concept-links.js');
+  const breaks = {'moe-router': 'moe', 'prefill-decode': 'pd', 'utf8-sse': 'stream', 'mcp-loop': 'cache'};
+  const beam = readFileSync(path.join(root, 'end-to-end-beamline/index.html'), 'utf8');
+  const literal = name => Function('return ' + beam.match(new RegExp('const ' + name + ' = (\\{[\\s\\S]*?\\});'))[1])();
+  const studyLabs = literal('studyLabs'), beamConcepts = literal('beamConcepts');
+  for (const [slug, name] of Object.entries(breaks)) {
+    const c = links.CONCEPTS[slug];
+    assert.equal(c.lab, name, slug + ' registry lab');
+    assert.ok(lab.storyStops[c.story.stop]?.includes(name), slug + ' Story stop ' + c.story.stop);
+    assert.ok(lab.tourStops[c.tour.stop]?.includes(name), slug + ' Tour stop ' + c.tour.stop);
+    for (const code of links.map.CONCEPTS[slug].obs) assert.ok(lab.components[code]?.includes(name), slug + ' Observatory ' + code);
+    assert.equal(beamConcepts[c.beamline.beat], slug, slug + ' Beamline beat');
+    assert.ok(studyLabs[c.beamline.beat]?.includes(name), slug + ' Beamline Study beat ' + c.beamline.beat);
+  }
+});
+
+test('Swiss concept bridges come from the registry and return to the same zero-based stage', () => {
+  const links = require('../shared/concept-links.js');
+  const swiss = readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8');
+  const hrefs = [...swiss.matchAll(/class="concept-bridge" href="([^"]+)"/g)].map(m => m[1].replaceAll('&amp;', '&'));
+  assert.equal(hrefs.length, 7);
+  for (const href of hrefs) {
+    const slug = href.match(/#concept=([a-z0-9-]+)$/)[1], c = links.CONCEPTS[slug];
+    assert.equal(href, links.urlFor('tour', slug, {from: 'swiss', pos: c.swiss.g}));
+    const back = links.returnHref('swiss', new URL(href, 'https://example.test/x/').searchParams.get('pos'), false, 'tour');
+    const g = Number(new URL(back, 'https://example.test/x/').searchParams.get('g'));
+    assert.equal(Math.floor(g), c.swiss.stage - 1, slug + ' returns to Swiss stage ' + c.swiss.stage);
+  }
+});
+
 test('UTF-8 buffer-off mode corrupts split multi-byte emoji into U+FFFD while buffered mode stays clean', () => {
   const text = ' The café 🚀';
   const raw = new TextEncoder().encode('data: ' + JSON.stringify({text}));
@@ -261,10 +292,22 @@ test('Ch. 4 causal feature steering preserves 100% probability sum and shifts pr
     const sum = res.probs.reduce((acc, p) => acc + p.pct, 0);
     assert.equal(sum, 100, mode + ' probabilities must sum to 100');
   }
-  assert.equal(math.steerCircuit('natural').probs[0].token, 'France');
-  assert.equal(math.steerCircuit('swap').probs[0].token, 'Italy');
+  assert.equal(math.steerCircuit('natural').top.token, 'France');
+  assert.equal(math.steerCircuit('swap').top.token, 'Italy');
   assert.ok(math.steerCircuit('ablate').probs.find(p => p.token === 'France').pct < 40);
-  assert.ok(math.steerCircuit('amplify').probs[0].pct > 90);
+  assert.ok(math.steerCircuit('amplify').top.pct > 90);
+  // The clamp slider (0x..2x in 5% steps) moves France monotonically and keeps a 100% total.
+  let previous = -1;
+  for (let step = 0; step <= 200; step += 5) {
+    const res = math.steerCircuit('natural', step / 100);
+    assert.equal(res.probs.reduce((acc, p) => acc + p.pct, 0), 100, 'clamp ' + step);
+    assert.deepEqual(res.probs.map(p => p.token), ['France', 'Italy', 'Belgium', 'Other'], 'rows stay in place');
+    const france = res.probs[0].pct;
+    assert.ok(france >= previous, 'France share must not fall as the Paris clamp rises');
+    previous = france;
+  }
+  assert.equal(math.steerCircuit('natural', 9).clamp, 2, 'clamp is bounded to 2x');
+  assert.equal(math.steerCircuit('swap', 0).probs.find(p => p.token === 'Italy').pct < 20, true, 'Rome at 0x no longer pushes Italy');
   const slice = math.activationSlice(38);
   assert.equal(slice.length, 24);
   assert.ok(slice.every(v => v >= -1 && v <= 1));

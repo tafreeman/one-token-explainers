@@ -5641,6 +5641,14 @@ let gantryShell=null;
       return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
+    // A card's Break labs drive this scene through the same API the embedding pages call.
+    function obsLabHooks() {
+      return {
+        onRoute: (k, bias) => window.obs?.setRouting?.(k, bias),
+        onPrefixCache: ratio => window.obs?.setPrefixCache?.(ratio),
+        onPDDisagg: on => window.obs?.setPDDisagg?.(on)
+      };
+    }
     function enterPopOutFocus(index) {
       if (index < 0 || index >= compRecords.length) return;
 
@@ -5672,7 +5680,7 @@ let gantryShell=null;
       document.getElementById('detGlossWrap').hidden = glossTerms.length === 0;
       const labs = document.getElementById('componentLabs');
       labs.replaceChildren();
-      MicroLabs.dock(labs, MicroLabs.components[d.id], {onRoute: (k, bias) => window.obs.setRouting(k, bias)});
+      MicroLabs.dock(labs, MicroLabs.components[d.id], obsLabHooks());
       document.getElementById('detKeyFact').textContent = d.keyFact;
       document.getElementById('detKeyFactSrc').textContent = 'Source: ' + d.keyFactSource;
 
@@ -5947,7 +5955,7 @@ let gantryShell=null;
           eq.textContent = c.equation;
           art.appendChild(eq);
           art.appendChild(textViewPara('Key fact', c.keyFact + ' (Source: ' + c.keyFactSource + ')'));
-          MicroLabs.dock(art, MicroLabs.components[c.id], {onRoute: (k, bias) => window.obs.setRouting?.(k, bias)});
+          MicroLabs.dock(art, MicroLabs.components[c.id], obsLabHooks());
           container.appendChild(art);
         });
       });
