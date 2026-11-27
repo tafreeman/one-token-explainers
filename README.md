@@ -10,7 +10,9 @@ details and specifications visible without extra disclosure clicks, paired with 
 synchronized 3D figure (**Diagram** and **Spatial** views on one WebGL context), a
 **Present** mode, dual narration tracks (9:41 full walkthrough and 4:38 quick summary),
 and an inline **Component Inspector** with interactive micro-labs and lazy 3D Observatory
-cutaways. The classic and deep-dive formats remain available under **Other views**.
+cutaways. Use **Steps** to jump within the lesson, or **Views** to switch to a
+classic edition, a deep dive, or a component lab. **Other views** also appears at
+the end of the lesson.
 The factual, API, keyboard and focus corrections from PR #7 remain in place.
 
 The November 23 [content and math review](docs/content-and-math-review-2026-11-23.md)
@@ -55,7 +57,11 @@ Local copies of these pages can open directly from disk with their sibling folde
 - **Explorer:** double-click `start.cmd`.
 - **Terminal:** `./start.ps1` (`-Pull`, `-Port 8080`, `-NoBrowser`).
 
-Each one stops whatever holds port 3000 and any other copy of this repo's `server.js`, runs `npm ci` if `package.json` or `package-lock.json` changed since the last install, then serves <http://127.0.0.1:3000/> and opens it. Without Node, `python -m http.server 8000` serves the same files at <http://localhost:8000/>.
+The launchers stop listeners on the selected port (3000 by default) and any
+other copy of this repo's `server.js`, install dependencies when needed, and open
+the site. If another app uses port 3000, choose a different port with
+`./start.ps1 -Port 8080`. Without Node, `python -m http.server 8000` serves the
+same files at <http://localhost:8000/>.
 
 Every page loads its bundled Three.js build first, so the 3D views work offline. If that file is missing, `shared/three-loader.js` tries cdnjs, then unpkg, then jsDelivr, each pinned to the bundled bytes with a subresource-integrity hash. The pages use system fallback fonts offline. If the GPU drops the WebGL context, the scene pauses, shows a one-line text fallback, and redraws when the context comes back.
 
@@ -69,10 +75,28 @@ npm run lint
 npm test
 npm exec -- playwright install chromium
 npm run verify:browser
-npm run verify:warp
 ```
 
-`lint` syntax-checks the shared scripts and every inline `<script>` block, then runs the fact gate. `verify:browser` serves the site and loads Swiss, Beamline, Story, Tour and the Observatory at 1440×900 and 390×844. It checks for horizontal overflow, console errors and axe-core WCAG 2.1 AA violations, and it tests iframe keyboard bridging over HTTP and `file://`, keyboard focus order (Tab reaches the Story drawer's lab controls, the Observatory canvas shows a 3:1 focus ring, and hidden Observatory panels leave the Tab order), WebGL context loss and restore, the mirror order, and SRI rejection of altered bytes. Swiss lesson checks cover the four-format homepage, visible details, accessibility, playback pause and written content without JavaScript. Instrument checks cover desktop/phone scrubbing, keyboard bounds, reply arrival, reduced motion, idle scheduling and fallback without WebGL or Web Animations. Pass `--only=layout,keyboard,focus,sampling,claims,depth,instrument,context,mirrors` to run some of these. Set `JOURNEY_SCREENSHOTS` to keep the layout screenshots. `verify:warp` runs on Windows. It opens the Story router drawer under Microsoft's software renderer (WARP) and requires fewer than 90 draw calls, a camera-nudge p95 under 100 ms, and no frames during 900 ms of idle. WARP renders on the CPU, so the 100 ms budget assumes a 24-thread machine. The gate judges the median of five trials. Set `WARP_P95_BUDGET_MS` on smaller hosts; CI's 4-vCPU runner uses 150 ms.
+`npm run lint` checks script syntax (including inline scripts) and runs the fact
+gate. `npm test` runs the Node test suite. `npm run build` runs syntax, fact and
+micro-lab checks; it does not produce a bundle.
+
+`npm run verify:browser` starts a local server and checks the root Reader and the
+classic/deep-dive views. Reader coverage includes desktop, tablet and phone
+layouts; Diagram and Spatial switching; seeking; keyboard and focus behavior;
+narration controls; Inspector cutaways over HTTP and `file://`; and fallbacks
+without JavaScript or WebGL. Classic-view coverage includes layout and automated
+axe checks, iframe keyboard bridging, Swiss playback, context recovery, and
+Three.js mirror order and integrity. These checks are not a complete accessibility
+audit. To run selected sections, use, for example,
+`npm run verify:browser -- --only=reader,keyboard,focus`. Set
+`JOURNEY_SCREENSHOTS` to keep the layout screenshots.
+
+On Windows, run `npm run verify:warp` for Microsoft WARP software rendering.
+It checks the Story router drawer (<140 draw calls) and Reader Diagram and Spatial
+views (<150 each), with no drawing during the measured idle window. The latency
+gate uses the median of five trial p95s. The default budget is 160 ms, and CI
+sets it to 150 ms via `WARP_P95_BUDGET_MS`.
 
 ### Component labs
 
