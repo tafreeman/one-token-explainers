@@ -24,6 +24,13 @@ async function openTour(browser, base, {width = 1440, height = 900, reducedMotio
 }
 
 const state = page => page.evaluate(() => window.JourneyTour.state);
+// The hero's start button is the only start control while the hero is on screen; the bar's Play takes over afterwards.
+const startTour = page => page.locator('#heroStart').click();
+const noObservatory = page => page.evaluate(() => ({
+  src: document.getElementById('obsFrame').getAttribute('src'),
+  spatialSlots: document.querySelectorAll('[data-engine="spatial"]').length,
+  poolSpatial: window.__journey.stagePool ? window.__journey.stagePool.stats().engine === 'spatial' : false
+}));
 const waitId = (page, id, timeout = 60000) => page.waitForFunction(i => window.JourneyTour.state.id === i, id, {timeout});
 const cardCentered = (page, stepId) => page.evaluate(id => {
   const r = document.getElementById(id).getBoundingClientRect();
@@ -35,8 +42,22 @@ async function verifyBarAndApi(browser, base) {
   try {
     for (const sel of REMOVED_CONTROLS) assert.equal(await page.locator(sel).count(), 0, sel + ' is removed');
     assert.equal(await page.locator('.studio-bar .suite-menu, .studio-bar [data-suite-menu]').count(), 0, 'Views dropdown is not mounted in the bar');
+    // Hero: exactly one primary action, one quiet secondary, no onboarding paragraph or duplicate cue.
+    assert.equal(await page.locator('.hero button:visible, .hero a.hero-start:visible').count(), 1, 'the hero has one primary action');
+    assert(await page.locator('#heroStart').isVisible(), 'the primary action starts the tour');
+    assert.match(await page.locator('#heroStart .hero-start-time').textContent(), /^\d+:\d\d$/, 'start shows the tour length');
+    assert.equal(await page.locator('.hero a.hero-scroll').count(), 1, 'one quiet secondary: or scroll to read');
+    for (const sel of ['.onboard-guide', '.hero-entry', '.hero .cue', '#trainLineLaunch', '#allTour', '#observatory-sandbox', '[data-ch4-engine]', '[data-ch6-beat]']) {
+      assert.equal(await page.locator(sel).count(), 0, sel + ' is removed');
+    }
+    // No two start controls at once: the bar's Play and Mute stay quiet until the hero button is out of view.
+    assert.equal(await page.locator('#tourPlay').isVisible(), false, 'bar Play is quiet while the hero button shows');
+    await page.evaluate(() => window.scrollTo(0, 900));
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('tourPlay')).visibility === 'visible');
     assert(await page.locator('#tourPlay').isVisible() && await page.locator('#tourMute').isVisible(), 'Play and mute sit in the bar');
     assert.match(await page.locator('#tourPlay .tour-play-time').textContent(), /^\d+:\d\d$/, 'Play shows time left');
+    assert.equal(await page.locator('#finaleCapstone').isVisible(), false, 'the 3D capstone is hidden in the reading path');
+    assert.deepEqual(await noObservatory(page), {src: null, spatialSlots: 0, poolSpatial: false}, 'no 3D at load');
     const stops = await page.evaluate(() => window.JourneyTour.stops.map(s => s.id));
     assert.equal(stops[0], 'intro');
     assert.deepEqual(stops.slice(1, 6), ['station-1', 'station-2', 'station-3', 'station-4', 'station-5']);
@@ -46,15 +67,17 @@ async function verifyBarAndApi(browser, base) {
     assert.equal(await page.evaluate(() => document.body.dataset.cardView), 'basic', 'cards default to the basic view');
     assert.equal(await page.locator('#step-2 .card > code.eq').isVisible(), false, 'equation is collapsed by default');
     assert.deepEqual(errors, []);
-    console.log('Tour bar: removed controls gone, Play + mute present, stop list intro -> stations -> chapters -> summary');
+    console.log('Tour bar: one hero action, removed controls gone, Play + mute take over below the hero, stop list intro -> stations -> chapters -> summary');
   } finally { await page.close(); }
 }
 
 async function verifyPlaybackAndTakeover(browser, base) {
   const {page, errors} = await openTour(browser, base);
   try {
-    await page.locator('#tourPlay').click();
+    await startTour(page);
     await page.waitForFunction(() => window.JourneyTour.state.status === 'playing');
+    assert.equal(await page.locator('#heroStart').isVisible(), false, 'the hero button steps aside once the tour runs');
+    assert(await page.locator('#tourPlay').isVisible(), 'the bar Play becomes the transport');
     assert.equal(await page.locator('#tourPlay').getAttribute('data-state'), 'playing');
     // The owner's bug: playback used to stop after station 5. It must roll into chapter 1 by itself.
     await waitId(page, 'step-1');
@@ -132,7 +155,12 @@ async function verifyPlaybackAndTakeover(browser, base) {
 async function verifyFullRun(browser, base) {
   const {page, errors} = await openTour(browser, base);
   try {
-    await page.locator('#tourPlay').click();
+    await startTour(page);
+    // Right before the summary: no Observatory iframe has loaded, no Spatial slot is on the page, no 3D engine has rendered.
+    await waitId(page, 'step-30', 150000);
+    assert.deepEqual(await noObservatory(page), {src: null, spatialSlots: 0, poolSpatial: false}, 'no 3D before the summary');
+    assert.equal(page.frames().some(f => f.url().includes('obs-core')), false, 'no Observatory frame before the summary');
+    assert.equal(await page.locator('#finaleCapstone').isVisible(), false, 'capstone is hidden before the summary');
     await page.waitForFunction(() => window.__tourLog.finale === 1, null, {timeout: 150000});
     const ids = await page.evaluate(() => ({seen: window.__tourLog.stops.slice(), all: window.JourneyTour.stops.map(s => s.id)}));
     assert.deepEqual(ids.seen, ids.all, 'every stop ran once, in order');
@@ -143,8 +171,18 @@ async function verifyFullRun(browser, base) {
     assert.equal(end.status, 'finished');
     assert(end.top < end.h * 0.5, 'finale rests on the summary');
     assert.equal(await page.locator('#tourPlay .tour-play-lbl').textContent(), 'Replay');
+    // Finale: one capstone appears and opens the 3D studio.
+    await page.locator('#finaleCapstone').waitFor({state: 'visible'});
+    assert.equal(await page.locator('#exploreModel').textContent(), 'Explore the 3D model');
+    await page.locator('#exploreModel').click();
+    await page.waitForFunction(() => window.__journey.state.opened, null, {timeout: 60000});
+    assert.equal(await page.evaluate(() => document.getElementById('partTitle').textContent), 'All 31 components', 'the studio opens on the full model');
+    assert(page.frames().some(f => f.url().includes('obs-core')), 'the Observatory loads at the finale');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !window.__journey.state.opened);
+    assert.equal(await page.locator('.other-ways a').count(), 4, 'one Other ways to explore block holds the edition links');
     assert.deepEqual(errors, [], 'no console errors across the full run');
-    console.log('Tour: full accelerated run reached the summary,', ids.all.length, 'stops, tour:finale fired, no console errors');
+    console.log('Tour: full accelerated run reached the summary,', ids.all.length, 'stops, no 3D before it, capstone opened the studio, no console errors');
   } finally { await page.close(); }
 }
 
@@ -152,7 +190,7 @@ async function verifyReducedMotionAndPhone(browser, base) {
   const rm = await openTour(browser, base, {reducedMotion: 'reduce'});
   try {
     const {page} = rm;
-    await page.locator('#tourPlay').click();
+    await startTour(page);
     await waitId(page, 'step-2');
     await page.mouse.move(600, 500);
     await page.mouse.wheel(0, 900);
@@ -162,16 +200,23 @@ async function verifyReducedMotionAndPhone(browser, base) {
       const r = document.getElementById('step-2').getBoundingClientRect();
       return Math.abs((r.top + r.bottom) / 2 - innerHeight * 0.5) < innerHeight * 0.2;
     }), 'reduced motion returns instantly');
+    // Reduced motion: the capstone appears instantly, with no transition.
+    await page.evaluate(() => window.scrollTo({top: document.getElementById('outro').offsetTop + 200, behavior: 'instant'}));
+    await page.waitForFunction(() => document.getElementById('finaleCapstone').dataset.state === 'shown');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('finaleCapstone')).transitionDuration), '0s', 'reveal is instant under reduced motion');
+    assert.equal(await page.locator('#finaleCapstone').isVisible(), true);
     assert.deepEqual(rm.errors, []);
   } finally { await rm.page.close(); }
   const phone = await openTour(browser, base, {width: 390, height: 844});
   try {
     const {page} = phone;
+    assert(await page.locator('#heroStart').isVisible(), 'hero start is above the fold on a phone');
+    assert((await page.locator('#heroStart').boundingBox()).height >= 44, 'hero start is a full-size touch target');
+    await startTour(page);
     const box = await page.locator('#tourPlay').boundingBox();
     assert(box && box.x >= 0 && box.x + box.width <= 390 && box.height >= 36, 'Play fits the phone bar');
     const mute = await page.locator('#tourMute').boundingBox();
     assert(mute && mute.x + mute.width <= 390, 'mute fits the phone bar');
-    await page.locator('#tourPlay').click();
     await waitId(page, 'step-1');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no horizontal overflow while touring');
     assert.deepEqual(phone.errors, []);

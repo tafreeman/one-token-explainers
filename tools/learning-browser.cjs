@@ -42,8 +42,7 @@ async function verifyLearning(browser, base, artifacts) {
         await summary.click();
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
         if (name === 'journey') {
-          await page.waitForFunction(() => window.__journey.state.active === 5);
-          assert.equal(await page.evaluate(() => document.querySelector('#obsFrame').contentWindow.obs.stats().realm), 'MODEL', 'training scene must not show serving stations');
+          assert.equal(await page.evaluate(() => document.querySelector('#obsFrame').getAttribute('src')), null, 'the Observatory has not loaded before the finale');
           assert.equal(await page.evaluate(() => document.documentElement.dataset.journeyPhase), 'training', 'phase CSS stays in training during Ch 2');
           assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('obsEngine')).display), 'none', 'Observatory is hidden in early training chapters');
           assert.equal(await page.locator('[data-slot-id="braid-opening"]').getAttribute('data-overview'), null);
@@ -87,12 +86,12 @@ async function verifyLearning(browser, base, artifacts) {
         if (name === 'journey') {
           await page.locator('#step-28').scrollIntoViewIfNeeded();
           await page.waitForFunction(() => document.documentElement.dataset.journeyPhase === 'inference');
-          assert.equal(await page.locator('[data-slot-id="ch6-spatial"]').getAttribute('data-engine'), 'spatial');
-          assert.equal(await page.locator('[data-slot-id="ch6-spatial"]').getAttribute('data-step'), '12.1');
-          assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('obsEngine')).display), 'none', 'Observatory stays off during Ch 6 Beamline tool loop');
-          await page.locator('#observatory-sandbox').scrollIntoViewIfNeeded();
-          await page.waitForFunction(() => document.documentElement.dataset.journeyPhase === 'observatory');
-          await page.waitForFunction(() => document.getElementById('obsEngine').classList.contains('sandbox'));
+          assert.equal(await page.locator('[data-slot-id="ch6-loop"]').getAttribute('data-engine'), 'diagram', 'Ch 6 uses the flat Diagram, not Beamline 3D');
+          assert.equal(await page.locator('[data-slot-id="ch6-loop"]').getAttribute('data-step'), '12.1');
+          assert.equal(await page.locator('[data-engine="spatial"]').count(), 0, 'no Spatial slot in the reading path');
+          assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('obsEngine')).display), 'none', 'Observatory stays off during the Ch 6 tool loop');
+          await page.locator('#outro').scrollIntoViewIfNeeded();
+          await page.waitForFunction(() => document.getElementById('finaleCapstone').dataset.state === 'shown');
         }
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
         await input.scrollIntoViewIfNeeded();

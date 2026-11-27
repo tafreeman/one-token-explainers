@@ -100,19 +100,24 @@ h1,h2,h3{ font-family:var(--display); font-optical-sizing:auto; text-wrap:balanc
 /* hero & first-run onboarding */
 .hero{ min-height:calc(90svh - 44px); display:grid; align-content:center; padding-block:44px; box-sizing:border-box }
 .hero-grid{ display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:clamp(24px,4vw,64px); align-items:center }
-.onboard-guide{
-  margin:18px 0 0; padding:11px 14px; max-width:44ch; border-radius:8px;
-  border:1px solid color-mix(in srgb,var(--ink) 18%,transparent);
-  background:color-mix(in srgb,var(--ink) 4%,transparent);
-  color:var(--ink2); font-size:14.5px; line-height:1.5; text-wrap:pretty;
-}
-.onboard-guide strong{ color:var(--ink); font-weight:600 }
 .sentence{ font-family:var(--display); font-weight:600; font-size:clamp(1.7rem,3vw,2.65rem); letter-spacing:-.02em; line-height:1.3; display:flex; flex-wrap:wrap; align-items:center; gap:0 .28em; margin:26px 0; color:#374350 }
 .slot{ display:inline-flex; align-items:center; justify-content:center; width:1.7em; height:.8em; border-radius:999px; border:1.25px dashed rgba(43,91,132,.6); color:var(--ink); font-size:1em; box-sizing:border-box }
 .slot > span{ font-size:max(12px,.52em); line-height:1 }
 html.js .slot > span{ visibility:hidden }
-.hero-entry{ display:inline-flex; padding:11px 17px; min-height:44px; box-sizing:border-box; color:#f7f4ed; background:#283640; border-radius:6px; gap:10px; align-items:center; font:600 14px/1.35 var(--sans); text-decoration:none }
-.hero-entry:hover{ background:#364957 }
+.hero-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px }
+.hero-start{
+  appearance:none; display:inline-flex; align-items:center; gap:10px; min-height:48px; padding:0 22px 0 18px; box-sizing:border-box;
+  border-radius:999px; border:1.5px solid #202d3d; background:#202d3d; color:#f7f5ee; cursor:pointer;
+  font:700 15px/1.2 var(--sans); transition:background-color .16s var(--ease), border-color .16s var(--ease);
+}
+.hero-start:hover{ background:#2f4259; border-color:#2f4259 }
+.hero-start svg{ width:16px; height:16px; fill:currentColor; flex:none }
+.hero-start-time{ font:600 12px/1 var(--mono); font-variant-numeric:tabular-nums; opacity:.85; padding-left:10px; border-left:1px solid color-mix(in srgb,currentColor 40%,transparent) }
+.hero-start-time:empty{ display:none }
+.hero-start[hidden]{ display:none }
+.hero-start:focus-visible,.hero-scroll:focus-visible{ outline:3px solid var(--focus-ring); outline-offset:3px }
+.hero-scroll{ color:var(--ink2); font:500 14px/1.35 var(--sans); text-decoration:underline; text-decoration-color:color-mix(in srgb,currentColor 40%,transparent); text-underline-offset:4px; padding:10px 2px }
+.hero-scroll:hover{ color:var(--ink); text-decoration-color:currentColor }
 .hero-plate{ background:#f7f6f0; border:1px solid #a5aaa6; border-radius:12px; overflow:hidden; box-shadow:0 20px 48px -27px rgba(18,22,28,.42) }
 .plate-head,.drawing-head{ display:flex; justify-content:space-between; align-items:center; gap:16px; padding:12px 17px; border-bottom:1px solid #afb1aa; color:#273441; font:600 14px/1.35 var(--sans) }
 .skin-bp .drawing-head{ background:#14375c; border-bottom-color:#567696; color:#f4f6fb }
@@ -122,8 +127,6 @@ html.js .slot > span{ visibility:hidden }
 .hero-plate .card{ box-shadow:none; border:0; border-top:1px solid #b9bdb5; border-radius:0; max-width:none; padding:16px 20px 18px }
 .hero-plate .card h2{ font-size:1.5rem; font-weight:600; line-height:1.22; margin:0 0 6px; color:#1c2532 }
 .hero-plate .card p{ font-size:.95rem; line-height:1.5; max-width:66ch }
-.cue{ display:inline-flex; align-items:center; gap:10px; margin-top:20px; font-family:var(--mono); font-size:.8125rem; color:var(--ink2) }
-.cue svg{ width:14px; height:14px }
 
 /* Full-width braided 3D stage bands & chapter-pinned 3D stages */
 .braid-band{ padding-block:28px 36px }
@@ -136,7 +139,6 @@ html.js .slot > span{ visibility:hidden }
   padding:14px 18px; border-bottom:1px solid var(--c-line);
 }
 .braid-title{ margin:0; font-family:var(--mono); font-size:12px; font-weight:600; line-height:1.4; letter-spacing:.03em; color:var(--c-ink) }
-.braid-cap{ margin:0; font-size:14.5px; line-height:1.45; color:var(--c-ink2); max-width:68ch }
 .braid-toolbar{
   display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px;
   padding:10px 16px; border-bottom:1px solid var(--c-line); background:color-mix(in srgb,var(--c-code) 65%,transparent);
@@ -182,25 +184,6 @@ html.js .slot > span{ visibility:hidden }
 .release-stage{ display:grid; grid-template-rows:auto minmax(0,1fr); height:min(74svh,600px); max-height:min(100%,600px); aspect-ratio:auto }
 .release-steps{ padding-bottom:18svh }
 .release-beat{ min-height:56svh; display:flex; align-items:center }
-.obs-sandbox-wrap{ padding-block:44px 20px }
-.obs-sandbox-card{
-  border-radius:16px; border:1.25px solid #567696; background:#123354; color:#ffffff;
-  box-shadow:0 24px 54px -26px rgba(10,18,30,.55); overflow:hidden;
-}
-.obs-sandbox-head{
-  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px 24px;
-  padding:22px 24px 16px; border-bottom:1px solid rgba(255,255,255,.2);
-}
-.obs-sandbox-head h2{ font-size:clamp(1.6rem,3vw,2.35rem); line-height:1.12; color:#ffffff; margin:0 0 6px }
-.obs-sandbox-head p{ margin:0; font-size:15px; line-height:1.5; color:#dbe7f5; max-width:60ch }
-.obs-sandbox-bar{ display:flex; flex-wrap:wrap; gap:6px; align-items:center }
-.obs-sandbox-stage{ position:relative; height:clamp(380px,62svh,580px); background:#0d2540 }
-.obs-sandbox-host{ position:absolute; inset:0; width:100%; height:100% }
-.obs-sandbox-hint{
-  position:absolute; inset:0; display:grid; place-content:center; padding:20px; text-align:center;
-  font:500 13px/1.5 var(--mono); color:#dbe7f5; pointer-events:none;
-}
-.obs-sandbox-live .obs-sandbox-hint{ display:none }
 
 /* cards (skins) & pop-up scroll choreography + Basic|Deep */
 .skin-light{ --c-bg:#f8f7f2; --c-ink:#212934; --c-ink2:#424e5c; --c-line:#c2c3b9; --c-code:#eae8df; --c-acc:#987237; --c-shadow:0 14px 34px -22px rgba(18,22,28,.28),0 1px 2px rgba(18,22,28,.05); --c-shadow-act:0 22px 46px -24px rgba(18,22,28,.34),0 2px 6px rgba(18,22,28,.12);
@@ -302,24 +285,38 @@ html.rm #thread.dip{ animation:tdip .42s ease both }
 .btn:hover{ border-color:#79551d; box-shadow:0 10px 24px -14px rgba(24,36,53,.42) }
 .btn svg{ width:14px; height:14px }
 .outro-actions{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:24px }
-.capstone-wrap{ margin-top:56px; display:flex; justify-content:center }
-.capstone-card{
-  display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:16px 20px;
-  max-width:44rem; width:100%; padding:18px 22px; border-radius:14px; box-sizing:border-box;
-  border:1.5px solid #987237; background:#141c27; color:#f7f5ee; text-decoration:none;
-  box-shadow:0 20px 44px -22px rgba(0,0,0,.55);
-  transition:transform .22s var(--ease), border-color .22s var(--ease), box-shadow .22s var(--ease);
+.finale{ margin-top:56px; display:grid; gap:44px; justify-items:center }
+.finale-capstone{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:14px 22px;
+  max-width:50rem; width:100%; padding:22px 26px; border-radius:16px; box-sizing:border-box;
+  border:1.5px solid #987237; background:#141c27; color:#f7f5ee; box-shadow:0 20px 44px -22px rgba(0,0,0,.55);
+  transition:opacity .75s var(--ease), transform .75s var(--ease), visibility 0s;
 }
-.capstone-card:hover,.capstone-card:focus-visible{ transform:translateY(-2px); border-color:#e6bf80; box-shadow:0 24px 52px -22px rgba(0,0,0,.72) }
-.capstone-diamond{
-  display:grid; place-items:center; width:50px; height:50px; border-radius:12px;
-  background:#b8320d; color:#fff; border:1.5px solid #e6bf80; flex:none;
+.finale-capstone[data-state="hidden"]{ opacity:0; transform:translateY(26px) scale(.98); visibility:hidden; pointer-events:none; transition:none }
+.finale-diamond{ display:grid; place-items:center; width:52px; height:52px; border-radius:12px; background:#b8320d; color:#fff; border:1.5px solid #e6bf80; flex:none }
+.finale-diamond svg{ width:26px; height:26px }
+.finale-copy{ display:grid; gap:4px; min-width:0 }
+.finale-copy h3{ font-family:var(--display); font-size:1.4rem; line-height:1.25; font-weight:700; letter-spacing:-.015em; color:#f7f5ee }
+.finale-copy p{ margin:0; font-size:.95rem; line-height:1.5; color:#d2dae6; max-width:46ch; text-wrap:pretty }
+.finale-actions{ display:grid; gap:8px; justify-items:center }
+.finale-btn{
+  appearance:none; min-height:48px; padding:0 22px; border-radius:999px; border:1.5px solid #e6bf80; background:#e6bf80; color:#141c27;
+  font:700 15px/1.2 var(--sans); cursor:pointer; white-space:nowrap; transition:background-color .16s var(--ease), border-color .16s var(--ease);
 }
-.capstone-diamond svg{ width:26px; height:26px }
-.capstone-copy{ display:grid; gap:3px; min-width:0 }
-.capstone-copy strong{ font-family:var(--display); font-size:1.3rem; line-height:1.32; font-weight:700; letter-spacing:-.015em; color:#f7f5ee }
-.capstone-copy span{ font-size:.95rem; line-height:1.45; color:#d2dae6 }
-.capstone-go{ font:700 20px/1 var(--mono); color:#e6bf80 }
+.finale-btn:hover{ background:#f2d29b; border-color:#f2d29b }
+.finale-btn[aria-busy="true"]{ cursor:progress; opacity:.8 }
+.finale-link{ color:#d2dae6; font:500 13.5px/1.35 var(--sans); text-decoration:underline; text-decoration-color:rgba(210,218,230,.45); text-underline-offset:4px; padding:6px 2px }
+.finale-link:hover{ color:#fff; text-decoration-color:currentColor }
+.finale-btn:focus-visible,.finale-link:focus-visible{ outline:3px solid #e6bf80; outline-offset:3px }
+.finale-note{ grid-column:1 / -1; margin:0; min-height:0; font:500 13px/1.45 var(--mono); color:#e6bf80 }
+.finale-note:empty{ display:none }
+.other-ways{ max-width:50rem; width:100%; display:grid; gap:12px }
+.other-ways h3{ font-family:var(--display); font-size:1.1875rem; font-weight:600; letter-spacing:-.015em; color:#182435 }
+.other-ways ul{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 32px }
+.other-ways li{ display:grid; gap:2px; padding:12px 0; border-top:1.25px solid #c9cdd4 }
+.other-ways a{ color:#182435; font:600 15px/1.35 var(--sans); text-decoration:none; min-height:24px }
+.other-ways a:hover,.other-ways a:focus-visible{ color:#79551d; text-decoration:underline }
+.other-ways li span{ color:#445063; font-size:.9rem; line-height:1.45 }
 
 /* thread (warm brass & architectural slate) */
 #thread{ position:fixed; left:0; top:0; width:0; height:0; z-index:5; pointer-events:none; will-change:transform }
@@ -330,7 +327,7 @@ html.rm #thread.dip{ animation:tdip .42s ease both }
 .t-ring::after{ content:"sat"; position:absolute; right:36px; top:6px; font:500 12px/1 var(--mono); color:#fff; letter-spacing:.02em; opacity:var(--lab,1) }
 
 /* rail with compact chapter numbers */
-#rail{ position:fixed; z-index:6; right:max(16px,env(safe-area-inset-right)); top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px; border-radius:999px; background:var(--rail-bg); border:1px solid var(--rail-line); box-shadow:0 12px 30px -18px rgba(0,0,0,.42); transition:background-color .3s ease,border-color .3s ease }
+#rail{ position:fixed; z-index:6; right:max(16px,env(safe-area-inset-right)); top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px; border-radius:999px; background:var(--rail-bg); border:1px solid var(--rail-line); box-shadow:0 12px 30px -18px rgba(0,0,0,.42); transition:background-color .3s ease,border-color .3s ease,box-shadow .3s ease }
 #rail ol{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px }
 #rail a, .r-btn{ position:relative; display:grid; place-items:center; width:40px; height:36px; border-radius:999px; color:var(--rail-ink); text-decoration:none; background:transparent; border:0; cursor:pointer; transition:background-color .2s ease }
 #rail a:hover, .r-btn:hover{ background:color-mix(in srgb,var(--rail-ink) 10%,transparent) }
@@ -345,7 +342,14 @@ html.on-dark #rail a[aria-current="true"] .r-dot{ border-color:#c9a15a; backgrou
 
 /* Present mode indicator */
 body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0,0,.48), 0 0 0 2px var(--c-acc) }
-.studio-bar .studio-right{ flex-wrap:nowrap }
+.studio-bar .studio-right{ flex-wrap:nowrap; transition:opacity .35s var(--ease), visibility 0s }
+.studio-bar .studio-right.is-quiet{ opacity:0; visibility:hidden; pointer-events:none; transition:opacity .3s var(--ease), visibility 0s linear .3s }
+.rm .studio-bar .studio-right{ transition:none }
+@media (min-width:820px){
+  /* the chapter rail is wayfinding, not a control to compete with the tour: soft until it is used */
+  #rail:not(:hover):not(:focus-within){ box-shadow:none; border-color:transparent; background:color-mix(in srgb,var(--rail-bg) 72%,transparent) }
+  body.tour-spot #rail:not(:hover):not(:focus-within){ background:transparent }
+}
 
 @media (max-width:819px){
   body{ font-size:16px }
@@ -378,8 +382,9 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
   .r-now{ display:block; flex:1; text-align:center; font:500 14px/1.35 var(--sans); color:var(--rail-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   .outro{ padding-bottom:120px }
   .bridge{ min-height:78svh }
-  .capstone-card{ grid-template-columns:auto minmax(0,1fr); padding:16px }
-  .capstone-go{ display:none }
+  .finale-capstone{ grid-template-columns:minmax(0,1fr); padding:20px 18px; justify-items:start }
+  .finale-actions{ justify-items:start }
+  .other-ways ul{ grid-template-columns:minmax(0,1fr) }
 }
 @media (max-width:767px){
   .studio-bar{ flex-wrap:wrap; padding:6px var(--gutR) 6px var(--gutL); gap:6px 8px }
@@ -394,7 +399,7 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
   .obs-engine.tile .obs-hit span{ font-size:11px; padding:5px 7px; left:4px; bottom:4px }
   .obs-aside h2{ font-size:25px }
 }
-@media (prefers-reduced-motion:reduce){ .dyn,.card,.r-dot,.modes .knob{ transition-duration:.01s } }
+@media (prefers-reduced-motion:reduce){ .dyn,.card,.r-dot,.modes .knob{ transition-duration:.01s } .finale-capstone,.studio-bar .studio-right{ transition:none !important } }
 
 /* svg text + lines */
 .sv text{ font-family:var(--mono); font-variant-numeric:tabular-nums }
@@ -531,8 +536,6 @@ body.present-mode .step.is-active > .card{ box-shadow:0 24px 54px -22px rgba(0,0
   .state-preview .chapter .stage-wrap{ height:52svh; min-height:340px }
   .release-beat{ min-height:44svh; padding-bottom:44px }
   .braid-scrub-row{ grid-template-columns:1fr; gap:6px }
-  .obs-sandbox-head{ padding:16px }
-  .obs-sandbox-stage{ height:clamp(300px,50svh,440px) }
 }
 
 /* Stage-lock playback bar: holds viewport in place while active 3D stage plays */
@@ -616,6 +619,8 @@ html.on-dark .tour-mute[aria-pressed="true"]{ background:#c9a15a; border-color:#
 .tour-return svg,.tour-deeper svg{ width:16px; height:16px; flex:none }
 @media (max-width:819px){ .tour-dock{ bottom:calc(150px + env(safe-area-inset-bottom,0px)) } .tour-play{ padding:4px 12px 4px 10px } .tour-mute{ width:44px; height:44px } .tour-play{ min-height:44px } }
 @media (max-width:420px){ .tour-play-time{ display:none } }
+/* the floating caption already narrates the station while the tour runs */
+body.tour-spot .braid-live-caption{ visibility:hidden }
 body.tour-spot .step:not(.is-active) > .card{ opacity:.42 }
 body.tour-spot .step.is-active > .card{ border-color:var(--c-acc); box-shadow:0 28px 64px -24px rgba(0,0,0,.55), 0 0 0 3px var(--c-acc) }
 body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34px 80px -34px rgba(0,0,0,.6) }
@@ -623,7 +628,6 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
   html:not(.rm) body.tour-spot .step.is-active > .card{ transform:scale(1.025); transform-origin:left center }
   html:not(.rm) body.tour-spot .chapter .stage{ transform:scale(1.02); transition:transform .5s var(--ease), box-shadow .35s var(--ease) }
 }
-.braid-hint{ margin:0; font:500 12px/1.4 var(--mono); color:var(--c-ink2) }
 
 /* Hero tower labels */
 #hero-outline text{ font-size:11px; letter-spacing:.02em; font-family:var(--mono,ui-monospace,monospace) }
@@ -705,9 +709,11 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
       <div>
         <h1 class="dyn" tabindex="-1">One token’s journey</h1>
         <p class="stand dyn">How a frontier language model is trained and then served, told by following a single token through six rooms.</p>
-        <p class="onboard-guide dyn">Scroll down through each full section — training comes first, then a released model answers a new prompt. Every section and lab starts open. Change a value, watch the graphic, or collapse a section to read faster.</p>
         <p class="sentence dyn" aria-label="The cat sat on">The cat <span class="slot" id="a-hero" data-u="72" data-k="1"><span>sat</span></span> on</p>
-        <a class="hero-entry" href="#ch1" data-nav="1">Follow the token <span aria-hidden="true">&#8595;</span></a>
+        <div class="hero-actions">
+          <button type="button" class="hero-start" id="heroStart"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.5v11l9-5.5z"/></svg><span>Play the narrated tour</span><span class="hero-start-time"></span></button>
+          <a class="hero-scroll" href="#ch1" data-nav="1">or scroll to read</a>
+        </div>
       </div>
       <div>
         <div class="hero-plate"><div class="plate-head"><span>DeepSeek-V4-Pro</span><span>1.6T / 49B · 1M ctx</span></div><div class="hero-bay" role="img" aria-label="Machined model tower with embedding bank, decoder stack and vocabulary scoring head"><svg viewBox="0 0 300 240" aria-hidden="true"><g id="hero-outline"></g></svg><div class="bay"></div></div>
@@ -715,7 +721,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
           <h2>The reference model</h2>
           <p>Numbers come from DeepSeek-V4-Pro, whose paper and config publish them: <span class="num">1.6T</span> parameters in total, <span class="num">49B</span> active per token, <span class="num">61</span> layers, a <span class="num">1M</span> context. Model architecture and training figures come from those sources. Serving layouts, safeguards and mechanical diagrams are illustrative deployment choices, not a trace of DeepSeek’s production service.</p>
         </div>
-        </div><p class="cue dyn"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M7 1.5v10M3 7.5l4 4 4-4"/></svg>Scroll, or use the chapter rail</p>
+        </div>
       </div>
     </div>
   </header>
@@ -724,8 +730,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
   <section class="braid-band wrap" id="training-line-band" aria-label="Training line Stations 1 to 5">
     <div class="braid-card skin-light">
       <div class="braid-head">
-        <p class="braid-title">Training Line · Stations 1–5 (Diagram)</p>
-        <p class="braid-cap">Step or scrub through corpus cleaning, BPE tokenization, pretraining, GRPO post-training, and the release freeze — strictly before any user prompt arrives.</p>
+        <p class="braid-title">Training Line · Stations 1–5</p>
       </div>
       <div class="braid-toolbar">
         <div class="braid-stations" role="group" aria-label="Training stations 1 to 5">
@@ -735,23 +740,20 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
           <button type="button" class="stage-pill" data-train-stn="3" aria-pressed="false">4 · Post-train</button>
           <button type="button" class="stage-pill" data-train-stn="4" aria-pressed="false">5 · Freeze θ*</button>
         </div>
-        <p class="braid-hint">Explore a station here, or press <strong>Play tour</strong> in the top bar for the narrated walk-through.</p>
       </div>
       <div class="braid-viewport">
         <div class="spine-stage-slot" data-slot-id="braid-opening" data-engine="diagram" data-skin="light" data-step="1.1" data-diagram-pose="0.24"></div>
       </div>
       <div class="braid-footer">
         <div class="braid-scrub-row">
-          <label for="trainLineRange">Training progress (Stations 1–5)</label>
+          <label for="trainLineRange">Scrub</label>
           <input type="range" id="trainLineRange" min="0" max="100" value="6" step="1">
-          <output id="trainLinePct" for="trainLineRange">Station 1 / 5</output>
         </div>
         <div class="braid-readout-row">
           <p class="braid-live-caption" id="trainLineCap" aria-live="polite">Station 1 · Raw web, code, book, and math documents pass through deduplication and quality filters; near-duplicates drop down the reject chute.</p>
           <div class="braid-live-meta">
             <span>Token: <strong id="trainLineTok" data-math-val>“ sat” in raw text</strong></span>
             <span>Weights: <strong id="trainLineWeights" data-math-val>uninitialized θ₀</strong></span>
-            <a class="stage-pill" id="trainLineLaunch" href="./end-to-end-swiss/index.html?from=story&amp;pos=ch1&amp;g=0.24">Open Swiss Diagram ↗</a>
           </div>
         </div>
       </div>
@@ -883,14 +885,10 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
   <section class="chapter" id="ch4" aria-labelledby="ch4-h" style="--sc:1.35fr;--tc:1fr">
     <div class="wrap scrolly">
       <div class="stage-wrap"><div class="stage skin-bp" id="stage4"><i class="bp-corner tl"></i><i class="bp-corner br"></i>
-        <div class="drawing-head"><span>Decoder assembly · Frozen θ*</span><span id="ch4StageReadout">Station 7 · Embedding &amp; 61 layers</span></div><div class="s4-draw"><div class="bay" role="img" aria-label="Three-dimensional decoder assembly"></div><div class="instrument-caption"><span></span><span></span></div><svg class="sv" id="s4" viewBox="0 0 600 1400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Blueprint of one model tower: embedding at the bottom, 61 layers with one decoder block drawn in detail, LM head at the top. Training is complete. The weights are frozen, the KV cache fills beside attention and the output goes to the sampler."></svg><div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch4-spine" data-engine="diagram" data-skin="bp" data-step="7.1" data-diagram-pose="6.12"></div></div>
+        <div class="drawing-head"><span>Decoder assembly · Frozen θ*</span><span id="ch4StageReadout">Station 7 · Embedding &amp; 61 layers</span></div><div class="s4-draw"><div class="bay" aria-hidden="true"></div><div class="instrument-caption"><span></span><span></span></div><svg class="sv" id="s4" viewBox="0 0 600 1400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Blueprint of one model tower: embedding at the bottom, 61 layers with one decoder block drawn in detail, LM head at the top. Training is complete. The weights are frozen, the KV cache fills beside attention and the output goes to the sampler."></svg><div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch4-spine" data-engine="diagram" data-skin="bp" data-step="7.1" data-diagram-pose="6.12"></div></div>
         <aside class="s4-side" aria-label="Drawing controls and key">
           <div class="s4-mode-wrap">
             <span class="s4-mode-label">Inference · weights frozen</span>
-            <div class="chapter-stage-controls" role="group" aria-label="Chapter 4 3D view">
-              <button type="button" class="stage-pill" data-ch4-engine="diagram" aria-pressed="true">Diagram</button>
-              <button type="button" class="stage-pill" data-ch4-engine="spatial" aria-pressed="false">Beamline 3D</button>
-            </div>
             <div class="modes" data-mode="infer" hidden></div>
           </div>
           <ul class="legend"><li><i class="lg-f"></i>forward ↑</li><li><i class="lg-k"></i>KV cache</li></ul>
@@ -924,7 +922,7 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
   <!-- 5 -->
   <section class="chapter" id="ch5" aria-labelledby="ch5-h" style="--sc:1.25fr;--tc:1fr">
     <div class="wrap scrolly">
-      <div class="stage-wrap"><div class="stage skin-light"><svg class="sv" id="s5" viewBox="0 0 480 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schematic: client, gate, batch, prefill, decode with KV cache, sampler, guardrail and stream, wired in a loop around the model tower node, with request particles."></svg><div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch5-spatial" data-engine="spatial" data-skin="light" data-step="6.2" data-local-t="0.35"></div></div></div>
+      <div class="stage-wrap"><div class="stage skin-light"><svg class="sv" id="s5" viewBox="0 0 480 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schematic: client, gate, batch, prefill, decode with KV cache, sampler, guardrail and stream, wired in a loop around the model tower node, with request particles."></svg><div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch5-serving" data-engine="diagram" data-skin="light" data-step="6.2" data-local-t="0.35"></div></div></div>
       <div class="steps">
         <header class="ch-head">
           <h2 id="ch5-h" class="dyn" tabindex="-1">Your request,<br><span class="acc">streamed in milliseconds.</span></h2>
@@ -948,17 +946,12 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
     <div class="wrap scrolly">
       <div class="stage-wrap"><div class="stage skin-light">
         <div class="chapter-stage-head">
-          <span data-ch-stage-title="5">Beamline 3D · Tool-Call Loop</span>
-          <div class="chapter-stage-controls" role="group" aria-label="Tool loop beats and cache state">
-            <button type="button" class="stage-pill" data-ch6-beat="0" aria-pressed="true">1 · tool_use</button>
-            <button type="button" class="stage-pill" data-ch6-beat="1" aria-pressed="false">2 · Tool bench</button>
-            <button type="button" class="stage-pill" data-ch6-beat="2" aria-pressed="false">3 · Resend</button>
-            <button type="button" class="stage-pill" data-ch6-beat="3" aria-pressed="false">4 · Cache hit</button>
+          <span data-ch-stage-title="5">Diagram · Tool-Call Loop</span>
+          <div class="chapter-stage-controls" role="group" aria-label="Prefix cache state">
             <button type="button" class="stage-pill" id="ch6CacheToggle" aria-pressed="true" title="Toggle prefix cache hit vs bust">Cache: Hit</button>
-            <a class="stage-pill" href="./end-to-end-beamline/index.html?from=story&amp;pos=ch6&amp;study=1&amp;beat=7a">Beamline ↗</a>
           </div>
         </div>
-        <div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch6-spatial" data-engine="spatial" data-skin="light" data-step="11.3" data-local-t="0.92"></div>
+        <div class="spine-stage-slot chapter-spine-slot" data-slot-id="ch6-loop" data-engine="diagram" data-skin="light" data-step="11.3" data-local-t="0.92"></div>
         <svg class="sv" id="s6" viewBox="0 0 480 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Agent loop: the model stops with a tool call, your app runs the tool, a new request carries the result back, and the server's prefix cache means only the new tokens are prefilled."></svg>
       </div></div>
       <div class="steps">
@@ -975,30 +968,6 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
     </div>
   </section>
 
-  <!-- Free-range 3D Observatory Sandbox at the end of the Journey -->
-  <section class="wrap obs-sandbox-wrap" id="observatory-sandbox" aria-labelledby="obs-sandbox-h">
-    <div class="obs-sandbox-card skin-bp" id="obsSandboxCard">
-      <div class="obs-sandbox-head">
-        <div>
-          <h2 id="obs-sandbox-h">Explore all 31 components freely.</h2>
-          <p>Training, model architecture, and the tool-call loop are complete. Orbit, pan, zoom, and inspect the full 3D Observatory at your own pace.</p>
-        </div>
-        <div class="obs-sandbox-bar" role="group" aria-label="Observatory realm filter">
-          <button type="button" class="stage-pill" data-sandbox-realm="ALL" aria-pressed="true">All 31</button>
-          <button type="button" class="stage-pill" data-sandbox-realm="TRAINING" aria-pressed="false">Training</button>
-          <button type="button" class="stage-pill" data-sandbox-realm="MODEL" aria-pressed="false">Model Tower</button>
-          <button type="button" class="stage-pill" data-sandbox-realm="INFERENCE" aria-pressed="false">Serving &amp; Loop</button>
-          <button type="button" class="stage-pill" id="obsSandboxReset">Reset view</button>
-          <button type="button" class="stage-pill is-primary" id="obsSandboxStudio">Full-screen Studio ↗</button>
-        </div>
-      </div>
-      <div class="obs-sandbox-stage">
-        <div class="obs-sandbox-hint">Scroll into view to activate the interactive 3D Observatory</div>
-        <div class="obs-sandbox-host" id="obsSandboxHost"></div>
-      </div>
-    </div>
-  </section>
-
   <footer class="outro wrap" id="outro">
     <div class="outro-grid">
       <div>
@@ -1007,7 +976,6 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
         <p class="stand dyn">A published model architecture, followed through an illustrative training and serving pipeline.</p>
       </div>
       <div>
-        <button id="allTour" class="obs-pill" type="button">Explore all 31 components in 3D Studio ↗</button>
         <ol class="recap">
           <li><div><a class="recap-link" href="#ch1" data-nav="1">Data &amp; tokens →</a><span>Text from everywhere, cleaned and cut into IDs; “&nbsp;sat” is one of 129,280.</span></div></li>
           <li><div><a class="recap-link" href="#ch2" data-nav="2">Pretraining →</a><span>33T tokens of next-token guesses in FP8 with Muon and AdamW, gradients flowing back down.</span></div></li>
@@ -1020,16 +988,29 @@ body.tour-spot .chapter .stage{ box-shadow:0 0 0 2px var(--c-acc,#987237), 0 34p
         <div class="outro-actions"><a class="btn" href="#intro" data-nav="0"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M7 12.5v-10M3 6.5l4-4 4 4"/></svg>Back to the start</a></div>
       </div>
     </div>
-    <div class="capstone-wrap">
-      <a class="capstone-card" href="./journey-tour/index.html?from=story&amp;pos=outro&amp;mode=flythrough">
-        <span class="capstone-diamond" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2.5 21.5 12 12 21.5 2.5 12 Z"/><path d="M9.5 8.5 16 12l-6.5 3.5Z" fill="currentColor" stroke="none"/></svg></span>
-        <span class="capstone-copy">
-          <strong>You’ve completed the model lifecycle. Enter Cinema →</strong>
-          <span>Fly through all 30 stops in full-screen 3D choreography, or orbit freely.</span>
-        </span>
-        <span class="capstone-go" aria-hidden="true">↗</span>
-      </a>
-    </div>
+    <section class="finale" aria-labelledby="finale-h">
+      <div class="finale-capstone" id="finaleCapstone" data-state="hidden" inert>
+        <span class="finale-diamond" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2.5 21.5 12 12 21.5 2.5 12 Z"/><path d="M12 7v10M7.5 9.5 12 12l4.5-2.5" stroke-linejoin="round"/></svg></span>
+        <div class="finale-copy">
+          <h3 id="finale-h">Now see all of it at once.</h3>
+          <p>You have followed one token through every stop. The same 31 components stand together as a 3D scale model you can orbit and inspect.</p>
+        </div>
+        <div class="finale-actions">
+          <button type="button" class="finale-btn" id="exploreModel">Explore the 3D model</button>
+          <a class="finale-link" href="./journey-tour/index.html?from=story&amp;pos=outro&amp;mode=flythrough">or watch the flythrough</a>
+        </div>
+        <p class="finale-note" id="exploreNote" role="status"></p>
+      </div>
+      <nav class="other-ways" aria-labelledby="other-ways-h">
+        <h3 id="other-ways-h">Other ways to explore</h3>
+        <ul>
+          <li><a href="./one-token/index.html?from=story&amp;pos=outro">12-stage reader</a><span>The same token, one continuous scene.</span></li>
+          <li><a href="./end-to-end-swiss/index.html?from=story&amp;pos=outro">Swiss diagrams</a><span>Twelve stages as flat editorial plates.</span></li>
+          <li><a href="./end-to-end-beamline/index.html?from=story&amp;pos=outro">Beamline</a><span>Study each beat as an animated machine hall.</span></li>
+          <li><a href="./journey-tour/index.html?from=story&amp;pos=outro">Stop-by-stop 3D tour</a><span>Thirty stops, one 3D scene.</span></li>
+        </ul>
+      </nav>
+    </section>
   </footer>
 </main><div class="obs-dialog" id="obsDialog"><div id="obsScrim" class="obs-scrim" hidden></div><div class="obs-engine" id="obsEngine"><iframe title="Interactive LLM Observatory" id="obsFrame"></iframe><button class="obs-hit" id="obsExpand" type="button"><span>Expand 3D view</span></button></div><aside id="obsAside" class="obs-panel obs-aside" hidden><div class="obs-actions obs-top-actions"><button id="obsClose" class="obs-pill">Close ×</button></div><h2 id="partTitle"></h2><p class="obs-meta" id="partIndex"></p><h3 id="componentTitle"></h3><div id="detailDiagram"></div><div class="fields" id="partFields"></div><div class="obs-actions"><button id="partPrev" class="obs-pill">← Previous</button><button id="partNext" class="obs-pill primary">Next →</button></div></aside></div>
 
@@ -1701,7 +1682,7 @@ const absTop = el => el.getBoundingClientRect().top + scrollY;
 const stagePool = window.SpineStagePool ? window.SpineStagePool.create({ quality: qs.get('quality') || undefined }) : null;
 const braidSlots = stagePool ? stagePool.mountSlots(document) : [];
 
-/* Dynamic Phase CSS Injection: keep inference 3D & Observatory styles out of the active sheet during early training. */
+/* Dynamic Phase CSS Injection: the Observatory never mounts in the reading path; it opens from the finale capstone only. */
 const phaseStyleEl = document.createElement('style');
 phaseStyleEl.id = 'journey-phase-css';
 document.head.appendChild(phaseStyleEl);
@@ -1713,19 +1694,11 @@ const PHASE_SHEETS = {
     html:not(.state-preview) .obs-host { display: none !important; }
     .obs-dialog:not(.expanded) .obs-engine { display: none !important; opacity: 0 !important; pointer-events: none !important; }
     #ch4 .chapter-spine-slot, #ch5 .chapter-spine-slot, #ch6 .chapter-spine-slot { opacity: 0; pointer-events: none; }
-    #observatory-sandbox .obs-sandbox-stage { opacity: 0.42; }
   `,
   inference: `
     html:not(.state-preview) .obs-host { display: none !important; }
     .obs-dialog:not(.expanded) .obs-engine { display: none !important; opacity: 0 !important; pointer-events: none !important; }
     #ch4 .chapter-spine-slot, #ch5 .chapter-spine-slot, #ch6 .chapter-spine-slot { opacity: 1; transition: opacity .26s cubic-bezier(.16,1,.3,1); }
-  `,
-  observatory: `
-    html:not(.state-preview) .obs-host { display: none !important; }
-    #ch4 .chapter-spine-slot, #ch5 .chapter-spine-slot, #ch6 .chapter-spine-slot { opacity: 1; }
-    .obs-engine.sandbox { display: block !important; border-radius: 0; pointer-events: auto; box-shadow: none; outline: none; }
-    .obs-engine.sandbox iframe { pointer-events: auto; }
-    .obs-engine.sandbox .obs-hit { display: none; }
   `
 };
 let currentJourneyPhase = '';
@@ -1743,16 +1716,13 @@ const releaseGateEl = document.getElementById('release-gate');
 const releaseSwitchSlot = $('[data-slot-id="braid-switchyard"]');
 const releaseBeats = $$('.release-beat', releaseGateEl);
 const inferTransEl = document.getElementById('inference-transition');
-const obsSandboxEl = document.getElementById('observatory-sandbox');
-const obsSandboxCard = document.getElementById('obsSandboxCard');
-const obsSandboxHost = document.getElementById('obsSandboxHost');
 const chSlots = {
   0: $('[data-slot-id="ch1-diagram"]'),
   1: $('[data-slot-id="ch2-diagram"]'),
   2: $('[data-slot-id="ch3-diagram"]'),
   3: $('[data-slot-id="ch4-spine"]'),
-  4: $('[data-slot-id="ch5-spatial"]'),
-  5: $('[data-slot-id="ch6-spatial"]')
+  4: $('[data-slot-id="ch5-serving"]'),
+  5: $('[data-slot-id="ch6-loop"]')
 };
 const TRAIN_STATIONS = [
   { maxG: 0.98, step: '1.1', g: 0.24, pct: 6, label: 'Station 1 / 5', tok: '“ sat” in raw text', weights: 'uninitialized θ₀', cap: 'Station 1 · Raw web, code, book, and math documents pass through deduplication and quality filters; near-duplicates drop down the reject chute.' },
@@ -1842,15 +1812,8 @@ if (window.LearningPanels?.watchLabs && document.getElementById('training-line-b
   }).observe(band, { subtree: true, characterData: true, childList: true });
 }
 
-/* Chapter 4 Diagram/Spatial switch & Chapter 6 Beamline Tool-Loop controls */
+/* Chapter 6 tool-loop controls (the beat pills were removed; ch6BeatLock now only follows programmatic use) */
 let ch6BeatLock = null;
-const ch4EngineBtns = $$('[data-ch4-engine]');
-ch4EngineBtns.forEach(btn => btn.addEventListener('click', () => {
-  const eng = btn.dataset.ch4Engine === 'spatial' ? 'spatial' : 'diagram';
-  if (chSlots[3]) chSlots[3].dataset.engine = eng;
-  ch4EngineBtns.forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
-  kick();
-}));
 const ch6BeatBtns = $$('[data-ch6-beat]');
 ch6BeatBtns.forEach(btn => btn.addEventListener('click', () => {
   const idx = clamp(Number(btn.dataset.ch6Beat) || 0, 0, 3);
@@ -1886,7 +1849,7 @@ if (ch6CacheBtn) {
   });
 }
 
-let releaseGateEdges = [0, 1, 2, 3], releaseGateTop = 0, releaseGateBottom = 1, sandboxTop = Infinity;
+let releaseGateEdges = [0, 1, 2, 3], releaseGateTop = 0, releaseGateBottom = 1;
 
 function layout() {
   needLayout = false; vw = innerWidth; vh = innerHeight; mobile = vw < 820; FOCUS = mobile ? 0.7 : 0.5; dpr = Math.min(2, devicePixelRatio || 1);
@@ -1901,7 +1864,6 @@ function layout() {
     const lastRel = releaseBeats[releaseBeats.length - 1];
     releaseGateEdges = [...releaseBeats.map(absTop), absTop(lastRel) + lastRel.offsetHeight];
   }
-  sandboxTop = obsSandboxEl ? absTop(obsSandboxEl) : Infinity;
   canvas.width = Math.round(vw * dpr); canvas.height = Math.round(vh * dpr);
   lastC = -1;
 }
@@ -2264,8 +2226,6 @@ function update(dt) {
   // Inject the right phase stylesheet into document.head as the learner crosses training -> inference -> observatory.
   if (stateName || previewStop) {
     setJourneyPhase('preview');
-  } else if (obsSandboxEl && focus >= sandboxTop - vh * 0.38) {
-    setJourneyPhase('observatory');
   } else if (focus >= (inferTransEl ? absTop(inferTransEl) - vh * 0.35 : releaseGateBottom)) {
     setJourneyPhase('inference');
   } else {
@@ -2630,80 +2590,21 @@ function frameInline(s,fly){
   if(s.ch===3){const p=api.poseFor(s.ids,{zoom:1.14});const y=8.8+.12*p.target[1];api.setPose({target:[0,y,0],pos:[18,y+9,31]}, {fly:fly&&!RM,duration:.85})}
   api.setPlaying(!RM&&!frozen);
 }
-let sandboxRealm = 'ALL', sandboxMounted = false;
-function applySandboxObservatory(fly = false) {
-  if (!api) return;
-  api.setSkin('blueprint');
-  api.setRealm(sandboxRealm);
-  api.setHighlight([]);
-  api.setBackprop(false);
-  api.setKV(4);
-  api.setControls(true);
-  api.setLabels(innerWidth >= 720);
-  const poses = {
-    ALL: { pos: [48, 49, 76], target: [0, 4, 0] },
-    TRAINING: { pos: [-18, 30, 56], target: [-14, 4, 0] },
-    MODEL: { pos: [18, 22, 34], target: [0, 10, 0] },
-    INFERENCE: { pos: [34, 28, 54], target: [16, 4, 0] }
-  };
-  api.setPose(poses[sandboxRealm] || poses.ALL, { fly: fly && !RM, duration: 0.75 });
-  api.setPlaying(!RM && !frozen);
-}
-$$('[data-sandbox-realm]').forEach(btn => btn.addEventListener('click', () => {
-  sandboxRealm = btn.dataset.sandboxRealm || 'ALL';
-  $$('[data-sandbox-realm]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
-  if (sandboxMounted) applySandboxObservatory(true);
-}));
-document.getElementById('obsSandboxReset')?.addEventListener('click', () => {
-  if (sandboxMounted) applySandboxObservatory(true);
-});
-document.getElementById('obsSandboxStudio')?.addEventListener('click', () => openDrawer(true));
-
 function refreshHost(){
   if(opened||!api)return;
   let s=previewStop;
   if(!s){const aim=scrollY+vh*FOCUS;const ch=chapters.find(c=>aim>=c.top&&aim<c.bottom&&scrollY+vh*c.focusF>=c.sT&&scrollY+vh*c.focusF<c.sB);if(ch)s=STOPS[offsets[ch.num-1]+ch.idx]}
   if (!previewStop) {
-    if (s && active !== s.i) {
-      active = s.i;
-      api.setRealm(s.realm);
-    }
-    const sb = currentJourneyPhase === 'observatory' && obsSandboxHost ? rectOf(obsSandboxHost) : null;
-    if (!sb || sb.width < 16 || sb.height < 16 || sb.bottom <= 0 || sb.top >= innerHeight || document.hidden) {
-      if (visible || sandboxMounted) {
-        engine.classList.remove('on', 'sandbox');
-        obsSandboxCard?.classList.remove('obs-sandbox-live');
-        api.suspend();
-        visible = false;
-        sandboxMounted = false;
-      }
-      return;
-    }
-    const prevBox = lastBox;
-    hosted = obsSandboxHost;
-    rect(sb.left, sb.top, sb.width, sb.height);
-    const resized = prevBox !== lastBox;
-    engine.classList.remove('tile', 'room');
-    engine.classList.add('sandbox', 'on');
-    obsSandboxCard?.classList.add('obs-sandbox-live');
-    if (!sandboxMounted || !visible) {
-      visible = true;
-      sandboxMounted = true;
-      api.resume();
-      api.resize(Math.round(sb.width), Math.round(sb.height));
-      applySandboxObservatory(false);
-    } else if (resized) {
-      api.resize(Math.round(sb.width), Math.round(sb.height));
-    }
+    if (s && active !== s.i) { active = s.i; api.setRealm(s.realm); }
+    if (visible) { engine.classList.remove('on'); api.suspend(); visible = false; }
     return;
   }
   const host=s&&hosts[s.ch],b=host&&rectOf(host);if(!s||!b||b.bottom<=0||b.top>=innerHeight||document.hidden){
-    if(visible){engine.classList.remove('on','sandbox');api.suspend();visible=false}return
+    if(visible){engine.classList.remove('on');api.suspend();visible=false}return
   }
   const prevBox=lastBox;
   const changed=active!==s.i||!visible;hosted=host;rect(b.left,b.top,b.width,b.height);
   const resized=prevBox!==lastBox;
-  engine.classList.remove('sandbox');
   engine.classList.toggle('tile',s.ch!==3&&s.ch!==4);engine.classList.toggle('room',s.ch===3||s.ch===4);engine.classList.add('on');
   if(changed){const previous=active;active=s.i;visible=true;api.resume();api.resize(Math.round(b.width),Math.round(b.height));frameInline(s,previous>=0&&!previewStop);expand.firstElementChild.textContent='Expand · '+(s.i===16?'Router and experts':api.getComponent(s.ids[0]).shortLabel.replace(/^.*? · |^[\d.]+[a-z]? /,''));fillLegend(s)}
   else if(resized){api.resize(Math.round(b.width),Math.round(b.height))}
@@ -2743,7 +2644,8 @@ function setFlipVars(fromRect){
   engine.style.setProperty('--flip-sy',(fromRect.height/Math.max(1,th)).toFixed(4));
 }
 function openDrawer(all=false){
-  if(!api||opened)return;
+  if(opened)return;
+  if(!api){if(all)openStudioWhenReady();return}
   if(!all&&items.findIndex(e=>e.s.i===active)<0)return;
   releaseStageLock('studio');
   const originRect=hosted?rectOf(hosted):null;
@@ -2778,7 +2680,8 @@ journeyFrameKeys(sceneFrame, key => {
   stepToStop(next);
 });
 function movePart(delta){if(pos+delta<(catalog?-1:0)||pos+delta>=items.length)return;pos+=delta;drawerContent(true)}
-expand.onclick=()=>openDrawer();document.getElementById('allTour').onclick=()=>openDrawer(true);closeButton.onclick=scrim.onclick=closeDrawer;prevPart.onclick=()=>movePart(-1);nextPart.onclick=()=>movePart(1);
+const exploreBtn=document.getElementById('exploreModel'),exploreNote=document.getElementById('exploreNote');
+expand.onclick=()=>openDrawer();exploreBtn?.addEventListener('click',()=>{if(window.JourneyTour)window.JourneyTour.openStudio(true);else openDrawer(true)});closeButton.onclick=scrim.onclick=closeDrawer;prevPart.onclick=()=>movePart(-1);nextPart.onclick=()=>movePart(1);
 window.addEventListener('keydown',e=>{
   if(opened){
     if(e.key==='Escape'){e.preventDefault();closeDrawer()}
@@ -2806,7 +2709,44 @@ window.addEventListener('keydown',e=>{
   else if(e.key==='End'){e.preventDefault();releasePreview();stepToStop(STOPS.length-1);}
 },true);
 addEventListener('resize',()=>{if(opened)drawerRect();else kick()});document.addEventListener('visibilitychange',()=>{if(!api)return;if(document.hidden)api.suspend();else if(opened||visible)api.resume()});
-sceneFrame.addEventListener('load',async()=>{try{api=await journeyObservatory(sceneFrame, STOPS);api.suspend();if(mappedIndex!==undefined)preview(mappedIndex);layout();update(0);refreshHost();if(stateName==='ch4-drawer-router'||stateName==='narrow-drawer')openDrawer();if(opened){api.renderNow();await Promise.all(engine.getAnimations().map(a=>a.finished.catch(()=>{})))}window.__ready=true}catch(err){const msg=document.createElement('div');msg.className='obs-error';msg.textContent='3D unavailable. The story diagrams remain available.';engine.append(msg);console.error(err)}},{once:true});sceneFrame.src=coreURL();
+/* The Observatory iframe loads on demand, never in the reading path. The finale capstone (or an explicit
+   JourneyTour.openStudio call) requests it. ?state= preview links keep an eager load so the 3D deep-link states work. */
+let obsLoading = null, studioPending = false;
+function requestObservatory() {
+  if (api) return Promise.resolve(api);
+  if (obsLoading) return obsLoading;
+  obsLoading = new Promise((resolve, reject) => {
+    sceneFrame.addEventListener('load', async () => {
+      try { api = await journeyObservatory(sceneFrame, STOPS); api.suspend(); resolve(api); }
+      catch (err) { obsLoading = null; console.error(err); reject(err); }
+    }, { once: true });
+    sceneFrame.src = coreURL();
+  });
+  return obsLoading;
+}
+function openStudioWhenReady() {
+  if (studioPending) return;
+  studioPending = true;
+  exploreBtn?.setAttribute('aria-busy', 'true');
+  if (exploreNote) exploreNote.textContent = 'Loading the 3D model…';
+  const settle = msg => { studioPending = false; exploreBtn?.removeAttribute('aria-busy'); if (exploreNote) exploreNote.textContent = msg; };
+  requestObservatory().then(() => { settle(''); openDrawer(true); }).catch(() => settle('The 3D model could not start in this browser. The diagrams above cover every stop.'));
+}
+if (stateName) {
+  requestObservatory().then(async () => {
+    if (mappedIndex !== undefined) preview(mappedIndex);
+    layout(); update(0); refreshHost();
+    if (stateName === 'ch4-drawer-router' || stateName === 'narrow-drawer') openDrawer();
+    if (opened) { api.renderNow(); await Promise.all(engine.getAnimations().map(a => a.finished.catch(() => {}))); }
+    window.__ready = true;
+  }).catch(err => {
+    const msg = document.createElement('div'); msg.className = 'obs-error';
+    msg.textContent = '3D unavailable. The story diagrams remain available.'; engine.append(msg); console.error(err);
+  });
+} else {
+  const settle = () => { layout(); update(0); window.__ready = true; };
+  if (document.readyState === 'complete') settle(); else addEventListener('load', settle, { once: true });
+}
 if (qs.has('lab')) addEventListener('load', () => MicroLabs.reveal(document.querySelector('main'), qs.get('lab')), {once:true});
 
 function resolveStoryConcept(){
@@ -3124,6 +3064,44 @@ const JourneyTourEngine = (() => {
   return api;
 })();
 window.JourneyTour = JourneyTourEngine;
+/* Hero start control: the one primary action at the top. The bar's Play/Mute stay quiet while it is on screen,
+   so only one start control shows at a time. */
+{
+  const tour = window.JourneyTour, heroStart = document.getElementById('heroStart');
+  const barRight = document.querySelector('.studio-bar .studio-right'), barPlay = document.getElementById('tourPlay');
+  let heroInView = scrollY < innerHeight * 0.5;
+  const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.ceil(sec % 60)).padStart(2, '0');
+  const syncStart = () => {
+    const idle = !tour || tour.state.status === 'idle';
+    if (heroStart) heroStart.hidden = !idle;
+    if (barRight) barRight.classList.toggle('is-quiet', !!heroStart && idle && heroInView);
+  };
+  if (heroStart && tour) {
+    const t = heroStart.querySelector('.hero-start-time'); if (t) t.textContent = mmss(tour.state.total);
+    heroStart.addEventListener('click', () => { tour.play(); syncStart(); barPlay?.focus({ preventScroll: true }); });
+    new IntersectionObserver(es => { heroInView = es[es.length - 1].intersectionRatio >= 0.5; syncStart(); }, { threshold: [0, 0.5, 1], rootMargin: '-56px 0px 0px 0px' }).observe(heroStart);
+    for (const ev of ['tour:state', 'tour:stop', 'tour:finale']) document.addEventListener(ev, syncStart);
+  }
+  syncStart();
+}
+
+/* Finale: the single place a 3D model appears. One eased reveal on reaching the summary (instant under reduced motion). */
+{
+  const cap = document.getElementById('finaleCapstone'), outroEl = document.getElementById('outro');
+  let shown = false;
+  const reveal = () => {
+    if (shown || !cap) return;
+    shown = true;
+    cap.removeAttribute('inert');
+    cap.dataset.state = 'shown';
+    setTimeout(() => requestObservatory().catch(() => {}), 600); // warm the studio so the button opens it at once
+  };
+  if (cap && outroEl) {
+    new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) reveal(); }, { rootMargin: '0px 0px -30% 0px' }).observe(outroEl);
+    document.addEventListener('tour:finale', reveal);
+    document.addEventListener('tour:stop', e => { if (e.detail?.id === 'outro') reveal(); });
+  }
+}
 window.__stageLock={get state(){return {active:stageLock.active,paused:stageLock.paused,id:stageLock.gate?.id||null,u:stageLock.u,scrollY:stageLock.scrollY,barrierY:activeBarrierY(),completed:[...completedGates]}},engage:id=>engageStageLock(STAGE_GATES.find(g=>g.id===id))};
 window.__journey={get state(){return {active,opened,pos,phase:currentJourneyPhase}},refresh:refreshHost,stagePool};
 window.__tokenJourney = { DBG, setRM, setMode, jumpShot, kick, layout: () => { needLayout = true; kick(); } };
