@@ -64,6 +64,8 @@ async function verifyBarAndApi(browser, base) {
     assert.equal(stops[6], 'step-1');
     assert.equal(stops.at(-1), 'outro');
     assert(stops.includes('release'), 'release gate is a tour stop');
+    const silent = await page.evaluate(() => window.JourneyTour.stops.filter(s => !s.clip).map(s => s.id));
+    assert.deepEqual(silent, [], 'every stop is narrated, stations and release gate included');
     assert.equal(await page.evaluate(() => document.body.dataset.cardView), 'basic', 'cards default to the basic view');
     assert.equal(await page.locator('#step-2 .card > code.eq').isVisible(), false, 'equation is collapsed by default');
     assert.deepEqual(errors, []);
@@ -87,9 +89,14 @@ async function verifyPlaybackAndTakeover(browser, base) {
     assert((await state(page)).status === 'playing');
     assert.equal(await page.evaluate(() => document.body.classList.contains('tour-spot')), true, 'spotlight while playing');
 
-    // Wheel takeover: pauses, shows the distinct chip, never jumps.
+    // A brush of the wheel, or one notch, does not stop the tour; the camera drifts back onto the stop.
     await waitId(page, 'step-3');
     await page.mouse.move(600, 500);
+    for (let k = 0; k < 4; k++) { await page.mouse.wheel(0, 4); await page.waitForTimeout(40); }
+    await page.mouse.wheel(0, 100);
+    await page.waitForTimeout(150);
+    assert.equal((await state(page)).status, 'playing', 'small wheel input does not pause the tour');
+    // Wheel takeover: a deliberate scroll pauses, shows the distinct chip, never jumps.
     await page.mouse.wheel(0, 700);
     await page.waitForFunction(() => window.JourneyTour.state.status === 'paused' && window.JourneyTour.state.reason === 'user');
     assert(await page.locator('#tourReturn').isVisible(), 'return chip is visible after a wheel scroll');
@@ -97,8 +104,10 @@ async function verifyPlaybackAndTakeover(browser, base) {
     assert.equal(await page.locator('#tourDeeper').isVisible(), false, 'Go deeper hides while the viewer is away');
     assert.equal(await page.locator('#tourPlay').getAttribute('data-state'), 'paused');
     assert.equal(await page.evaluate(() => window.JourneyTour.audio?.paused ?? true), true, 'narration paused');
-    const away = await page.evaluate(() => scrollY);
-    await page.waitForTimeout(400);
+    // Let the browser's own smooth wheel scroll finish, then the page must hold still: the tour does not pull back.
+    let away = await page.evaluate(() => scrollY);
+    for (let i = 0; i < 20; i++) { await page.waitForTimeout(150); const y = await page.evaluate(() => scrollY); if (y === away) break; away = y; }
+    await page.waitForTimeout(1200);
     assert.equal(await page.evaluate(() => scrollY), away, 'tour does not fight the viewer');
     const idAway = (await state(page)).id;
     await page.locator('#tourReturn').click();
@@ -373,7 +382,9 @@ async function verifyBridgeFlight(browser, base) {
     const flight = await slow.evaluate(() => new Promise(resolve => {
       const log = [], t0 = performance.now(), b = () => window.__journey.bridges.find(x => x.id === 'b12');
       window.JourneyTour.next();
-      const tick = () => { const now = performance.now() - t0; log.push([now, scrollY, b().t, window.JourneyTour.state.t]); if (now > 4500) return resolve(log); requestAnimationFrame(tick); };
+      // Stamp each sample with its frame time, not callback time: under load a callback can run late, and the next one early,
+      // which made an even, time-based flight read as a jump.
+      const tick = ts => { const now = (ts ?? performance.now()) - t0; log.push([now, scrollY, b().t, window.JourneyTour.state.t]); if (now > 4500) return resolve(log); requestAnimationFrame(tick); };
       tick();
     }));
     const moved = flight.filter(r => Math.abs(r[1] - flight[0][1]) > 2), end = flight.findLast(r => Math.abs(r[1] - flight.at(-1)[1]) > 2) || flight[0];

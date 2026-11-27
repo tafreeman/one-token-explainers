@@ -33,6 +33,7 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 ## Narration: `journey-narration/`
 
 - **Voice and model:** ElevenLabs voice Jade on `eleven_v4`. There are 32 clips, 6:25 in total.
+- **Extras:** `manifest.json` `extras` holds 7 more clips for stops the 32-clip script never covered: the five Training Line stations, the release gate, and stop 19 (frozen weights), whose original clip narrates training. Only the root Journey tour plays them; each names its tour stop in `slot`.
 - **Script:** `narration-script.md`.
 - **Manifest:** `manifest.json` lists each clip with its duration, its tour stop and its captions. Captions are timed by each sentence's share of the clip, snapped to the pauses that `ffmpeg silencedetect` finds.
 - **Paths:** clip `src` paths are written relative to the pages (`../shared/journey-narration/<clip>.mp3`). Both pages sit one folder deep, so one manifest serves both.

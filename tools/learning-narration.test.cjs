@@ -12,8 +12,18 @@ test('inline narration manifest matches shared/journey-narration/manifest.json',
   assert.deepEqual(inline, shared);
 });
 
+test('every Journey tour stop has narration: stations, release gate and stop 19 use the extra clips', () => {
+  const slots = inline.extras.map(c => c.slot);
+  assert.deepEqual(slots, ['station-1', 'station-2', 'station-3', 'station-4', 'station-5', 'release', 'step-20']);
+  for (const c of inline.extras) {
+    assert.ok(fs.existsSync(path.join(__dirname, '..', c.src.replace(/^\.\.\//, ''))), c.src + ' exists');
+    assert.ok(c.dur > 3 && c.cues.length && c.cues[0].t === 0, c.id + ' has a duration and cues from 0');
+    assert.ok(c.cues.every((q, i) => i === 0 || q.t > c.cues[i - 1].t), c.id + ' cues are ordered');
+  }
+  assert.match(html, /const clip = s\.i === 19 \? extraBySlot\.get\('step-20'\) : clipByStop\.get\(s\.i\)/, 'stop 19 plays its frozen-weights clip, not the training recap');
+});
+
 test('Journey tour skips the retired training recap clip and keeps one clip per card', () => {
-  assert.match(html, /const clip = s\.i === 19 \? null : clipByStop\.get\(s\.i\)/, 'stop 19 is held silently, not narrated');
   const stops = inline.clips.filter(c => c.stop != null).map(c => c.stop);
   assert.equal(new Set(stops).size, stops.length, 'no two clips share a stop');
   assert.equal(inline.clips.find(c => c.stop === 19).id, '20-training');
