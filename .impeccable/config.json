@@ -48,6 +48,15 @@
         ],
         "createdAt": "2026-11-27T07:05:50.294Z",
         "reason": "Agent: DESIGN.md pins Studio parchment #ECEAE3 (+ Keynote #101720 + Blueprint #0F3358) for the Story & Tour world promoted to root index.html"
+      },
+      {
+        "rule": "oversized-h1",
+        "value": "*",
+        "files": [
+          "tools/og-card.html"
+        ],
+        "createdAt": "2026-11-27T23:26:54.337Z",
+        "reason": "Claude triage: tools/og-card.html is the fixed 1200x630 social-card raster source, not a page; the headline is meant to fill the card and still reads at ~500px link-preview size (Sonnet image review)"
       }
     ]
   }

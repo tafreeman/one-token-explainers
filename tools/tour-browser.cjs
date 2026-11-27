@@ -3,6 +3,7 @@
 //   node tools/tour-browser.cjs
 // ?tourRate=N speeds clips and silent holds up N times so a full run to the summary takes under a minute.
 const assert = require('node:assert/strict');
+const {failsGate} = require('./console-gate.cjs');
 
 const RATE = 12;
 const REMOVED_CONTROLS = ['#storyDepthBtn', '#storyPresentBtn', '#narrRun', '#topStudioBtn', '#trainLinePlay', '#trainLineNarrate'];
@@ -10,7 +11,7 @@ const REMOVED_CONTROLS = ['#storyDepthBtn', '#storyPresentBtn', '#narrRun', '#to
 async function openTour(browser, base, {width = 1440, height = 900, reducedMotion = 'no-preference', query = ''} = {}) {
   const page = await browser.newPage({viewport: {width, height}, reducedMotion});
   const errors = [];
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+  page.on('console', msg => { if (failsGate(msg)) errors.push(msg.text()); });
   page.on('pageerror', err => errors.push(err.message));
   await page.route('https://fonts.googleapis.com/**', r => r.fulfill({contentType: 'text/css', body: ''}));
   await page.goto(base + '?tourRate=' + RATE + query, {waitUntil: 'load'});
@@ -410,7 +411,7 @@ async function verifyConveyor(browser, base) {
 async function verifyBridgeFlight(browser, base) {
   const slow = await browser.newPage({viewport: {width: 1440, height: 900}});
   const errs = [];
-  slow.on('pageerror', e => errs.push(e.message)); slow.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  slow.on('pageerror', e => errs.push(e.message)); slow.on('console', m => { if (failsGate(m)) errs.push(m.text()); });
   try {
     await slow.route('https://fonts.googleapis.com/**', r => r.fulfill({contentType: 'text/css', body: ''}));
     await slow.goto(base + '?tourRate=1&mute=1', {waitUntil: 'load'});

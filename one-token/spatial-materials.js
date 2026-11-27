@@ -98,7 +98,9 @@
       strip(12, 3, 12, 6, 2, 0, -Math.PI / 3, 0xEEF4FF, 3.6);
       strip(20, 2, 0, 12, -12, Math.PI / 5, 0, 0xFFFFFF, 5.2);
       const generator = new THREE.PMREMGenerator(renderer);
-      const target = generator.fromScene(room, .045, .1, 100);
+      // Blur sigma in radians. At the 256px cube three.js needs 1 + 3·sigma/px samples, capped at 20:
+      // .045 asked for 22 and clipped (with a console warning); .035 needs 18 and matches obs-core.
+      const target = generator.fromScene(room, .035, .1, 100);
       generator.dispose();
       room.traverse(object => { if (object.geometry) object.geometry.dispose(); if (object.material) object.material.dispose(); });
       const entry = {target, texture: target.texture}; environments.set(renderer, entry);

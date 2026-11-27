@@ -43,6 +43,8 @@ Acceptance results and frame times for the journey set are in [`../shared/README
 
 ## Known limits
 
-Cosmetic, from the audit:
-- Stops 10–12 reuse one camera.
-- A sliver of "More detail" peeks below the sticky bar on stop 22.
+The two cosmetic limits from the audit are fixed. Stops 10–12 each have their own camera (the `TR-5` subposes
+`grpo`, `verifier` and `opd` in `shared/obs-core.html`). On stop 22, "More detail" stays inside the card's
+scroller at 1440 × 900, 390 × 844 and 844 × 390 (measured 2026-11-27). Physical-device touch and screen-reader
+output are still unverified. The protocol is in
+[`../docs/real-device-verification-2026-11-27.md`](../docs/real-device-verification-2026-11-27.md).
