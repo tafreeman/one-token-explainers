@@ -200,6 +200,8 @@ async function focusOrder(browser, base, local = false) {
     assert(moved && textAfter.caret < textBefore.caret, 'Textarea ArrowLeft did not move the caret');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !window.__journey.state.opened);
+    // Focus returns a frame after the drawer reports closed; on a loaded CI runner, reading it at once raced.
+    await page.waitForFunction(() => document.activeElement.id === 'obsExpand', null, {timeout: 5000}).catch(() => {});
     assert.equal(await page.evaluate(() => document.activeElement.id), 'obsExpand', 'Close did not restore the actual opener');
 
     // Character shortcuts work only in the chapter rail or the focused scene.
