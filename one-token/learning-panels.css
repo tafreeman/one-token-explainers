@@ -120,20 +120,28 @@
   accent-color: var(--learn-value);
   min-height: 32px;
 }
-.learning-card output,
+/* The current value of a control is orange: it is the thing the learner just chose.
+   Long explanatory outputs (the reader's .effort-out) stay plain and only flash on change. */
+.learning-card .learning-slider output,
 .learning-card .ml-value,
 .learning-card .ml-val,
-.learning-card [data-percent],
 .learning-card [data-layer] {
+  background: var(--ml-orange-hi, #F2A65A);
+  color: var(--ml-orange-ink, #1B1209);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 999px;
+  padding-inline: .5em;
+}
+.learning-card [data-percent] {
   color: var(--learn-value);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  border-radius: 4px;
-  padding-inline: 3px;
 }
 .learning-card [data-changed="true"],
 .learning-transition [data-changed="true"] {
-  background: color-mix(in srgb, var(--learn-token) 18%, transparent);
+  background: var(--ml-orange, #E5672F);
+  color: var(--ml-orange-ink, #1B1209);
 }
 
 /* Desktop Journey already shows the live animated Story SVG beside each card;
@@ -238,12 +246,12 @@
   cursor: pointer;
 }
 .learning-chip:hover {
-  border-color: var(--learn-value);
+  border-color: var(--ml-orange, #E5672F);
 }
 .learning-chip[aria-pressed="true"] {
-  border-color: var(--learn-value);
-  background: color-mix(in srgb, var(--learn-value) 15%, transparent);
-  color: var(--learn-value);
+  border-color: var(--ml-orange, #E5672F);
+  background: var(--ml-orange-hi, #F2A65A);
+  color: var(--ml-orange-ink, #1B1209);
   font-weight: 700;
 }
 
@@ -284,6 +292,8 @@
 .learning-meter-val { fill: var(--learn-value); }
 .learning-meter-tok { fill: var(--learn-token); }
 .learning-meter-res { fill: var(--learn-result); }
+.learning-meter-sel { fill: var(--ml-orange, #E5672F); }
+.learning-loss .learning-dot { fill: var(--ml-orange, #E5672F); stroke: var(--ml-orange-ink, #1B1209); stroke-width: 1.5; }
 .learning-sieve { fill: color-mix(in srgb, var(--learn-value) 20%, transparent); stroke: var(--learn-value); stroke-width: 1.5; }
 .learning-chute { fill: none; stroke: var(--learn-token); stroke-width: 1.6; stroke-dasharray: 4 3; }
 .learning-doc { fill: color-mix(in srgb, currentColor 6%, transparent); stroke: currentColor; stroke-opacity: .28; }
@@ -375,9 +385,9 @@
   background: #f6f5f0;
 }
 .learning-handover .learning-chip[aria-pressed="true"] {
-  border-color: var(--learn-value);
-  background: #eaf1fe;
-  color: #163d99;
+  border-color: var(--ml-orange, #E5672F);
+  background: var(--ml-orange-hi, #F2A65A);
+  color: var(--ml-orange-ink, #1B1209);
 }
 .learning-handover-svg .lh-zone {
   fill: #f7f6f1;
@@ -385,12 +395,9 @@
   stroke-width: 1.25;
 }
 .learning-handover-svg [data-active="true"] .lh-zone {
-  fill: #ffffff;
-  stroke: var(--learn-value);
-  stroke-width: 2;
-}
-.learning-handover-svg [data-zone="train"][data-active="true"] .lh-zone {
-  stroke: var(--learn-token);
+  fill: color-mix(in srgb, var(--ml-orange-hi, #F2A65A) 22%, #ffffff);
+  stroke: var(--ml-orange, #E5672F);
+  stroke-width: 2.5;
 }
 .learning-handover-svg .lh-zone-title {
   font-weight: 700;
@@ -446,7 +453,12 @@
   font-size: 11px;
 }
 .learning-handover-readout strong {
-  color: #16202e;
+  align-self: start;
+  justify-self: start;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ml-orange-hi, #F2A65A);
+  color: var(--ml-orange-ink, #1B1209);
   font-weight: 700;
 }
 .learning-handover-note {
@@ -543,4 +555,23 @@
   .learning-journey .release-stage {
     height: min(32svh, 268px);
   }
+}
+
+/* "Try this" / "Why it matters" lines used by every lab and panel */
+.learning-handover > .ml-try,
+.learning-handover > .ml-why {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #243140;
+}
+.learning-handover > .ml-why { margin: 12px 0 0; }
+.learning-handover .ml-try b {
+  display: inline-block;
+  margin-inline-end: 6px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--ml-orange-hi, #F2A65A);
+  color: var(--ml-orange-ink, #1B1209);
+  font-size: 12px;
 }

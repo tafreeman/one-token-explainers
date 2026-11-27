@@ -139,5 +139,60 @@ async function verifyLearning(browser, base, artifacts) {
     assert.deepEqual(lockErrors, []);
     console.log('journey 1440 downward scroll barrier until animation completion passed');
   } finally { await page.close(); }
+  await verifyLabFeedback(browser, base);
 }
-module.exports = {verifyLearning};
+// Change feedback: one shared helper (MicroLabs.flash) pulses the dependent element in orange, then settles.
+async function verifyLabFeedback(browser, base) {
+  const ORANGE = 'rgb(229, 103, 47)', ORANGE_HI = 'rgb(242, 166, 90)';
+  for (const motion of ['no-preference', 'reduce']) {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}, reducedMotion: motion});
+    const errors = [];
+    page.on('pageerror', err => errors.push(err.message));
+    try {
+      await page.goto(base);
+      await page.waitForFunction(() => window.__journey && window.__ready);
+      const card = page.locator('#step-15');
+      await card.scrollIntoViewIfNeeded();
+      const lab = card.locator('details[data-lab="kv"]');
+      await page.waitForFunction(() => document.querySelector('#step-15 details[data-lab="kv"] .ml-body'));
+      // Every lab on the Journey states what to try and why it matters.
+      const bare = await page.evaluate(() => [...document.querySelectorAll('details.micro-lab, section.component-math')]
+        .filter(l => !l.querySelector('.ml-try') || !l.querySelector('.ml-why')).map(l => l.dataset.lab || l.className));
+      assert.deepEqual(bare, [], 'labs missing Try this / Why it matters');
+      const probe = () => lab.evaluate(node => {
+        const value = node.querySelector('.ml-value'), readout = node.querySelector('.ml-readout');
+        const style = getComputedStyle(value), ro = getComputedStyle(readout);
+        return {cls: value.className, anim: style.animationName, bg: style.backgroundColor, color: style.color, roCls: readout.className, roAnim: ro.animationName, roBg: ro.backgroundColor};
+      });
+      await lab.locator('input[type=range]').fill('19');
+      await page.waitForTimeout(40);
+      const during = await probe();
+      assert.match(during.cls, /is-changed/, 'changing the slider flags the value');
+      assert.match(during.roCls, /is-changed/, 'and the dependent readout');
+      if (motion === 'reduce') {
+        assert.equal(during.anim, 'none', 'reduced motion: no animation');
+        assert.equal(during.bg, ORANGE, 'reduced motion: static orange highlight');
+        assert.equal(during.roBg, ORANGE);
+      } else {
+        assert.equal(during.anim, 'ml-flash', 'motion: eased pulse');
+        assert.equal(during.roAnim, 'ml-flash');
+      }
+      await page.waitForTimeout(900);
+      const after = await probe();
+      assert.doesNotMatch(after.cls, /is-changed/, 'class removed after the animation');
+      assert.doesNotMatch(after.roCls, /is-changed/);
+      assert.equal(after.bg, ORANGE_HI, 'the current value settles to the selected orange');
+      assert.equal(after.color, 'rgb(27, 18, 9)', 'ink text on orange');
+      // A chosen option is orange too (attention token button).
+      const attention = page.locator('#step-14 details[data-lab="attention"]');
+      await attention.scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('#step-14 details[data-lab="attention"] .ml-body'));
+      await attention.locator('.ml-tokens button').first().click();
+      await page.waitForTimeout(900);
+      assert.equal(await attention.locator('.ml-tokens button[aria-pressed="true"]').evaluate(b => getComputedStyle(b).backgroundColor), ORANGE_HI);
+      assert.deepEqual(errors, []);
+      console.log('lab change feedback (' + motion + ') passed');
+    } finally { await page.close(); }
+  }
+}
+module.exports = {verifyLearning, verifyLabFeedback};

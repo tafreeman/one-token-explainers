@@ -17,28 +17,18 @@
     return node;
   }
 
-  function pulseValues(scope) {
-    if (!scope) return;
-    const targets = scope.querySelectorAll('output, .ml-value, .ml-readout, [data-percent], [data-layer], .learning-equation strong, [data-math-val]');
-    targets.forEach(node => {
-      node.dataset.changed = 'true';
-      clearTimeout(node._pulseTimer);
-      node._pulseTimer = setTimeout(() => { delete node.dataset.changed; }, 320);
-    });
-  }
+  /* Change feedback lives in shared/micro-labs.js (MicroLabs.live / setValue / flashAll / intro).
+     These wrappers keep the panels working if that script is absent. */
+  const ML = () => window.MicroLabs || {};
+  const setText = (node, text) => (ML().setValue ? ML().setValue(node, text) : void (node.textContent = text));
+  const flashAll = nodes => ML().flashAll?.(nodes);
+  const intro = (body, tryText, whyText) => ML().intro?.(body, tryText, whyText);
 
   function bindValueFeedback(root) {
-    if (!root || root.dataset.learningFeedback) return;
-    root.dataset.learningFeedback = 'true';
-    const trigger = event => {
-      const container = event.target?.closest?.('.micro-lab, .component-math, .effort, .learning-handover');
-      if (container) pulseValues(container);
-    };
-    root.addEventListener('input', trigger);
-    root.addEventListener('change', trigger);
-    root.addEventListener('click', event => {
-      if (event.target?.closest?.('button:not(.learning-toggle)')) trigger(event);
-    });
+    if (!root) return;
+    const hosts = root.matches?.('.micro-lab, .component-math, .effort, .learning-handover') ? [root] : [];
+    root.querySelectorAll('.micro-lab, .component-math, .effort, .learning-handover').forEach(n => hosts.push(n));
+    hosts.forEach(n => ML().live?.(n));
   }
 
   function openLabs(root) {
@@ -48,6 +38,7 @@
       lab.dataset.learningReady = 'true';
       lab.open = true;
     });
+    bindValueFeedback(root);
   }
 
   function watchLabs(root) {
@@ -62,7 +53,6 @@
       }
     }
     openLabs(root);
-    bindValueFeedback(root);
     const observer = new MutationObserver(records => {
       if (records.some(record => record.addedNodes.length)) openLabs(root);
     });
@@ -94,8 +84,6 @@
     lab.open = true;
     lab.append(el('summary', 'Try it · make the correct token less surprising'));
     const body = el('div', null, 'ml-body');
-    body.append(el('p', 'Move the probability assigned to “' + token + '”. Watch surprise L = −ln(p) and the downward gradient push 1 − p respond together.'));
-
     const presets = el('div', null, 'learning-presets');
     for (const [lbl, val] of [['Early · 5%', '5'], ['Mid · 25%', '25'], ['Half · 50%', '50'], ['Trained · 90%', '90']]) {
       const b = el('button', lbl, 'learning-chip');
@@ -139,17 +127,17 @@
     svg('line', {x1: 288, y1: 18, x2: 288, y2: 162, class: 'learning-grid'}, plot);
     svg('text', {x: 300, y: 30}, plot, 'p(target)');
     svg('rect', {x: 300, y: 36, width: 68, height: 11, rx: 3, class: 'learning-meter-bg'}, plot);
-    const pFill = svg('rect', {x: 300, y: 36, width: 17, height: 11, rx: 3, class: 'learning-meter-val'}, plot);
+    const pFill = svg('rect', {x: 300, y: 36, width: 17, height: 11, rx: 3, class: 'learning-meter-val', 'data-live': ''}, plot);
     const pTxt = svg('text', {x: 300, y: 61, class: 'learning-svg-val'}, plot);
 
     svg('text', {x: 300, y: 92}, plot, '|∂L/∂z| push');
     svg('rect', {x: 300, y: 98, width: 68, height: 11, rx: 3, class: 'learning-meter-bg'}, plot);
-    const gFill = svg('rect', {x: 300, y: 98, width: 51, height: 11, rx: 3, class: 'learning-meter-tok'}, plot);
+    const gFill = svg('rect', {x: 300, y: 98, width: 51, height: 11, rx: 3, class: 'learning-meter-tok', 'data-live': ''}, plot);
     const gTxt = svg('text', {x: 300, y: 123, class: 'learning-svg-tok'}, plot);
     svg('text', {x: 300, y: 152, class: 'learning-svg-muted'}, plot, 'grad ↓ Δθ');
 
     const guide = svg('path', {class: 'learning-guide'}, plot);
-    const dot = svg('circle', {r: 6.5, class: 'learning-dot'}, plot);
+    const dot = svg('circle', {r: 6.5, class: 'learning-dot', 'data-live': ''}, plot);
 
     const equation = el('p', null, 'learning-equation');
     const probability = el('strong'), loss = el('strong');
@@ -164,8 +152,8 @@
       const raw = Math.max(1, Math.min(99, Number(input.value) || 25));
       const p = raw / 100, value = -Math.log(p), grad = 1 - p;
       output.value = raw + '%';
-      probability.textContent = p.toFixed(2);
-      loss.textContent = value.toFixed(3);
+      setText(probability, p.toFixed(2));
+      setText(loss, value.toFixed(3));
       const x = 42 + p * 226, y = Math.max(20, 162 - value * 30);
       dot.setAttribute('cx', x.toFixed(2));
       dot.setAttribute('cy', y.toFixed(2));
@@ -174,8 +162,8 @@
       area.setAttribute('d', `${sub} L${x.toFixed(2)} 162 L42 162 Z`);
       pFill.setAttribute('width', (68 * p).toFixed(1));
       gFill.setAttribute('width', (68 * grad).toFixed(1));
-      pTxt.textContent = (100 * p).toFixed(0) + '% mass';
-      gTxt.textContent = '−' + grad.toFixed(2) + ' step';
+      setText(pTxt, (100 * p).toFixed(0) + '% mass');
+      setText(gTxt, '−' + grad.toFixed(2) + ' step');
       presets.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.preset === String(raw))));
       plot.setAttribute('aria-label', `Probability ${raw} percent; loss ${value.toFixed(3)} nats; logit gradient magnitude ${grad.toFixed(2)}.`);
     }
@@ -188,6 +176,8 @@
     input.addEventListener('input', update);
     update();
     body.append(presets, label, plot, equation, note);
+    intro(body, 'Drag the probability of “' + token + '” up from 25% and watch surprise L = −ln(p) fall as the gradient push 1 − p shrinks.',
+      'Training pushes this number up. A lower loss means the model expected the right next token.');
     lab.append(body);
     return lab;
   }
@@ -227,7 +217,7 @@
       svg('text', {x: 14, y: y + 9.5}, g, d.name);
       const simTxt = svg('text', {x: 166, y: y + 9.5, 'text-anchor': 'end'}, g, (d.sim / 100).toFixed(2));
       const path = svg('path', {fill: 'none', 'stroke-width': 1.8}, g);
-      return {d, y, pill, simTxt, path};
+      return {d, y, pill, simTxt, path, was: null};
     });
     const readout = el('p', null, 'learning-equation learning-eq-compact');
     const keptVal = el('strong'), dropVal = el('strong');
@@ -238,8 +228,12 @@
       const tau = Number(input.value);
       out.value = (tau / 100).toFixed(2);
       let kept = 0, dropped = 0;
-      rows.forEach(({d, y, pill, path}) => {
+      const flipped = [];
+      rows.forEach(row => {
+        const {d, y, pill, path} = row;
         const isDup = d.sim >= tau;
+        if (row.was !== null && row.was !== isDup) flipped.push(pill, path); // documents that changed side pulse
+        row.was = isDup;
         if (isDup) dropped++; else kept++;
         pill.setAttribute('class', isDup ? 'learning-doc is-dup' : 'learning-doc is-kept');
         path.setAttribute('class', isDup ? 'learning-ray-drop' : 'learning-ray-keep');
@@ -247,12 +241,15 @@
           ? `M122 ${y + 6} H178 L232 108`
           : `M122 ${y + 6} H286`);
       });
-      keptVal.textContent = kept + '/6';
-      dropVal.textContent = dropped + '/6';
+      setText(keptVal, kept + '/6');
+      setText(dropVal, dropped + '/6');
+      flashAll(flipped);
     }
     input.addEventListener('input', update);
     update();
     body.append(ctl, fig, readout, note);
+    intro(body, 'Drag τ down: more lookalike documents turn red and get dropped.',
+      'Near-duplicates waste training budget and make a model memorize instead of learn.');
     lab.append(body);
     return lab;
   }
@@ -273,7 +270,7 @@
     const fig = document.createElementNS(NS, 'svg');
     Object.entries({viewBox: '0 0 380 108', role: 'img', 'aria-label': 'YaRN rotary wavelength scaling from 65,536 to 1,048,576 tokens'}).forEach(([k, v]) => fig.setAttribute(k, v));
     svg('rect', {x: 16, y: 22, width: 348, height: 14, rx: 4, class: 'learning-meter-bg'}, fig);
-    const bar = svg('rect', {x: 16, y: 22, width: 348, height: 14, rx: 4, class: 'learning-meter-val'}, fig);
+    const bar = svg('rect', {x: 16, y: 22, width: 348, height: 14, rx: 4, class: 'learning-meter-sel', 'data-live': ''}, fig);
     svg('line', {x1: 38, y1: 18, x2: 38, y2: 40, class: 'learning-guide'}, fig);
     svg('text', {x: 16, y: 15}, fig, '65,536 base');
     const endTxt = svg('text', {x: 364, y: 15, 'text-anchor': 'end', class: 'learning-svg-val'}, fig);
@@ -289,11 +286,11 @@
       const s = scales[Number(input.value)] || 16;
       const total = 65536 * s;
       out.value = '×' + s;
-      scaleEl.textContent = String(s);
-      totalEl.textContent = total.toLocaleString('en-US');
+      setText(scaleEl, String(s));
+      setText(totalEl, total.toLocaleString('en-US'));
       const w = 22 + (326 * Math.log2(s)) / 4;
       bar.setAttribute('width', w.toFixed(1));
-      endTxt.textContent = total.toLocaleString('en-US') + ' max';
+      setText(endTxt, total.toLocaleString('en-US') + ' max');
       let d = '';
       for (let i = 0; i <= 64; i++) {
         const u = i / 64, x = 16 + u * 348;
@@ -306,6 +303,8 @@
     input.addEventListener('input', update);
     update();
     body.append(ctl, fig, eq, note);
+    intro(body, 'Step the extension factor from ×1 up to ×16 and watch the usable context grow.',
+      'Stretching the rotary positions is how a model reads prompts longer than it first trained on.');
     lab.append(body);
     return lab;
   }
@@ -316,7 +315,6 @@
     lab.open = true;
     lab.append(el('summary', 'Try it · grade a group of 8 attempts (GRPO)'));
     const body = el('div', null, 'ml-body');
-    body.append(el('p', 'Click any attempt to flip its verifier reward (1 = pass, 0 = fail). GRPO normalizes against the group mean—no separate critic model needed.'));
     const scores = [0, 1, 0, 1, 0, 0, 1, 0];
     const toggles = el('div', null, 'learning-presets');
     const btns = scores.map((s, i) => {
@@ -339,7 +337,7 @@
       const y = 16 + i * 14.5;
       svg('text', {x: 12, y: y + 9}, fig, 'attempt ' + (i + 1));
       const rTxt = svg('text', {x: 96, y: y + 9, 'text-anchor': 'middle'}, fig);
-      const rect = svg('rect', {x: 210, y: y + 1, width: 1, height: 9, rx: 2}, fig);
+      const rect = svg('rect', {x: 210, y: y + 1, width: 1, height: 9, rx: 2, 'data-live': ''}, fig);
       const aTxt = svg('text', {x: 368, y: y + 9, 'text-anchor': 'end'}, fig);
       return {rTxt, rect, aTxt};
     });
@@ -360,17 +358,19 @@
         const adv = std < 1e-6 ? 0 : (s - mean) / (std + 1e-4);
         if (s === 1 && std >= 1e-6) winAdv = '+' + adv.toFixed(2);
         const w = Math.max(1.5, Math.min(92, Math.abs(adv) * 44));
-        bars[i].rTxt.textContent = 'r=' + s;
+        setText(bars[i].rTxt, 'r=' + s);
         bars[i].rect.setAttribute('x', (adv >= 0 ? 210 : 210 - w).toFixed(1));
         bars[i].rect.setAttribute('width', w.toFixed(1));
         bars[i].rect.setAttribute('class', adv > 0.01 ? 'learning-meter-res' : adv < -0.01 ? 'learning-meter-tok' : 'learning-meter-bg');
-        bars[i].aTxt.textContent = (adv > 0.005 ? '+' : '') + adv.toFixed(2);
+        setText(bars[i].aTxt, (adv > 0.005 ? '+' : '') + adv.toFixed(2));
       });
-      muEl.textContent = mean.toFixed(2);
-      posEl.textContent = winAdv;
+      setText(muEl, mean.toFixed(2));
+      setText(posEl, winAdv);
     }
     update();
     body.append(toggles, fig, eq, note);
+    intro(body, 'Click any attempt to flip its verifier reward (1 = pass, 0 = fail) and watch every advantage bar move against the group mean.',
+      'GRPO grades each attempt against its own group, so no separate critic model is needed.');
     lab.append(body);
     return lab;
   }
@@ -396,7 +396,7 @@
       const y = 12 + i * 20;
       svg('text', {x: 8, y: y + 11}, fig, name);
       svg('rect', {x: 78, y: y + 1, width: 224, height: 12, rx: 3, class: 'learning-meter-bg'}, fig);
-      const fill = svg('rect', {x: 78, y: y + 1, width: 10, height: 12, rx: 3, class: i === 0 ? 'learning-meter-tok' : 'learning-meter-val'}, fig);
+      const fill = svg('rect', {x: 78, y: y + 1, width: 10, height: 12, rx: 3, class: i === 0 ? 'learning-meter-sel' : 'learning-meter-val', 'data-live': ''}, fig);
       const pct = svg('text', {x: 368, y: y + 11, 'text-anchor': 'end'}, fig);
       return {fill, pct};
     });
@@ -416,14 +416,16 @@
       const entropy = -probs.reduce((acc, p) => acc + (p > 1e-9 ? p * Math.log(p) : 0), 0);
       probs.forEach((p, i) => {
         rows[i].fill.setAttribute('width', Math.max(2, 224 * p).toFixed(1));
-        rows[i].pct.textContent = (100 * p).toFixed(1) + '%';
+        setText(rows[i].pct, (100 * p).toFixed(1) + '%');
       });
-      leadEl.textContent = (100 * probs[0]).toFixed(1) + '%';
-      entropyEl.textContent = entropy.toFixed(2);
+      setText(leadEl, (100 * probs[0]).toFixed(1) + '%');
+      setText(entropyEl, entropy.toFixed(2));
     }
     input.addEventListener('input', update);
     update();
     body.append(ctl, fig, eq, note);
+    intro(body, 'Slide the spread: a low value lets “' + items[0][0] + '” dominate, a high one flattens the choices.',
+      'This is the temperature-style knob that trades predictable text for varied text.');
     lab.append(body);
     return lab;
   }
@@ -651,7 +653,7 @@
     svg('text', {x: 446, y: 122, class: 'learning-svg-val'}, zInfer, `fresh “ ${token}” →`);
     svg('text', {x: 446, y: 138, class: 'learning-svg-res'}, zInfer, svgReply || replyText);
 
-    const traveler = svg('circle', {cx: 604, cy: 30, r: 6.5, class: 'learning-bead lh-traveler'}, fig);
+    const traveler = svg('circle', {cx: 604, cy: 30, r: 6.5, class: 'learning-bead lh-traveler', 'data-live': ''}, fig);
 
     const meters = el('div', null, 'learning-handover-readout');
     const wCell = el('div'), tCell = el('div'), sCell = el('div');
@@ -668,8 +670,11 @@
     const zoneEls = {train: zTrain, freeze: zFreeze, infer: zInfer};
     const dotX = {train: 178, freeze: 378, infer: 604};
 
+    let first = true;
     function select(id) {
       const p = phases.find(item => item.id === id) || phases[2];
+      if (!first && host.dataset.phase !== p.id) flashAll([zoneEls[p.id].querySelector('.lh-zone')]); // the newly active zone pulses
+      first = false;
       host.dataset.phase = p.id;
       tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.phase === p.id)));
       Object.entries(zoneEls).forEach(([k, node]) => node.setAttribute('data-active', String(k === p.id)));
@@ -690,6 +695,8 @@
 
     select('infer');
     host.append(tabs, fig, meters, liveNote);
+    intro(host, 'Click 1, 2, then 3 and follow the token across the release gate.',
+      'Training changes the weights; once released they are frozen, and every new prompt only reads them.');
     if (checkpoint) checkpoint.replaceWith(host);
     else section.querySelector('h2')?.after(host);
     if (nextHref) {

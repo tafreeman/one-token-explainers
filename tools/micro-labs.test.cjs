@@ -332,3 +332,97 @@ test('isolated local-file frames exchange component data and routing commands', 
     childPort?.close(); parentPort?.close();
   }
 });
+
+/* ---------- change feedback: MicroLabs.flash / setValue and the orange selected state ---------- */
+
+function loadDomLabs({reduced = false, rm = false} = {}) {
+  const vm = require('node:vm');
+  const classes = () => { const set = new Set(); return {set, add: c => set.add(c), remove: c => set.delete(c), contains: c => set.has(c)}; };
+  const node = (text = '') => ({classList: classes(), textContent: text, isConnected: true, tagName: 'SPAN'});
+  const documentElement = {classList: classes(), offsetWidth: 0};
+  if (rm) documentElement.classList.add('rm');
+  const frames = [];
+  let now = 0;
+  const window = {};
+  const context = vm.createContext({
+    window, document: {documentElement, addEventListener() {}, createElement: () => node()},
+    matchMedia: query => ({matches: reduced && /reduce/.test(query)}),
+    setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: id => clearTimeout(id),
+    requestAnimationFrame: fn => frames.push(fn), cancelAnimationFrame() {},
+    performance: {now: () => now}, TextEncoder, TextDecoder, Node: class {}, MutationObserver: class { observe() {} }, console
+  });
+  vm.runInContext(readFileSync(path.join(root, 'shared/micro-labs.js'), 'utf8'), context);
+  const play = ms => { now += ms; const batch = frames.splice(0); batch.forEach(fn => fn(now)); };
+  return {api: window.MicroLabs, node, play, frames};
+}
+
+test('flash adds .is-changed, restarts cleanly and removes it after the animation', t => {
+  t.mock.timers.enable({apis: ['setTimeout']});
+  const {api, node} = loadDomLabs();
+  const box = node(), other = node();
+  api.flash(box);
+  assert.ok(box.classList.contains('is-changed'));
+  t.mock.timers.tick(600);
+  assert.ok(box.classList.contains('is-changed'), 'still pulsing at 600 ms');
+  api.flash(box); // a second change restarts the pulse instead of stacking timers
+  t.mock.timers.tick(600);
+  assert.ok(box.classList.contains('is-changed'));
+  t.mock.timers.tick(200);
+  assert.equal(box.classList.contains('is-changed'), false, 'class removed once the animation is over');
+  api.flashAll([box, box, other, null]);
+  assert.ok(box.classList.contains('is-changed') && other.classList.contains('is-changed'));
+});
+
+test('setValue tweens old to new under motion and lands on the exact new text', () => {
+  const {api, node, play} = loadDomLabs();
+  const out = node('10 MiB');
+  assert.equal(api.setValue(out, '50 MiB'), true);
+  assert.equal(out.textContent, '10 MiB', 'tween starts from the old value');
+  assert.ok(out.classList.contains('is-changed'));
+  play(200);
+  const mid = parseFloat(out.textContent);
+  assert.ok(mid > 10 && mid < 50, 'mid-tween value ' + out.textContent);
+  play(400);
+  assert.equal(out.textContent, '50 MiB');
+  assert.equal(api.setValue(out, '50 MiB'), false, 'unchanged value does not pulse');
+  const big = node('4,096 tokens');
+  api.setValue(big, '65,536 tokens'); play(600);
+  assert.equal(big.textContent, '65,536 tokens');
+});
+
+test('under prefers-reduced-motion setValue snaps and flash is only a static highlight class', t => {
+  for (const mode of [{reduced: true}, {rm: true}]) {
+    t.mock.timers.enable({apis: ['setTimeout']});
+    const {api, node, frames} = loadDomLabs(mode);
+    const out = node('10 MiB');
+    api.setValue(out, '50 MiB');
+    assert.equal(out.textContent, '50 MiB', 'no tween');
+    assert.equal(frames.length, 0, 'no animation frames requested');
+    assert.ok(out.classList.contains('is-changed'), 'static highlight still marks the change');
+    t.mock.timers.tick(720);
+    assert.equal(out.classList.contains('is-changed'), false);
+    t.mock.timers.reset();
+  }
+});
+
+test('orange token marks selected and changed state; reduced motion removes the animation; text on orange is legible', () => {
+  const css = readFileSync(path.join(root, 'shared/micro-labs.css'), 'utf8');
+  const hex = name => css.match(new RegExp('--' + name + ': *(#[0-9a-fA-F]{6})'))[1];
+  const [orange, orangeHi, ink] = [hex('ml-orange'), hex('ml-orange-hi'), hex('ml-orange-ink')];
+  assert.equal(orange.toUpperCase(), '#E5672F');
+  assert.equal(orangeHi.toUpperCase(), '#F2A65A');
+  const lum = c => { const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16) / 255)
+    .map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g + .0722 * b; };
+  const ratio = (a, b) => (Math.max(lum(a), lum(b)) + .05) / (Math.min(lum(a), lum(b)) + .05);
+  assert.ok(ratio(ink, orange) >= 4.5, 'ink on #E5672F ' + ratio(ink, orange).toFixed(2));
+  assert.ok(ratio(ink, orangeHi) >= 4.5, 'ink on #F2A65A ' + ratio(ink, orangeHi).toFixed(2));
+  assert.match(css, /\.ml-tokens button\[aria-pressed=true\][^{]*\{[^}]*background: var\(--ml-orange-hi\)/);
+  assert.match(css, /\.ml-value,\.ml-num \{ background: var\(--ml-orange-hi\)/);
+  assert.match(css, /\.is-changed \{ animation: ml-flash 650ms/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.is-changed,svg \.is-changed,svg text\.is-changed \{ animation: none \}/);
+  assert.match(css, /html\.rm \.is-changed,html\.rm svg \.is-changed,html\.rm svg text\.is-changed \{ animation: none \}/);
+  for (const file of ['one-token/learning-panels.css', 'journey-story/component-math.css']) {
+    const src = readFileSync(path.join(root, file), 'utf8');
+    assert.match(src, /\[aria-pressed="true"\]\s*\{[^}]*background: var\(--ml-orange-hi/, file + ' selected chips use the orange token');
+  }
+});

@@ -28,14 +28,19 @@ const JourneyMath = (() => {
 
   function barMarks(count, start, gap) {
     return Array.from({length: count}, (_, i) =>
-      `<rect x="${start + gap * i}" width="9" rx="1.5"/>`).join('');
+      `<rect x="${start + gap * i}" width="9" rx="1.5" data-live/>`).join('');
   }
+
+  // Change feedback comes from shared/micro-labs.js when it is loaded (flash, tween, live observer).
+  const ML = () => (typeof window !== 'undefined' && window.MicroLabs) || {};
+  const setText = (node, text) => (ML().setValue ? ML().setValue(node, text) : void (node.textContent = text));
 
   function optimizer() {
     const panel = document.createElement('section');
     panel.className = 'component-math optimizer';
     panel.setAttribute('aria-label', 'Muon and AdamW optimizer comparison');
     panel.innerHTML = `
+      <p class="ml-try"><b>Try this</b> Switch between Raw gradient and After update and watch the bars change shape.</p>
       <div class="math-controls" role="group" aria-label="Compare optimizer updates">
         <button type="button" data-mode="raw">Raw gradient</button>
         <button type="button" data-mode="step">After update</button>
@@ -63,6 +68,7 @@ const JourneyMath = (() => {
         </figure>
       </div>
       <p class="math-caption" aria-live="polite"></p>
+      <p class="ml-why"><b>Why it matters</b> Muon evens out hidden-matrix updates, while AdamW scales each parameter by its own history.</p>
       <small>Illustrative inputs · <a href="https://arxiv.org/html/2606.19348v1#S2.SS4">DeepSeek-V4 report §2.4</a></small>`;
 
     // A first-step matrix direction proportional to G. The ellipse shows the
@@ -89,6 +95,7 @@ const JourneyMath = (() => {
     }
     buttons.forEach(b => b.addEventListener('click', () => render(b.dataset.mode)));
     render('step');
+    ML().live?.(panel);
     return panel;
   }
 
@@ -180,6 +187,7 @@ const JourneyMath = (() => {
         <section>
           <h4>Illustrative logit lens &amp; activation slice</h4>
           <p>After “The cat”, combine the four mHC streams at the current layer, read the result through the final normalization and vocabulary head, then apply softmax. Both the 24-channel slice and probabilities are constructed examples.</p>
+          <p class="ml-try"><b>Try this</b> Drag the layer slider from 1 to 61 and watch “sat” gain probability.</p>
           <label class="lens-slider">Layer <span data-layer>1</span> of 61
             <input type="range" min="1" max="61" step="1" value="1" aria-label="Illustrative logit lens layer">
           </label>
@@ -197,9 +205,11 @@ const JourneyMath = (() => {
             ${['sat', 'is', 'was', 'ran', 'Other tokens'].map(token => `
               <div class="lens-probability"><span>${token}</span><span class="lens-track" aria-hidden="true"><i></i></span><span data-percent></span></div>`).join('')}
           </div>
+          <p class="ml-why"><b>Why it matters</b> Each layer refines the guess, so the answer sharpens as the token climbs the model.</p>
         </section>
         <section class="steer-section">
           <h4>Causal feature steering (illustrative)</h4>
+          <p class="ml-try"><b>Try this</b> Click Ablate “Paris”, then Clamp → “Rome”, and watch the answer change.</p>
           <p>Prompt: “The Eiffel Tower is in …”. Clamp a feature node in this illustrative attribution graph to watch downstream next-token probabilities shift live (inspired by Circuit Tracer; not measured DeepSeek-V4-Pro weights).</p>
           <svg class="steer-svg" viewBox="0 0 296 108" role="img" aria-label="Illustrative causal feature steering graph connecting Eiffel Tower through Paris to France or Italy">
             <g class="steer-cols">
@@ -239,6 +249,7 @@ const JourneyMath = (() => {
               <div class="lens-probability"><span data-tok></span><span class="lens-track" aria-hidden="true"><i></i></span><span data-percent></span></div>`).join('')}
           </div>
           <p class="math-caption" data-steer-caption aria-live="polite"></p>
+          <p class="ml-why"><b>Why it matters</b> Changing one internal feature changes the output, which is how interpretability tests cause and effect.</p>
         </section>
       </div>`;
 
@@ -262,7 +273,7 @@ const JourneyMath = (() => {
       percentages.push(100 - percentages.reduce((sum, p) => sum + p, 0));
       rows.forEach((row, i) => {
         row.querySelector('i').style.width = percentages[i] + '%';
-        row.querySelector('[data-percent]').textContent = percentages[i] + '%';
+        setText(row.querySelector('[data-percent]'), percentages[i] + '%');
       });
       activationSlice(layer).forEach((v, i) => {
         const bar = actBars[i];
@@ -273,7 +284,7 @@ const JourneyMath = (() => {
       });
       range.value = layer;
       range.setAttribute('aria-valuetext', `Layer ${layer} of 61, illustrative probability of sat ${percentages[0]} percent`);
-      drawer.querySelector('[data-layer]').textContent = layer;
+      drawer.querySelector('[data-layer]').textContent = String(layer);
       jumps.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.layerJump) === layer)));
     }
     range.addEventListener('input', () => render(range.valueAsNumber));
@@ -285,8 +296,10 @@ const JourneyMath = (() => {
     const steerRows = circuit.querySelectorAll('[data-steer-probs] .lens-probability');
     const steerCap = circuit.querySelector('[data-steer-caption]');
     const parisLbl = circuit.querySelector('[data-paris-lbl]');
+    const lastState = {};
     function renderSteer(mode) {
       const s = steerCircuit(mode);
+      const changed = [];
       steerBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.steer === s.mode)));
       for (const [key, w] of Object.entries(s.edges)) {
         const edge = circuit.querySelector(`[data-edge="${key}"]`);
@@ -297,14 +310,17 @@ const JourneyMath = (() => {
       }
       for (const [key, st] of Object.entries(s.nodes)) {
         const node = circuit.querySelector(`[data-node="${key}"]`);
+        if (node && lastState[key] && lastState[key] !== st) changed.push(node.querySelector('rect'));
+        lastState[key] = st;
         if (node) node.dataset.state = st;
       }
+      ML().flashAll?.(changed); // nodes that changed state pulse
       if (parisLbl) parisLbl.textContent = s.mode === 'swap' ? 'Rome*' : (s.mode === 'ablate' ? 'Paris ×' : 'Paris');
       s.probs.forEach(({token, pct}, i) => {
         const row = steerRows[i];
         row.querySelector('[data-tok]').textContent = token;
         row.querySelector('i').style.width = pct + '%';
-        row.querySelector('[data-percent]').textContent = pct + '%';
+        setText(row.querySelector('[data-percent]'), pct + '%');
       });
       steerCap.textContent = s.caption;
     }
@@ -316,6 +332,7 @@ const JourneyMath = (() => {
     circuit.querySelector('[data-node="eiffel"]')?.addEventListener('click', () => renderSteer('natural'));
     circuit.querySelector('[data-node="italy"]')?.addEventListener('click', () => renderSteer('swap'));
     renderSteer('natural');
+    ML().live?.(drawer);
     return drawer;
   }
 
