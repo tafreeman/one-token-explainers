@@ -6,6 +6,7 @@ Files used by more than one explainer. Today, both journey pages ([story](../jou
 |---|---|---|
 | `obs-core.html` | The LLM Systems Observatory, the Three.js engine. The journey pages embed it with `?embed=1`. It also opens on its own. | journey-story, journey-tour, landing footer link |
 | `micro-labs.js` and `micro-labs.css` | Offline, on-demand math labs. Run `node --test` at the repository root. | Story, Tour, standalone Observatory, Beamline Study |
+| `real-traces.js` | Measured router decisions from an open MoE (DeepSeek-V2-Lite: 64 routed + 2 shared experts, top-6) on four prompts at five layers. The MoE lab's "Real trace" view draws it, labelled apart from the simulated 384-expert V4-Pro router. It is generated, never edited by hand: `python tools/extract-real-traces.py --model-path <snapshot> --revision <sha>`. Schema checks: `tools/real-traces.test.cjs`. | Story, Tour, Reader, standalone Observatory, Beamline Study (loaded just before `micro-labs.js`) |
 | `concept-map.js` | The single table mapping lesson steps to Observatory codes (TR-2, MD-2d, IN-9) and to the seven Inspect panels. Labels, lesson-stage tags, deep links and the "Back to One Token" chip all read it. Load it before `concept-links.js`. | Reader, Swiss, Beamline, Story, Tour, Observatory |
 | `concept-links.js` | Concept hashes and cross-explainer links, built on `concept-map.js`. | all explainers |
 | `obs-file-bridge.js` | Connects local-file journey pages to the Observatory when the browser isolates their origins. | Story, Tour, Observatory |
