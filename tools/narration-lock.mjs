@@ -60,6 +60,15 @@ export function drift(lock = readLock(), current = snapshot()) {
   return out;
 }
 
+// pendingRerecord ids whose MP3 changed since they were listed: the clip was re-recorded, so drop the id.
+export function pendingStale(lock = readLock(), current = snapshot()) {
+  const now = new Map(current.map((c) => [key(c), c.audioSha256]));
+  const listed = lock.pendingAudioSha256 || {};
+  return Object.entries(lock.pendingRerecord || {}).flatMap(([track, ids]) => ids.map((id) => `${track}/${id}`))
+    .filter((k) => !(k in listed) || (now.has(k) && now.get(k) !== listed[k]))
+    .map((k) => (k in listed ? `${k}: audio re-recorded but still listed in pendingRerecord` : `${k}: pending without a recorded audio hash (run --write)`));
+}
+
 function write(captionsOnly) {
   const lock = existsSync(LOCK_PATH) ? readLock() : { clips: [], pendingRerecord: {} };
   const textOnly = drift(lock).filter((line) => line.includes('not re-recorded'));
@@ -69,6 +78,14 @@ function write(captionsOnly) {
     process.exit(1);
   }
   const next = { ...lock, clips: snapshot() };
+  // Remember each pending clip's audio hash from when it was listed; a later change means it was re-recorded.
+  const old = new Map(lock.clips.map((c) => [key(c), c.audioSha256]));
+  const listed = {};
+  for (const [track, ids] of Object.entries(lock.pendingRerecord || {})) for (const id of ids) {
+    const k = `${track}/${id}`;
+    listed[k] = (lock.pendingAudioSha256 || {})[k] || old.get(k) || next.clips.find((c) => key(c) === k)?.audioSha256;
+  }
+  next.pendingAudioSha256 = listed;
   writeFileSync(LOCK_PATH, JSON.stringify(next, null, 1) + '\n');
   console.log(`narration-lock: pinned ${next.clips.length} clips`);
 }
