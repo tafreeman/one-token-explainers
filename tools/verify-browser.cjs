@@ -157,6 +157,11 @@ async function focusOrder(browser, base, local = false) {
     const after = await page.evaluate(() => ({pos: window.__journey.state.pos, value: +document.activeElement.value}));
     assert.deepEqual(after, {pos: before.pos, value: before.value + 1}, 'ArrowRight on a lab slider moved the drawer');
     await page.keyboard.press('ArrowLeft');
+    // Between the disclosure and the slider sits the Simulated / Real trace switcher (two buttons).
+    await page.keyboard.press('Shift+Tab');
+    assert(await page.locator('#obsAside .micro-lab[data-lab="moe"] .ml-source button').nth(1).evaluate(el => el === document.activeElement),
+      'Shift+Tab from the slider did not reach the router data switcher');
+    await page.keyboard.press('Shift+Tab');
     await page.keyboard.press('Shift+Tab');
     assert(await page.locator('#obsAside .micro-lab[data-lab="moe"] > summary').evaluate(el => el === document.activeElement),
       'Shift+Tab did not return from the slider to its disclosure');
@@ -563,6 +568,61 @@ async function drawerPerformance(browser, base) {
   } finally { await page.close(); }
 }
 
+// The MoE lab's Real trace view: measured 64-expert routing beside, never inside, the 384-expert simulation.
+async function realTraces(browser, base) {
+  for (const [width, height] of [[1440, 900], [390, 844]]) {
+    const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
+    const errors = [];
+    page.on('console', msg => { if (failsGate(msg)) errors.push(msg.text()); });
+    page.on('pageerror', err => errors.push(err.message));
+    try {
+      await ready(page, base + '?rm=1', 'window.__ready && window.MicroLabs && window.RealMoETraces');
+      const T = await page.evaluate(() => {
+        const host = document.createElement('section');
+        host.id = 'traceCheck'; host.setAttribute('aria-label', 'Router lab check');
+        document.body.append(host);
+        window.MicroLabs.dock(host, ['moe'], {});
+        host.querySelector('details').open = true;
+        const t = window.RealMoETraces;
+        return {modelId: t.modelId, rev: t.revision.slice(0, 7), at: t.extractedAt, routed: t.numRouted, shared: t.numShared, k: t.topK};
+      });
+      const lab = page.locator('#traceCheck .ml-body');
+      await lab.locator('.ml-source').waitFor();
+      const [simBtn, realBtn] = [lab.locator('.ml-source button').nth(0), lab.locator('.ml-source button').nth(1)];
+      assert.equal(await simBtn.getAttribute('aria-pressed'), 'true');
+      assert.equal(await lab.locator(':scope > div:not(.ml-real):not([hidden]) svg rect[data-eid]').count(), 384, 'simulated grid');
+      await realBtn.click();
+      assert.equal(await realBtn.getAttribute('aria-pressed'), 'true');
+      const real = lab.locator('.ml-real');
+      assert.equal(await real.isVisible(), true);
+      assert.equal(await lab.locator('svg rect[data-eid]').evaluateAll(n => n.filter(e => e.getClientRects().length).length), 0, 'simulated grid hidden');
+      assert.equal(await real.locator('svg rect').count(), T.routed + T.shared, 'routed + shared cells');
+      assert.equal(await real.locator('svg rect.ml-sel').count(), T.k, 'top-k lit');
+      const shares = await real.locator('.ml-weight span:last-child').allInnerTexts();
+      assert.equal(shares.length, T.k);
+      assert.ok(Math.abs(shares.reduce((s, x) => s + parseFloat(x), 0) - 100) < 0.6, 'shares sum to 100%: ' + shares);
+      const prov = await real.locator('.ml-prov').innerText();
+      for (const part of [T.modelId, T.rev, T.at, '384']) assert.ok(prov.includes(part), 'provenance names ' + part);
+      const status = real.getByRole('status'), before = await status.innerText();
+      await real.locator('.ml-presets button').nth(1).click();
+      await page.waitForFunction(b => document.querySelector('#traceCheck .ml-real [role=status]').innerText !== b, before);
+      await real.locator('select').nth(1).selectOption('4');
+      assert.equal(await real.locator('svg rect.ml-sel').count(), T.k, 'top-k lit after layer change');
+      assert.ok(await lab.evaluate(b => b.scrollWidth <= b.clientWidth + 1), 'lab has no horizontal overflow');
+      await page.addScriptTag({path: axePath});
+      const issues = await page.evaluate(async () => (await axe.run('#traceCheck', {
+        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
+      })).violations.map(v => v.id + ': ' + v.nodes.map(n => n.target).join(' ')));
+      assert.deepEqual(issues, [], 'real trace accessibility');
+      await simBtn.click();
+      assert.equal(await real.isVisible(), false);
+      assert.equal(await lab.locator('svg rect[data-eid]').evaluateAll(n => n.filter(e => e.getClientRects().length).length), 384, 'simulation restored');
+      assert.deepEqual(errors, [], 'real trace console');
+    } finally { await page.close(); }
+  }
+  console.log('MoE lab Real trace: 64+2 grid, top-k shares, provenance, token/layer pickers, axe and restore passed at 1440 and 390');
+}
+
 // Observatory zone headers must stay clear of the open stage index, the viewport edges and each other.
 async function zoneLabels(browser, base) {
   const clash = () => {
@@ -612,6 +672,7 @@ async function main() {
     if (runs('tour')) await verifyTour(browser, base);
     if (runs('layout')) await layoutAndAxe(browser, base, artifacts);
     if (runs('zones')) await zoneLabels(browser, base);
+    if (runs('traces')) await realTraces(browser, base);
     if (runs('keyboard')) {
       await keyboard(browser, base, false);
       await keyboard(browser, base, true);

@@ -373,22 +373,89 @@
     update();
   }
 
+  // Measured routing from a smaller open MoE (shared/real-traces.js), beside the V4-Pro simulation, never mixed with it.
+  function realTrace(box, sim, T) {
+    const st = {p: 0, t: 0, l: 0}, cols = Math.ceil(Math.sqrt(T.numRouted));
+    const src = setA(el('div', undefined, 'ml-presets ml-source'), {role: 'group', 'aria-label': 'Router data'});
+    const bSim = btn('Simulated · V4-Pro · 384 experts', undefined, true);
+    const bReal = btn('Real trace · ' + T.modelId.split('/').pop() + ' · ' + T.numRouted + ' experts', undefined, false);
+    const real = el('div', undefined, 'ml-real');
+    real.hidden = true; src.append(bSim, bReal); box.append(src, sim, real);
+    const show = on => {
+      sim.hidden = on; real.hidden = !on;
+      bSim.setAttribute('aria-pressed', String(!on)); bReal.setAttribute('aria-pressed', String(on));
+      if (on) paint();
+    };
+    bSim.onclick = () => show(false); bReal.onclick = () => show(true);
+    const pick = (label, items, key) => {
+      const s = el('select'), l = el('label', label + ' ', 'ml-pick');
+      items.forEach((x, i) => { const o = el('option', x); o.value = String(i); s.append(o); });
+      s.onchange = () => { st[key] = Number(s.value); if (key === 'p') { st.t = 0; tokens(); } paint(); };
+      l.append(s); real.append(l);
+    };
+    pick('Prompt', T.prompts.map(p => p.text), 'p');
+    pick('Layer', T.layers.map(n => (n + 1) + ' of ' + T.numLayers), 'l');
+    const toks = setA(el('div', undefined, 'ml-presets'), {role: 'group', 'aria-label': 'Token'});
+    real.append(toks);
+    const fig = graphic(real, '0 0 278 92', T.numRouted + ' routed experts in an ' + cols + '-column grid, plus ' + T.numShared + ' shared experts on the right');
+    const cells = Array.from({length: T.numRouted}, (_, id) =>
+      svg('rect', {x: (id % cols) * 28 + 2, y: Math.floor(id / cols) * 11 + 2, width: 24, height: 8, rx: 1.5, class: 'ml-idle'}, fig));
+    for (let i = 0; i < T.numShared; i++) svg('rect', {x: 234, y: 2 + i * 44, width: 42, height: 40, rx: 3, class: 'ml-active'}, fig);
+    const weights = el('div', '', 'ml-weights'), info = setA(el('div', '', 'ml-readout'), {role: 'status'});
+    real.append(weights, info);
+    note(real, 'Measured, not simulated: ' + T.modelId + ' @ ' + T.revision.slice(0, 7) + ', extracted ' + T.extractedAt + '. ' +
+      T.numRouted + ' routed experts' + (T.numShared ? ' + ' + T.numShared + ' shared (always on, right)' : '') + ', top-' + T.topK +
+      '. A smaller open model, not DeepSeek-V4-Pro’s 384-expert router.').classList.add('ml-prov');
+    function tokens() {
+      toks.replaceChildren(...T.prompts[st.p].tokens.map((t, i) => {
+        const b = btn(t.replace(/^ /, '␣'), undefined, i === st.t);
+        b.onclick = () => { st.t = i; paint(); };
+        return b;
+      }));
+    }
+    let prev = new Set();
+    function paint() {
+      const r = T.prompts[st.p].routes[st.t][st.l], load = T.load[st.l], fresh = [];
+      [...toks.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === st.t)));
+      cells.forEach(c => { setA(c, {class: 'ml-idle'}); c.removeAttribute('data-mark'); });
+      weights.replaceChildren();
+      r.e.forEach((id, i) => {
+        setA(cells[id], {class: 'ml-sel', 'data-mark': 'top gate'});
+        if (prev.size && !prev.has(id)) fresh.push(cells[id]);
+        const row = el('div', undefined, 'ml-weight'), bar = el('i');
+        bar.style.width = (r.w[i] * 100) + '%'; bar.dataset.mark = 'gate';
+        row.append(el('span', 'E' + id), bar, el('span', (100 * r.w[i]).toFixed(1) + '%'));
+        weights.append(row);
+      });
+      prev = new Set(r.e); flashAll(fresh);
+      const top = Math.max(...load), busiest = load.indexOf(top);
+      info.textContent = 'Top-' + T.topK + ' shares sum to 1 · router mass ' + r.m.toFixed(3) + (T.normTopK ? '' : ' · raw weight = share × mass') +
+        '\nRouter entropy ' + r.h.toFixed(2) + ' bits; uniform over ' + T.numRouted + ' would be ' + Math.log2(T.numRouted).toFixed(2) +
+        '\nThis layer over all ' + T.prompts.length + ' prompts: ' + load.filter(Boolean).length + '/' + T.numRouted +
+        ' experts used · busiest E' + busiest + ' took ' + top + ' of ' + load.reduce((s, c) => s + c, 0) + ' picks';
+    }
+    tokens();
+  }
+
   const routing = {k: 6, bias: 1};
   function moeLab(box, options) {
     let prevIds = new Set();
-    const count = slider(box, 'Routed experts K', 1, 8, routing.k, change);
-    const bias = slider(box, 'Load correction', 0, 100, Math.round(routing.bias * 100), change, n => (n / 100).toFixed(2));
+    // With shared/real-traces.js loaded, a switcher shows measured routing beside this simulation.
+    const traces = typeof window !== 'undefined' && window.RealMoETraces, sim = traces ? el('div') : box;
+    if (traces) realTrace(box, sim, traces);
+    const count = slider(sim, 'Routed experts K', 1, 8, routing.k, change);
+    const bias = slider(sim, 'Load correction', 0, 100, Math.round(routing.bias * 100), change, n => (n / 100).toFixed(2));
     const failBtn = btn('Break: Load-Bias Off (λ = 0)', 'ml-break', routing.bias === 0);
-    box.append(failBtn);
-    const fig = graphic(box, '0 0 278 138', '384 routed experts in a 24 by 16 bank with capacity drop meter');
+    sim.append(failBtn);
+    const fig = graphic(sim, '0 0 278 138', '384 routed experts in a 24 by 16 bank with capacity drop meter');
     const cells = Array.from({length: 384}, (_, id) => svg('rect', {x: (id % 24) * 11.6 + 2, y: Math.floor(id / 24) * 7.6 + 2, width: 8, height: 4.5, rx: 1, class: 'ml-idle', 'data-eid': id}, fig));
     svg('rect', {x: 2, y: 126, width: 274, height: 7, rx: 2, class: 'ml-idle'}, fig);
     const capOk = svg('rect', {x: 2, y: 126, width: 274, height: 7, rx: 2, class: 'ml-active'}, fig);
     const capDrop = svg('rect', {x: 276, y: 126, width: 0, height: 7, rx: 2, class: 'ml-drop'}, fig);
     const weights = el('div', '', 'ml-weights'), info = el('div', '', 'ml-readout');
-    box.append(weights, info);
-    eq(box, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'aⱼ', 'Normalized shares sum to 1; V4-Pro uses gates gⱼ = 2.5 aⱼ.'], ' · expertⱼ']);
-    note(box, 'Generic capped teaching router, not V4’s execution policy. A 24-token batch varies affinities; capacity = ceil(1.25 × 24 × K / 384) assignments/expert. Overflow drops expert assignments, not whole tokens. Bars show one token’s normalized shares; V4 scales their sum by 2.5 and adds its always-on shared expert.');
+    sim.append(weights, info);
+    eq(sim, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'aⱼ', 'Normalized shares sum to 1; V4-Pro uses gates gⱼ = 2.5 aⱼ.'], ' · expertⱼ']);
+    note(sim, 'Generic capped teaching router, not V4’s execution policy. A 24-token batch varies affinities; capacity = ceil(1.25 × 24 × K / 384) assignments/expert. Overflow drops expert assignments, not whole tokens. Bars show one token’s normalized shares; V4 scales their sum by 2.5 and adds its always-on shared expert.');
     const setTrace = id => {
       box.classList.toggle('has-focus', id != null);
       cells.forEach((c, idx) => c.classList.toggle('is-traced', id === idx));
