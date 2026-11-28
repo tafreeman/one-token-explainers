@@ -20,11 +20,13 @@ test('BPE consumes every byte once, preserves unknown scripts and reuses stable 
 });
 
 test('teaching BPE agrees with an independent lowest-rank pair search', () => {
-  const pieceId = new Map(lab.pieces.map((bytes, id) => [bytes.join(','), id]));
-  const rank = new Map(lab.pieces.slice(256).map((bytes, i) => {
-    const left = pieceId.get(bytes.slice(0, -1).join(','));
-    return [left + ',' + bytes.at(-1), 256 + i];
-  }));
+  // Rank is creation order. Added words merge two multi-byte pieces (' ' + 'the'), so read the rules
+  // rather than assuming every merge appends one byte.
+  const rank = new Map(lab.rules.map(r => [r.left + ',' + r.right, r.id]));
+  lab.rules.forEach((r, i) => {
+    assert.equal(r.id, 256 + i);
+    assert.deepEqual(lab.pieces[r.id], [...lab.pieces[r.left], ...lab.pieces[r.right]]);
+  });
   function reference(text) {
     const ids = [...new TextEncoder().encode(text)];
     for (;;) {
@@ -37,10 +39,24 @@ test('teaching BPE agrees with an independent lowest-rank pair search', () => {
       ids.splice(at, 2, best);
     }
   }
-  const samples = [' The', 'The', ' café!', ' café', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'x', '  '];
+  const samples = [' The', 'The', ' café!', ' café', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'x', '  ',
+    ' weather', ' learns', 'walking', ' is', 'What', '?'];
   for (const a of samples) for (const b of samples) {
     assert.deepEqual(lab.tokenize(a + b).ids, reference(a + b), a + b);
   }
+});
+
+test('typed everyday text merges into whole words, rare words into subwords, and lesson IDs stay put', () => {
+  const words = s => lab.tokenize(s).ids.map(id => lab.pieceLabel(lab.pieces[id]));
+  assert.deepEqual(words('The weather is nice today'), ['The', '␠weather', '␠is', '␠nice', '␠today']);
+  assert.deepEqual(words('What is the weather in Paris?'), ['What', '␠is', '␠the', '␠weather', '␠in', '␠Paris', '?']);
+  assert.deepEqual(words(' learns'), ['␠learn', 's']);
+  assert.ok(words('walking').includes('ing'), 'unknown word keeps a learned suffix');
+  // A name the word list lacks splits into a few learned chunks, not one piece per byte (it used to be 8).
+  assert.deepEqual(words('is in Montreal'), ['is', '␠in', '␠M', 'on', 't', 're', 'al']);
+  // The original lesson words keep their pre-expansion pieces.
+  assert.deepEqual(words('is in Paris.'), ['is', '␠in', '␠Paris', '.']);
+  assert.deepEqual(words('the cat sat'), ['the', '␠cat', '␠sat']);
 });
 
 test('every SSE split preserves UTF-8 and only a complete blank line dispatches text', () => {
@@ -333,6 +349,37 @@ test('scene focus messages trust only the parent window and its paired origin', 
     receive({source: parent, origin, data});
     assert.equal(focused, 1);
   }
+});
+
+test('KV residency: per-request size, tier ordering, linear recompute and a length-free break-even', () => {
+  const {GB200} = lab;
+  for (let exponent = 12; exponent <= 20; exponent++) {
+    const len = 2 ** exponent, t = lab.kvTiers(len);
+    close(t.bytes, lab.kvFootprints(len).v4 * GB200.layers);
+    close(t.hostS / t.hbmS, GB200.hbm / GB200.host);
+    assert.ok(t.hbmS < t.hostS && t.hostS < t.recomputeS, `tiers ordered at ${len}`);
+    // V4's compressed cache stays far below the break-even size, so fetching beats recomputing at every length.
+    assert.ok(t.perToken < t.breakEvenPerToken / 100, `${t.perToken} B/token at ${len}`);
+    if (exponent > 12) close(t.recomputeS / lab.kvTiers(len / 2).recomputeS, 2);
+  }
+  // Both fetch and recompute scale with tokens, so the break-even is a size per token, not a context length.
+  close(lab.kvTiers(4096).breakEvenPerToken, lab.kvTiers(2 ** 20).breakEvenPerToken);
+  close(lab.kvTiers(4096).breakEvenPerToken, 2 * GB200.active / GB200.pflops * GB200.host);
+  assert.equal(GB200.host, 512e9 / 2, 'Grace LPDDR5X is shared by the superchip’s two GPUs');
+});
+
+test('TP/EP sharding traffic is zero unsharded and grows with group size and batch', () => {
+  const none = lab.shardComm(8, 1, 1);
+  assert.equal(none.tpBytes, 0); assert.equal(none.epBytes, 0); assert.equal(none.stepsPerS, Infinity);
+  let prev = 0;
+  for (const tp of [2, 4, 8]) { const c = lab.shardComm(8, tp, 1); assert.ok(c.tpBytes > prev); assert.equal(c.epBytes, 0); prev = c.tpBytes; }
+  prev = 0;
+  for (const ep of [2, 8, 32, 64]) { const c = lab.shardComm(8, 1, ep); assert.ok(c.epBytes > prev); assert.equal(c.tpBytes, 0); prev = c.epBytes; }
+  const one = lab.shardComm(1, 8, 64), many = lab.shardComm(64, 8, 64);
+  close(many.tpBytes / one.tpBytes, 64); close(many.epBytes / one.epBytes, 64);
+  assert.ok(many.stepsPerS < one.stepsPerS && Number.isFinite(many.stepsPerS));
+  // EP traffic per layer matches roofline()'s decode NVLink bytes, so the two read-outs agree.
+  close(lab.shardComm(16, 1, 32).epBytes, lab.GB200.layers * lab.roofline(4096, 16, 32).decode.nvBytes);
 });
 
 test('lab and bridge stay below 68 KB with workload and timing explanations; Swiss stays independent', () => {
