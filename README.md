@@ -87,8 +87,10 @@ layouts; Diagram and Spatial switching; seeking; keyboard and focus behavior;
 narration controls; Inspector cutaways over HTTP and `file://`; and fallbacks
 without JavaScript or WebGL. Classic-view coverage includes layout and automated
 axe checks, iframe keyboard bridging, Swiss playback, context recovery, and
-Three.js mirror order and integrity. These checks are not a complete accessibility
-audit. To run selected sections, use, for example,
+Three.js mirror order and integrity, and Observatory zone headers staying clear of
+the stage index and screen edges (`--only=zones`). Console errors, and Three.js
+PMREM blur-clipping warnings, fail every page. These checks are not a complete
+accessibility audit. To run selected sections, use, for example,
 `npm run verify:browser -- --only=reader,keyboard,focus`. Set
 `JOURNEY_SCREENSHOTS` to keep the layout screenshots.
 

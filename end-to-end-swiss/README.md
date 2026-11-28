@@ -20,9 +20,9 @@ their existing URLs and are linked with explicit HTML paths for local-file use.
 - **Open:** <https://tafreeman.github.io/one-token-explainers/end-to-end-swiss/> · local <http://localhost:8000/end-to-end-swiss/>
 - **Entry:** `index.html`
 - **Depends on:**
-  - Three.js r128 from cdnjs, with unpkg and jsDelivr as fallbacks.
-  - Martian Mono from Google Fonts.
-  - Nothing outside this folder.
+  - Three.js r128, bundled at [`../shared/vendor/three-r128.min.js`](../shared/vendor/). If that file is missing, [`../shared/three-loader.js`](../shared/three-loader.js) tries the cdnjs, unpkg and jsDelivr mirrors behind one SRI hash.
+  - From [`../shared/`](../shared/): `suite-theme.css`, `concept-map.js` and `concept-links.js` for suite navigation, and `obs-core.html` for the Observatory links.
+  - Martian Mono and Roboto Flex from Google Fonts, with system fallbacks offline.
 - **Narration:**
   - 14 clips, 4:38 in total, ElevenLabs voice `TYKLc7ViOIGE13dSZYlK` on `eleven_v4`.
   - The files are in `assets/narration/`, with `manifest.json`.
@@ -34,6 +34,7 @@ their existing URLs and are linked with explicit HTML paths for local-file use.
   - This is audit ID **E1** ("v2-hardened", score 9.5) in `Downloads\animations\ANIMATIONS-ANALYSIS-2026-11-21.md`.
   - Source: `Downloads\animations\final-copies\final copies\one-token-end-to-end-v2-hardened\1121-0356__llm-frontier-journey-artifact__page.html`, plus an inline favicon.
   - The 2026-11-21 fact fixes are in that audit, §4b.
-- **Known limits** (cosmetic, from the audit):
-  - The active axis label crowds its neighbors.
-  - A stage-12 label touches the screen edge on mobile.
+- **Known limits:** the two cosmetic limits from the audit no longer reproduce (measured 2026-11-27).
+  - At 1440 × 900, the active axis label keeps at least 22 px from its neighbours on all twelve stages.
+  - Below 900 px the axis labels are hidden, and every stage-12 label keeps at least 51 px from the screen edge
+    at 390 and 360 px wide.

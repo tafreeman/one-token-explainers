@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Fact and syntax gate for the explainers. Zero dependencies: `node tools/check-facts.mjs`.
 // Exits 1 and lists every failure. Each check names the Phase 1 task it guards.
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -123,6 +123,25 @@ const shared = JSON.parse(read('shared/journey-narration/manifest.json'));
 for (const k of ['story', 'tour']) {
   check(`${PAGES[k]} inline manifest matches shared manifest`, JSON.stringify(inline(src[k], 'narration-manifest')) === JSON.stringify(shared));
 }
+
+// Phase 7.4: every indexable entrypoint carries a description and a social card that exists on disk.
+const OG_IMAGE = 'https://tafreeman.github.io/one-token-explainers/shared/og-one-token.png';
+const metaContent = (html, attr, key) => {
+  const m = html.match(new RegExp(`<meta ${attr}="${key}" content="([^"]*)"`));
+  return m ? m[1].trim() : '';
+};
+for (const [k, p] of Object.entries(PAGES)) {
+  check(`${p} has a meta description`, metaContent(src[k], 'name', 'description').length > 0);
+  check(`${p} og:image is the shared card`, metaContent(src[k], 'property', 'og:image') === OG_IMAGE, metaContent(src[k], 'property', 'og:image') || 'missing');
+  check(`${p} has twitter:card summary_large_image`, metaContent(src[k], 'name', 'twitter:card') === 'summary_large_image');
+}
+check('social card shared/og-one-token.png exists', existsSync(join(ROOT, 'shared/og-one-token.png')));
+
+// Phase 7.4: planning pastes never ship as site assets again.
+const pastes = spawnSync('git', ['ls-files', '--', 'public'], { cwd: ROOT, encoding: 'utf8' });
+const pasteFiles = pastes.status === 0 ? pastes.stdout.split('\n').filter((f) => /(^|\/)Paste_/.test(f)) : [];
+check('git ls-files is available for the paste check', pastes.status === 0, (pastes.stderr || '').trim());
+check('no tracked Paste_* dumps under public/', pasteFiles.length === 0, pasteFiles.join(', '));
 
 // Every inline script parses.
 const tmp = mkdtempSync(join(tmpdir(), 'check-facts-'));

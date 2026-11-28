@@ -1,4 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141c27'/%3E%3Cpath fill='none' stroke='%23c9a15a' stroke-width='2' d='m6 11 10-5 10 5-10 5z'/%3E%3Cpath fill='none' stroke='%234ea5b8' stroke-width='2' d='m6 16 10 5 10-5M6 21l10 5 10-5'/%3E%3C/svg%3E"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#eceae3;color:#1e2530}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>LLM Systems Observatory</title>
+<meta name="description" content="An explorable 3D map of DeepSeek-V4-Pro in 31 stages, from training data through the layer stack to serving and the tool loop."><meta property="og:title" content="LLM Systems Observatory"><meta property="og:description" content="An explorable 3D map of DeepSeek-V4-Pro in 31 stages, from training data through the layer stack to serving and the tool loop."><meta property="og:type" content="website"><meta property="og:url" content="https://tafreeman.github.io/one-token-explainers/shared/obs-core.html"><meta property="og:image" content="https://tafreeman.github.io/one-token-explainers/shared/og-one-token.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="One token travelling along a line of stages, from training data to a streamed reply."><meta name="twitter:card" content="summary_large_image">
 <style>
     /* Theme tokens: light values on bare :root; dark under prefers-color-scheme and [data-theme="dark"] */
     :root {
@@ -807,6 +808,7 @@
     .comp-label.is-dimmed {
       opacity: 0 !important;
       pointer-events: none !important;
+      visibility: hidden;
     }
     .comp-label.is-wave-active {
       border-color: var(--accent-teal);
@@ -870,6 +872,7 @@
       z-index: 26;
     }
     .zone-label.is-hidden {
+      visibility: hidden;
       opacity: 0;
       pointer-events: none;
     }
@@ -5151,7 +5154,7 @@ let gantryShell=null;
           else setRealmCamera(z.realm);
         });
         labelsLayer.appendChild(el);
-        zoneLabelRecords.push({ data: z, pos: new THREE.Vector3(...z.pos), el, hid: null, tx: '' });
+        zoneLabelRecords.push({ data: z, realm: z.realm || COMPONENTS[COMP_BY_ID[z.compId]].realm, pos: new THREE.Vector3(...z.pos), el, hid: null, tx: '', w: 0, h: 0 });
       });
 
       COMPONENTS.forEach((comp, index) => {
@@ -6006,6 +6009,9 @@ let gantryShell=null;
       // TOC Drawer collapse / expand & live filter
       const tocDrawer = document.getElementById('tocDrawer');
       const tocReopen = document.getElementById('tocReopenBtn');
+      // Every open/close path toggles .collapsed, so watch the class rather than each caller.
+      new MutationObserver(() => { perfTocEdge(); perfRequestRender(2); })
+        .observe(tocDrawer, { attributes: true, attributeFilter: ['class'] });
       document.getElementById('btnTocCollapse').addEventListener('click', () => {
         tocDrawer.classList.add('collapsed');
         tocReopen.classList.add('visible');
@@ -6203,6 +6209,8 @@ let gantryShell=null;
         const fr = ftr.getBoundingClientRect();
         stage.style.setProperty('--hdr-h', Math.round(hr.bottom - sr.top) + 'px');
         stage.style.setProperty('--ftr-h', Math.round(sr.bottom - fr.top) + 'px');
+        // Zone headers stay between the bars (cached here so the label loop reads no layout).
+        perf.labelTop = hr.bottom - sr.top; perf.labelBottom = fr.top - sr.top; perfTocEdge();
       };
       measure();
       if (typeof ResizeObserver === 'function') {
@@ -6229,6 +6237,7 @@ let gantryShell=null;
       // v4 perf: cache the canvas CSS size here so animate() never reads layout per frame
       perf.viewW = renderer.domElement.clientWidth || w;
       perf.viewH = renderer.domElement.clientHeight || h;
+      perfTocEdge();
       perfRequestRender(3);
     }
 
@@ -6977,6 +6986,16 @@ let gantryShell=null;
       zr.el.classList.toggle('is-hidden', hidden);
     }
 
+    // Zone headers keep this many px clear of the stage index drawer and the right edge.
+    const ZONE_LABEL_GAP = 12;
+    // Cache the open drawer's right edge in stage px (offset* ignores the slide transform), so the
+    // label loop never reads layout per frame. Re-run on resize and whenever the drawer opens or closes.
+    function perfTocEdge() {
+      const d = document.getElementById('tocDrawer');
+      perf.tocRight = (!d || d.classList.contains('collapsed') || !d.offsetParent) ? 0 : d.offsetLeft + d.offsetWidth;
+      for (const zr of zoneLabelRecords) { zr.w = 0; zr.h = 0; }
+    }
+
     // ---------- HUD + console API ----------
     function perfRingArrays() {
       const n = perf.ringN;
@@ -7478,7 +7497,7 @@ let gantryShell=null;
 
         for (let z = 0; z < zoneLabelRecords.length; z++) {
           const zr = zoneLabelRecords[z];
-          if (!showZoneHeaders) {
+          if (!showZoneHeaders || !realmOK(zr.realm)) {
             perfZoneHidden(zr, true);
             continue;
           }
@@ -7486,9 +7505,18 @@ let gantryShell=null;
           if (tmpProj.z > 1.0 || tmpProj.z < -1.0) {
             perfZoneHidden(zr, true);
           } else {
-            const sx = (tmpProj.x * 0.5 + 0.5) * viewW;
+            const ax = (tmpProj.x * 0.5 + 0.5) * viewW;
             const sy = (-tmpProj.y * 0.5 + 0.5) * viewH;
+            // A zone whose anchor sits behind the open stage index is hidden, not dragged out from under it.
+            const safeL = (perf.tocRight || 0) + ZONE_LABEL_GAP;
+            if (ax < safeL) { perfZoneHidden(zr, true); continue; }
             perfZoneHidden(zr, false);
+            if (!zr.w) { zr.w = zr.el.offsetWidth; zr.h = zr.el.offsetHeight; } // once per layout change (perfTocEdge resets)
+            if (sy - zr.h < (perf.labelTop || 0) + 4 || sy > (perf.labelBottom || viewH) - 4) { perfZoneHidden(zr, true); continue; }
+            // No room beside the drawer (a phone with the index open): hide rather than push off-screen.
+            if (safeL + zr.w + ZONE_LABEL_GAP > viewW) { perfZoneHidden(zr, true); continue; }
+            const half = zr.w / 2;
+            const sx = Math.max(safeL + half, Math.min(ax, viewW - half - ZONE_LABEL_GAP));
             const ztx = `translate3d(${sx.toFixed(1)}px, ${sy.toFixed(1)}px, 0) translate(-50%, -100%)`;
             if (zr.tx !== ztx) { zr.tx = ztx; zr.el.style.transform = ztx; }
           }
@@ -7531,7 +7559,8 @@ let gantryShell=null;
             }
           }
 
-          if (!visibleByLod) {
+          // A label whose component group is hidden (realm filter, focus) must not float over the scene.
+          if (!visibleByLod || !rec.group.visible) {
             perfLabelDim(rec);
             continue;
           }

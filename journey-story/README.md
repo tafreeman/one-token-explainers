@@ -1,6 +1,6 @@
 # One Token's Journey
 
-A scrolling 3D story of one token through DeepSeek-V4-Pro, from raw text to the next token, in six chapters. Chapters four and five open onto 3D rooms. The other four dock a 3D tile beside the original blueprint diagram.
+A scrolling 3D story of one token through DeepSeek-V4-Pro, from raw text to the next token, in six chapters. Chapters four and five open onto 3D rooms, placed beside the diagram on desktop and below it at widths up to 1023 px. The other four dock a 3D tile beside the original blueprint diagram.
 
 - **Open:** <https://tafreeman.github.io/one-token-explainers/journey-story/> · local <http://localhost:8000/journey-story/>
 - **Entry:** `index.html`. It links to the [guided tour](../journey-tour/).
@@ -46,6 +46,5 @@ Acceptance results and frame times for the journey set are in [`../shared/README
 
 ## Known limits
 
-- The chapter 4 and 5 rooms sit over part of those chapters' diagrams by design.
-- Narrow layouts were verified in Chrome's 390 × 844 viewport. Physical-phone touch and screen-reader output remain unverified.
+- Narrow layouts were verified in Chrome's 390 × 844 viewport. Physical-phone touch and screen-reader output remain unverified. The protocol is in [`../docs/real-device-verification-2026-11-27.md`](../docs/real-device-verification-2026-11-27.md).
 - After an engine update, hard-refresh with Ctrl+F5, because the browser may serve a cached `obs-core.html` inside the iframe.

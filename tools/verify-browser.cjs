@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const {failsGate} = require('./console-gate.cjs');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
@@ -42,7 +43,7 @@ async function layoutAndAxe(browser, base, artifacts) {
       const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
       try {
         const errors = [];
-        page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+        page.on('console', msg => { if (failsGate(msg)) errors.push(msg.text()); });
         page.on('pageerror', err => errors.push(err.message));
         // Exercise the offline system-font layout deterministically in CI.
         await page.route('https://fonts.googleapis.com/**', r => r.fulfill({contentType: 'text/css', body: ''}));
@@ -191,11 +192,16 @@ async function focusOrder(browser, base, local = false) {
     await page.keyboard.press('Control+End');
     const textBefore = await page.evaluate(() => ({pos: window.__journey.state.pos, caret: document.activeElement.selectionStart}));
     await page.keyboard.press('ArrowLeft');
+    // Wait for the caret rather than reading it at once: under CPU load the key lands a frame later.
+    const moved = await page.waitForFunction(before => document.activeElement.selectionStart < before, textBefore.caret, {timeout: 5000})
+      .then(() => true, () => false);
     const textAfter = await page.evaluate(() => ({pos: window.__journey.state.pos, caret: document.activeElement.selectionStart}));
     assert.equal(textAfter.pos, textBefore.pos, 'Textarea arrows moved the drawer');
-    assert(textAfter.caret < textBefore.caret, 'Textarea ArrowLeft did not move the caret');
+    assert(moved && textAfter.caret < textBefore.caret, 'Textarea ArrowLeft did not move the caret');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !window.__journey.state.opened);
+    // Focus returns a frame after the drawer reports closed; on a loaded CI runner, reading it at once raced.
+    await page.waitForFunction(() => document.activeElement.id === 'obsExpand', null, {timeout: 5000}).catch(() => {});
     assert.equal(await page.evaluate(() => document.activeElement.id), 'obsExpand', 'Close did not restore the actual opener');
 
     // Character shortcuts work only in the chapter rail or the focused scene.
@@ -448,7 +454,7 @@ async function contextRecovery(browser, base, name, route, condition, selector, 
   const page = await browser.newPage({reducedMotion:'reduce'});
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+  page.on('console', msg => { if (failsGate(msg)) errors.push(msg.text()); });
   try {
     // quality=high keeps the env map on software renderers, so restore rebuilds it too.
     await ready(page, base + route + '?rm=1' + (name === 'Observatory' ? '&quality=high' : ''), condition);
@@ -557,6 +563,38 @@ async function drawerPerformance(browser, base) {
   } finally { await page.close(); }
 }
 
+// Observatory zone headers must stay clear of the open stage index, the viewport edges and each other.
+async function zoneLabels(browser, base) {
+  const clash = () => {
+    const d = document.getElementById('tocDrawer');
+    const dr = d.getBoundingClientRect(), open = !d.classList.contains('collapsed');
+    const vw = document.documentElement.clientWidth;
+    const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const rs = [...document.querySelectorAll('.zone-label:not(.is-hidden)')]
+      .filter(e => getComputedStyle(e).display !== 'none').map(e => [e.textContent.slice(0, 24), e.getBoundingClientRect()]);
+    const bad = rs.filter(([, r]) => (open && hit(r, dr)) || r.left < 0 || r.right > vw).map(([t]) => t);
+    rs.forEach(([t, a], i) => rs.slice(i + 1).forEach(([u, b]) => { if (hit(a, b)) bad.push(t + ' x ' + u); }));
+    return bad;
+  };
+  for (const [width, height, query] of [[1440, 900, ''], [1440, 900, '&realm=MODEL'], [1024, 768, ''], [390, 844, '']]) {
+    const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
+    try {
+      await ready(page, base + 'shared/obs-core.html?rm=1' + query, 'window.__ready');
+      await page.evaluate('window.__zoneClash = ' + clash.toString());
+      for (const state of ['initial', 'toggled']) {
+        if (state === 'toggled') {
+          const btn = await page.locator('#tocDrawer').evaluate(d => d.classList.contains('collapsed')) ? '#tocReopenBtn' : '#btnTocCollapse';
+          await page.click(btn);
+        }
+        const ok = await page.waitForFunction(() => window.__zoneClash().length === 0, null, {timeout: 8000})
+          .then(() => true, () => false);
+        assert.ok(ok, `${width}x${height}${query} ${state}: zone headers clash ${JSON.stringify(await page.evaluate(() => window.__zoneClash()))}`);
+      }
+    } finally { await page.close(); }
+  }
+  console.log('Observatory zone headers clear the stage index and edges at 1440 (all realms and MODEL), 1024 and 390 px');
+}
+
 async function main() {
   const artifacts = process.env.JOURNEY_SCREENSHOTS || await fs.mkdtemp(path.join(os.tmpdir(), 'journey-layouts-'));
   await fs.mkdir(artifacts, {recursive:true});
@@ -573,6 +611,7 @@ async function main() {
     if (runs('reader')) await verifyReader(browser, base, artifacts);
     if (runs('tour')) await verifyTour(browser, base);
     if (runs('layout')) await layoutAndAxe(browser, base, artifacts);
+    if (runs('zones')) await zoneLabels(browser, base);
     if (runs('keyboard')) {
       await keyboard(browser, base, false);
       await keyboard(browser, base, true);

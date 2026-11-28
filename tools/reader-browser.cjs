@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const {failsGate} = require('./console-gate.cjs');
 const path = require('node:path');
 const {pathToFileURL} = require('node:url');
 const {stops, tracks} = require('../one-token/stops-manifest.js');
@@ -29,7 +30,7 @@ function collectErrors(page) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (failsGate(message)) errors.push(message.text());
   });
   return errors;
 }
