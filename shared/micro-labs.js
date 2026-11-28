@@ -7,8 +7,28 @@
   const hex = b => b.toString(16).toUpperCase().padStart(2, '0');
 
   const rules = [], pairs = new Map(), pieces = Array.from({length: 256}, (_, i) => [i]);
-  for (const w of [' The', 'The', ' café', ' café!', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'is', ' in']) {
-    const b = bytesOf(w); let left = b[0];
+  // The lesson's words come first, so their demo IDs stay fixed. Then about 200 common English words (with
+  // their leading space) and suffixes, so typed text merges into whole words or subwords instead of single
+  // bytes; anything rarer still falls back to smaller pieces, as real BPE does.
+  const common = ('the a an and or of to is it its on at as by for from with you your we they he she I my me this that these ' +
+    'what which who how why when where can could will would should do does did not no yes all some any more most many much ' +
+    'one two three new good nice great small big first last next time day today tomorrow week year people world city weather ' +
+    'rain sun sunny cold hot warm London Tokyo France model models token tokens text word words language large data train ' +
+    'training learn learning AI computer code function return question answer hello thanks please like love make made go going ' +
+    'get know think see look use used work works help tell write read run need want here there now then just very so but if ' +
+    'because about after before over under up down out into also only again').split(' ').map(w => ' ' + w);
+  const starts = 'What How Why When Where Is Can Do It This We You My Hello I A'.split(' ');
+  const suffixes = 'ing ed er ers ly tion s es ment ness able al ive ize ful less est un re'.split(' ');
+  // Like a trained BPE's earliest merges: a leading space joins every letter, then frequent English pairs and
+  // triples, so a name the list lacks (' Montreal') splits into a few chunks, not one piece per byte.
+  const letters = [...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(c => ' ' + c);
+  const pairs2 = ('th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ' +
+    'ne ea ra ce li ch ll be ma si om ur ion ent and ing her ter con res ver all ons nce men ted ers pro are ess ive was ect rea ' +
+    'com per int est sta ica ist ear ain one our rat').split(' ');
+  const lesson = [' The', 'The', ' café', ' café!', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'is', ' in'];
+  for (const w of [...lesson, ...letters, ...pairs2, ...suffixes, ...common, ...starts]) {
+    // Added words chain the pieces the rules so far already make, so each still ends as one token.
+    const b = lesson.includes(w) ? bytesOf(w) : tokenize(w).ids; let left = b[0];
     for (const right of b.slice(1)) {
       const k = left + ',' + right;
       if (!pairs.has(k)) { const id = pieces.length; pieces.push([...pieces[left], ...pieces[right]]); pairs.set(k, id); rules.push({left, right, id}); }
@@ -132,7 +152,7 @@
   // Observatory cards. Each concept's components (concept-map.js `obs`) carry its Break lab.
   const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'],
     'IN-5': ['pd'], 'IN-6': ['pd'], 'IN-7': ['pd'], 'IN-9': ['stream'], 'IN-10': ['stream'], 'IN-11': ['cache'], 'IN-12': ['cache', 'pd']};
-  const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope, kvFootprints, kvTiers, shardComm, GB200, maxContext,
+  const core = {tokenize, pieces, rules, pieceLabel, streamPrefix, attention, rope, kvFootprints, kvTiers, shardComm, GB200, maxContext,
     routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs, components};
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
@@ -143,7 +163,27 @@
   const svg = (tag, p, parent, txt) => { const n = setA(document.createElementNS('http://www.w3.org/2000/svg', tag), p); if (txt !== undefined) n.textContent = txt; parent.append(n); return n; };
   const graphic = (box, viewBox, label) => svg('svg', {viewBox, role: 'img', 'aria-label': label, class: 'ml-graphic'}, box);
   const note = (box, text) => { const p = el('p', text, 'ml-note'); box.append(p); return p; };
-
+  const readout = () => setA(el('div', '', 'ml-readout'), {role: 'status'});
+  // Predict first: an optional, collapsed strip above a Break toggle. A choice runs the Break and explains what
+  // the lab now shows; the Break button stays one click away. Completion is kept when storage is allowed.
+  const POE_KEY = 'ot-poe-v1';
+  const poeSeen = () => { try { return JSON.parse(localStorage.getItem(POE_KEY) || '{}'); } catch { return {}; } };
+  function poe(key, question, choices, correct, explain, run) {
+    const d = el('details', undefined, 'ml-poe'), out = setA(el('p', '', 'ml-poe-out'), {role: 'status'});
+    const opts = setA(el('div', undefined, 'ml-presets'), {role: 'group', 'aria-label': 'Your prediction'});
+    d.append(el('summary', poeSeen()[key] ? 'Predict first · tried' : 'Predict first (optional)'), el('p', question), opts, out);
+    choices.forEach((c, i) => {
+      const b = btn(c, undefined, false);
+      b.onclick = () => {
+        [...opts.children].forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+        run();
+        out.textContent = (i === correct ? 'Yes. ' : 'Not quite. ') + explain();
+        try { localStorage.setItem(POE_KEY, JSON.stringify({...poeSeen(), [key]: i === correct ? 'right' : 'tried'})); } catch { /* private mode or file:// */ }
+      };
+      opts.append(b);
+    });
+    return d;
+  }
   /* ---- Change feedback: one helper drives every lab -------------------------------------------
      flash(el) adds .is-changed (CSS: an eased orange pulse that settles to the element's own state;
      under prefers-reduced-motion or html.rm it is a static orange highlight). setValue() tweens old -> new
@@ -256,7 +296,7 @@
     const result = el('div', undefined, 'ml-pieces'), tally = el('div', undefined, 'ml-readout'), steps = el('ol', undefined, 'ml-merges'), trace = el('details', undefined, 'ml-trace');
     trace.append(el('summary', 'Show merge order'), steps);
     box.append(field, presets, result, tally, trace);
-    const vocab = note(box, 'Demo vocabulary: IDs differ from the main story. ␠ marks a space. Labels below each piece are its demo token ID.');
+    const vocab = note(box, 'Demo vocabulary: about 200 common English words and suffixes, with IDs that differ from the main story. Rarer text splits into smaller pieces or single bytes, as real BPE does. ␠ marks a space; the label under each piece is its demo token ID.');
     vocab?.classList?.add('ml-demo-vocab');
     let cursor, wire, status, buffered = true, bufToggle;
     function decode() {
@@ -273,21 +313,24 @@
       bufToggle.setAttribute('role', 'switch');
       bufToggle.setAttribute('aria-checked', 'true');
       bufToggle.removeAttribute('aria-pressed');
-      const bufHint = el('p', 'Turn off to see broken characters.', 'ml-hint');
       bufToggle.onclick = () => {
         buffered = !buffered;
         bufToggle.setAttribute('aria-checked', String(buffered));
         bufToggle.textContent = buffered ? 'UTF-8 buffer: On' : 'UTF-8 buffer: Off';
         bufToggle.classList.toggle('is-off', !buffered);
-        if (!buffered) {
-          const raw = enc.encode('data: ' + JSON.stringify({text: input.value}));
-          const at = raw.findIndex(b => b >= 240); const fb = raw.findIndex(b => b >= 128);
-          if (at >= 0 || fb >= 0) { cursor.input.value = String((at >= 0 ? at : fb) + 2); cursor.sync(); }
+        // Land one byte into the first multi-byte character, so any length (é is 2 bytes, 🙂 is 4) is cut mid-way.
+        if (!buffered && !streamPrefix(input.value, cursor.value).pending) {
+          const first = enc.encode('data: ' + JSON.stringify({text: input.value})).findIndex(b => b >= 128);
+          if (first >= 0) { cursor.input.value = String(first + 1); cursor.sync(); }
         }
         decode();
       };
-      wire = el('pre', '', 'ml-wire'); status = el('div', '', 'ml-readout');
-      box.append(bufToggle, bufHint, wire, status);
+      wire = el('pre', '', 'ml-wire'); status = readout();
+      box.append(poe('stream', 'A network chunk ends halfway through a multi-byte character. With the UTF-8 buffer off, what does the reader see?',
+        ['The character, a moment late', 'A replacement character (\uFFFD)', 'Nothing until the stream ends'], 1,
+        () => streamPrefix(input.value, cursor.value, false).corrupted ? 'Each chunk is decoded on its own, so the split bytes become U+FFFD; the buffer would hold them until the rest arrives.' :
+          'This text has no multi-byte character to split. Type é or 🙂 and try again.',
+        () => { if (buffered) bufToggle.onclick(); }), bufToggle, wire, status);
     }
     let prevIds = null;
     function update() {
@@ -472,13 +515,16 @@
     const count = slider(sim, 'Routed experts K', 1, 8, routing.k, change);
     const bias = slider(sim, 'Load correction', 0, 100, Math.round(routing.bias * 100), change, n => (n / 100).toFixed(2));
     const failBtn = btn('Break: Load-Bias Off (λ = 0)', 'ml-break', routing.bias === 0);
-    sim.append(failBtn);
+    sim.append(poe('moe', 'Turn the load correction off. Where will this batch’s expert picks go?',
+      ['Spread evenly, as before', 'Onto the same few popular experts, which overflow', 'Onto random experts, still balanced'], 1,
+      () => { const c = moeCapacity(routing.k, 0); return 'Every token now picks the same popular experts; at capacity ' + c.capPerExpert + ' per expert, ' + c.dropped + ' of ' + c.total + ' assignments drop.'; },
+      () => { bias.input.value = '0'; bias.sync(); change(); }), failBtn);
     const fig = graphic(sim, '0 0 278 138', '384 routed experts in a 24 by 16 bank with capacity drop meter');
     const cells = Array.from({length: 384}, (_, id) => svg('rect', {x: (id % 24) * 11.6 + 2, y: Math.floor(id / 24) * 7.6 + 2, width: 8, height: 4.5, rx: 1, class: 'ml-idle', 'data-eid': id}, fig));
     svg('rect', {x: 2, y: 126, width: 274, height: 7, rx: 2, class: 'ml-idle'}, fig);
     const capOk = svg('rect', {x: 2, y: 126, width: 274, height: 7, rx: 2, class: 'ml-active'}, fig);
     const capDrop = svg('rect', {x: 276, y: 126, width: 0, height: 7, rx: 2, class: 'ml-drop'}, fig);
-    const weights = el('div', '', 'ml-weights'), info = el('div', '', 'ml-readout');
+    const weights = el('div', '', 'ml-weights'), info = readout();
     sim.append(weights, info);
     eq(sim, [['top', 'top6', 'Six is the model default. K selects the highest corrected scores.'], ' → Σ ', ['gate', 'aⱼ', 'Normalized shares sum to 1; V4-Pro uses gates gⱼ = 2.5 aⱼ.'], ' · expertⱼ']);
     note(sim, 'Generic capped teaching router, not V4’s execution policy. A 24-token batch varies affinities; capacity = ceil(1.25 × 24 × K / 384) assignments/expert. Overflow drops expert assignments, not whole tokens. Bars show one token’s normalized shares; V4 scales their sum by 2.5 and adds its always-on shared expert.');
@@ -526,7 +572,7 @@
 
   function cacheLab(box, options) {
     let edited = null;
-    const bustBtn = btn('Break: Edit token 1 (95% → 0%)', 'ml-break', false), strip = el('div', undefined, 'ml-prefix');
+    const bustBtn = btn('Break: Edit the first token', 'ml-break', false), strip = el('div', undefined, 'ml-prefix');
     const fig = graphic(box, '0 0 292 64', 'Prefix KV cache hit ratio and illustrative time to first token');
     svg('text', {x: 2, y: 14}, fig, 'Prefix KV'); svg('rect', {x: 78, y: 4, width: 158, height: 12, rx: 2, class: 'ml-idle'}, fig);
     const hitBar = svg('rect', {x: 78, y: 4, width: 150, height: 12, rx: 2, class: 'ml-active', 'data-live': ''}, fig);
@@ -534,14 +580,17 @@
     const hitLbl = svg('text', {x: 242, y: 14}, fig);
     svg('text', {x: 2, y: 46}, fig, 'TTFT'); svg('rect', {x: 78, y: 36, width: 158, height: 12, rx: 2, class: 'ml-idle'}, fig);
     const ttftBar = svg('rect', {x: 78, y: 36, width: 15, height: 12, rx: 2, class: 'ml-active', 'data-live': ''}, fig);
-    const ttftLbl = svg('text', {x: 242, y: 46}, fig), info = el('div', '', 'ml-readout');
-    box.append(bustBtn, strip, fig, info);
+    const ttftLbl = svg('text', {x: 242, y: 46}, fig), info = readout();
+    box.append(poe('cache', 'Only the first token of the prompt changes. How much of the cached prefix can be reused?',
+      ['All but the edited block', 'About half', 'None of it'], 2,
+      () => { const s = prefixCache(0); return 'Prefix caching matches from the start, so reuse ends at the first changed token: ' + s.matched + ' of ' + s.total + ' blocks, and TTFT rises to ' + s.ttftMs + ' ms.'; },
+      () => { edited = 0; paint(); }), bustBtn, strip, fig, info);
     note(box, 'Assume an eligible warm cache. Tiles stand for blocks of a 16K-token prompt. Edit a tile: reuse ends at its first changed token. TTFT is illustrative.');
     let prevStates = null;
     function paint() {
       const s = prefixCache(edited), wHit = Math.round(158 * s.hitRate);
       bustBtn.setAttribute('aria-pressed', String(edited != null));
-      bustBtn.textContent = edited == null ? 'Break: Edit token 1 (95% → 0%)' : 'Restore warm prefix (95% hit)';
+      bustBtn.textContent = edited == null ? 'Break: Edit the first token' : 'Restore warm prefix (95% hit)';
       const tiles = PREFIX_TOKENS.map((tok, i) => {
         const b = btn(i === edited ? tok + '*' : tok, undefined, i === edited);
         b.dataset.state = i === edited ? 'edited' : (i < s.matched ? 'warm' : 'cold');
@@ -564,10 +613,13 @@
   function pdLab(box, options) {
     let disagg = true;
     const toggle = btn('Break: PD-Disaggregation Off', 'ml-break', false);
-    const fig = graphic(box, '0 0 296 106', 'Prefill and decode inter-token latency timeline'), info = el('div', '', 'ml-readout');
+    const fig = graphic(box, '0 0 296 106', 'Prefill and decode inter-token latency timeline'), info = readout();
     const tx = ms => 68 + ms * 220 / 450;
     let first = true;
-    box.append(toggle, fig, info);
+    box.append(poe('pd', 'A ' + pdSchedule(true, 64).prefillChunkMs + ' ms prefill chunk lands on the GPU decoding your reply. What happens to the gap between your output tokens?',
+      ['It stays steady', 'One gap stretches by the whole chunk', 'Every gap doubles'], 1,
+      () => { const s = pdSchedule(false, 64); return 'Decode waits behind prefill, so one gap grows from ' + s.baseItlMs + ' ms to ' + s.peakItlMs + ' ms; separate prefill and decode pools avoid the stall.'; },
+      () => { disagg = false; paint(); }), toggle, fig, info);
     note(box, 'Idealized schedule: 18 ms decode, a 320 ms prefill chunk, no queue or KV-transfer overhead. Dedicated pools avoid this modeled prefill stall; real ITL also depends on transfer and scheduling.');
     function paint() {
       const s = pdSchedule(disagg, 64);

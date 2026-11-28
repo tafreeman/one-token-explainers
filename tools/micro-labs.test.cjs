@@ -20,11 +20,13 @@ test('BPE consumes every byte once, preserves unknown scripts and reuses stable 
 });
 
 test('teaching BPE agrees with an independent lowest-rank pair search', () => {
-  const pieceId = new Map(lab.pieces.map((bytes, id) => [bytes.join(','), id]));
-  const rank = new Map(lab.pieces.slice(256).map((bytes, i) => {
-    const left = pieceId.get(bytes.slice(0, -1).join(','));
-    return [left + ',' + bytes.at(-1), 256 + i];
-  }));
+  // Rank is creation order. Added words merge two multi-byte pieces (' ' + 'the'), so read the rules
+  // rather than assuming every merge appends one byte.
+  const rank = new Map(lab.rules.map(r => [r.left + ',' + r.right, r.id]));
+  lab.rules.forEach((r, i) => {
+    assert.equal(r.id, 256 + i);
+    assert.deepEqual(lab.pieces[r.id], [...lab.pieces[r.left], ...lab.pieces[r.right]]);
+  });
   function reference(text) {
     const ids = [...new TextEncoder().encode(text)];
     for (;;) {
@@ -37,10 +39,24 @@ test('teaching BPE agrees with an independent lowest-rank pair search', () => {
       ids.splice(at, 2, best);
     }
   }
-  const samples = [' The', 'The', ' café!', ' café', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'x', '  '];
+  const samples = [' The', 'The', ' café!', ' café', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'x', '  ',
+    ' weather', ' learns', 'walking', ' is', 'What', '?'];
   for (const a of samples) for (const b of samples) {
     assert.deepEqual(lab.tokenize(a + b).ids, reference(a + b), a + b);
   }
+});
+
+test('typed everyday text merges into whole words, rare words into subwords, and lesson IDs stay put', () => {
+  const words = s => lab.tokenize(s).ids.map(id => lab.pieceLabel(lab.pieces[id]));
+  assert.deepEqual(words('The weather is nice today'), ['The', '␠weather', '␠is', '␠nice', '␠today']);
+  assert.deepEqual(words('What is the weather in Paris?'), ['What', '␠is', '␠the', '␠weather', '␠in', '␠Paris', '?']);
+  assert.deepEqual(words(' learns'), ['␠learn', 's']);
+  assert.ok(words('walking').includes('ing'), 'unknown word keeps a learned suffix');
+  // A name the word list lacks splits into a few learned chunks, not one piece per byte (it used to be 8).
+  assert.deepEqual(words('is in Montreal'), ['is', '␠in', '␠M', 'on', 't', 're', 'al']);
+  // The original lesson words keep their pre-expansion pieces.
+  assert.deepEqual(words('is in Paris.'), ['is', '␠in', '␠Paris', '.']);
+  assert.deepEqual(words('the cat sat'), ['the', '␠cat', '␠sat']);
 });
 
 test('every SSE split preserves UTF-8 and only a complete blank line dispatches text', () => {

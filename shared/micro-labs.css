@@ -133,3 +133,8 @@ html.rm svg text.is-changed { fill: var(--ml-orange-ink); stroke: var(--ml-orang
 .micro-lab .ml-prov { margin-top: .55rem; padding-left: .55rem; border-left: 2px solid var(--ml-line) }
 /* Source links inside notes take the note's own (contrast-checked) colour, underlined, not the page's link blue. */
 .micro-lab .ml-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px }
+/* Predict first: optional and collapsed; a choice runs the Break and explains what the lab now shows. */
+.micro-lab .ml-poe { margin: .25rem 0 .45rem; padding: .3rem .55rem; border: 1px dashed var(--ml-line); border-radius: var(--ml-radius) }
+.ml-poe > summary { cursor: pointer; font-size: .77rem }
+.micro-lab .ml-poe p { margin: .4rem 0; font-size: .82rem; line-height: 1.45 }
+.micro-lab .ml-poe-out:empty { display: none }

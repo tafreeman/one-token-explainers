@@ -623,6 +623,61 @@ async function realTraces(browser, base) {
   console.log('MoE lab Real trace: 64+2 grid, top-k shares, provenance, token/layer pickers, axe and restore passed at 1440 and 390');
 }
 
+// Predict first: each Break lab's optional prediction runs its Break, explains it, is remembered, and the
+// Break button itself still restores the healthy state without predicting.
+async function recall(browser, base) {
+  const cases = [
+    ['moe', 1, async lab => lab.locator('.ml-break').getAttribute('aria-pressed'), 'true', /assignments drop/],
+    ['cache', 2, async lab => lab.locator('.ml-break').getAttribute('aria-pressed'), 'true', /0 of 20 blocks/],
+    ['pd', 1, async lab => lab.locator('.ml-break').getAttribute('aria-pressed'), 'true', /18 ms to 338 ms/],
+    ['stream', 1, async lab => lab.locator('.ml-break').getAttribute('aria-checked'), 'false', /U\+FFFD/],
+  ];
+  for (const [width, height] of [[1440, 900], [390, 844]]) {
+    const page = await browser.newPage({viewport: {width, height}, reducedMotion: 'reduce'});
+    const errors = [];
+    page.on('console', msg => { if (failsGate(msg)) errors.push(msg.text()); });
+    page.on('pageerror', err => errors.push(err.message));
+    try {
+      await ready(page, base + '?rm=1', 'window.__ready && window.MicroLabs');
+      await page.evaluate(() => { try { localStorage.removeItem('ot-poe-v1'); } catch {} });
+      for (const [name, correct, breakState, broken, explains] of cases) {
+        await page.evaluate(name => {
+          document.getElementById('recallCheck')?.remove();
+          const host = document.createElement('section');
+          host.id = 'recallCheck'; host.setAttribute('aria-label', 'Prediction check');
+          document.body.append(host);
+          window.MicroLabs.dock(host, [name], {});
+          host.querySelector('details').open = true;
+        }, name);
+        const lab = page.locator('#recallCheck .ml-body');
+        if (name === 'stream') await lab.locator('textarea').fill('café');
+        const strip = lab.locator('details.ml-poe');
+        assert.equal(await strip.evaluate(d => d.open), false, name + ' prediction starts collapsed');
+        assert.equal(await strip.evaluate(d => d.nextElementSibling.classList.contains('ml-break')), true, name + ' prediction sits above its Break');
+        await strip.locator('summary').click();
+        await strip.locator('.ml-presets button').nth(correct).click();
+        assert.equal(await breakState(lab), broken, name + ' choice runs the Break');
+        const out = await strip.getByRole('status').innerText();
+        assert.match(out, /^Yes\. /, name + ' right answer'); assert.match(out, explains, name + ' explanation: ' + out);
+        assert.ok(await lab.evaluate(b => b.scrollWidth <= b.clientWidth + 1), name + ' fits');
+        await lab.locator('.ml-break').click();
+        assert.notEqual(await breakState(lab), broken, name + ' Break restores without predicting');
+      }
+      const seen = await page.evaluate(() => JSON.parse(localStorage.getItem('ot-poe-v1') || '{}'));
+      assert.deepEqual(Object.keys(seen).sort(), ['cache', 'moe', 'pd', 'stream']);
+      // Judge the settled lab: the change pulse (.is-changed) is a brief highlight, not the resting colours.
+      await page.waitForFunction(() => !document.querySelector('#recallCheck .is-changed'), null, {timeout: 5000});
+      await page.addScriptTag({path: axePath});
+      const issues = await page.evaluate(async () => (await axe.run('#recallCheck', {
+        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
+      })).violations.map(v => v.id + ': ' + v.nodes.map(n => n.target).join(' ')));
+      assert.deepEqual(issues, [], 'prediction accessibility');
+      assert.deepEqual(errors, [], 'prediction console');
+    } finally { await page.close(); }
+  }
+  console.log('Predict first: four Break labs predict, run, explain, remember and restore at 1440 and 390');
+}
+
 // Roofline TP presets and the KV residency tiers: read-outs follow the controls, fit a phone, and pass axe.
 async function economics(browser, base) {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
@@ -712,6 +767,7 @@ async function main() {
     if (runs('zones')) await zoneLabels(browser, base);
     if (runs('traces')) await realTraces(browser, base);
     if (runs('economics')) await economics(browser, base);
+    if (runs('recall')) await recall(browser, base);
     if (runs('keyboard')) {
       await keyboard(browser, base, false);
       await keyboard(browser, base, true);
