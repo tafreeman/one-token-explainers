@@ -126,10 +126,15 @@
   function readingLine() {
     return Math.max(anchorY() + 2, Math.round(window.innerHeight * READING_LINE));
   }
+  // Only .mast-progress reads --scroll-p. Writing it on <html>, or rewriting an unchanged data-scrolled on
+  // <body>, restyled the whole document on every scrubber move (about 20 ms per move on WARP).
+  const progressBar = document.querySelector('.mast-progress');
+  let lastProgress = '', lastScrolled = '';
   function syncScrollProgress() {
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    document.documentElement.style.setProperty('--scroll-p', clamp(window.scrollY / maxScroll, 0, 1).toFixed(4));
-    document.body.dataset.scrolled = window.scrollY > 24 ? 'true' : 'false';
+    const progress = clamp(window.scrollY / maxScroll, 0, 1).toFixed(4), scrolled = window.scrollY > 24 ? 'true' : 'false';
+    if (progress !== lastProgress) { lastProgress = progress; (progressBar || document.documentElement).style.setProperty('--scroll-p', progress); }
+    if (scrolled !== lastScrolled) { lastScrolled = scrolled; document.body.dataset.scrolled = scrolled; }
   }
   function scrollToElement(el) {
     holdSync = performance.now() + 160;
