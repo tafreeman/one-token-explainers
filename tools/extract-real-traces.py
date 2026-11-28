@@ -40,6 +40,7 @@ import argparse
 import json
 import logging
 import math
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -248,9 +249,37 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def snapshot_revisions(path: Path) -> set[str]:
+    """Commit SHAs a local snapshot declares: its directory name, or huggingface_hub download metadata."""
+    found = {path.name} if SHA_RE.match(path.name) else set()
+    for meta in (path / ".cache" / "huggingface" / "download").glob("*.metadata"):
+        lines = meta.read_text(encoding="utf-8", errors="replace").strip().splitlines()
+        first = lines[0].strip() if lines else ""
+        if SHA_RE.match(first):
+            found.add(first)
+    return found
+
+
+def check_revision(model_path: Path | None, revision: str) -> None:
+    """Refuse a --revision that the local snapshot contradicts, so recorded provenance is not a guess."""
+    if not SHA_RE.match(revision):
+        raise SystemExit(f"--revision must be a 40-character commit SHA, got {revision!r}")
+    if model_path is None:
+        return
+    declared = snapshot_revisions(model_path)
+    if not declared:
+        LOG.warning("cannot verify --revision against %s (no snapshot SHA or hub metadata found)", model_path)
+    elif declared != {revision}:
+        raise SystemExit(f"--revision {revision} does not match the snapshot at {model_path}: {sorted(declared)}")
+
+
 def main(argv: list[str]) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = parse_args(argv)
+    check_revision(args.model_path, args.revision)
     source = str(args.model_path) if args.model_path else args.model
     revision = None if args.model_path else args.revision
     torch.manual_seed(0)

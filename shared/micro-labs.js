@@ -171,7 +171,8 @@
   const svg = (tag, p, parent, txt) => { const n = setA(document.createElementNS('http://www.w3.org/2000/svg', tag), p); if (txt !== undefined) n.textContent = txt; parent.append(n); return n; };
   const graphic = (box, viewBox, label) => svg('svg', {viewBox, role: 'img', 'aria-label': label, class: 'ml-graphic'}, box);
   const note = (box, text) => { const p = el('p', text, 'ml-note'); box.append(p); return p; };
-  const readout = () => setA(el('div', '', 'ml-readout'), {role: 'status'});
+  // Not a live region: these are rewritten on every slider input, which a screen reader would announce each step.
+  const readout = () => el('div', '', 'ml-readout');
   // Predict first: an optional, collapsed strip above a Break toggle. A choice runs the Break and explains what
   // the lab now shows; the Break button stays one click away. Completion is kept when storage is allowed.
   const POE_KEY = 'ot-poe-v1';

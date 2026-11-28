@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { drift, readLock } from './narration-lock.mjs';
+import { drift, readLock, pendingStale } from './narration-lock.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -149,6 +149,7 @@ const narrationDrift = drift();
 check('narration lock matches every recording (node tools/narration-lock.mjs)', narrationDrift.length === 0, narrationDrift.slice(0, 6).join('; '));
 const lockIds = new Set(readLock().clips.map((c) => `${c.track}/${c.id}`));
 const pending = Object.entries(readLock().pendingRerecord || {}).flatMap(([track, ids]) => ids.map((id) => `${track}/${id}`));
+check('pending re-record ids are not already re-recorded', pendingStale().length === 0, pendingStale().slice(0, 6).join('; '));
 check('pending re-record ids name real clips', pending.every((id) => lockIds.has(id)), pending.filter((id) => !lockIds.has(id)).join(', '));
 
 // Every inline script parses.
