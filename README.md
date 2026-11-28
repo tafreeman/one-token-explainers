@@ -81,6 +81,12 @@ npm run verify:browser
 gate. `npm test` runs the Node test suite. `npm run build` runs syntax, fact and
 micro-lab checks; it does not produce a bundle.
 
+The fact gate also pins each narration clip's spoken text to its MP3
+(`tools/narration-lock.json`), so a script or caption edit that was not
+re-recorded fails. After re-recording a clip in its original voice, run
+`node tools/narration-lock.mjs --write` and remove the clip from
+`pendingRerecord`.
+
 `npm run verify:browser` starts a local server and checks the root Reader and the
 classic/deep-dive views. Reader coverage includes desktop, tablet and phone
 layouts; Diagram and Spatial switching; seeking; keyboard and focus behavior;

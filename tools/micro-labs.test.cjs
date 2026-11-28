@@ -335,6 +335,37 @@ test('scene focus messages trust only the parent window and its paired origin', 
   }
 });
 
+test('KV residency: per-request size, tier ordering, linear recompute and a length-free break-even', () => {
+  const {GB200} = lab;
+  for (let exponent = 12; exponent <= 20; exponent++) {
+    const len = 2 ** exponent, t = lab.kvTiers(len);
+    close(t.bytes, lab.kvFootprints(len).v4 * GB200.layers);
+    close(t.hostS / t.hbmS, GB200.hbm / GB200.host);
+    assert.ok(t.hbmS < t.hostS && t.hostS < t.recomputeS, `tiers ordered at ${len}`);
+    // V4's compressed cache stays far below the break-even size, so fetching beats recomputing at every length.
+    assert.ok(t.perToken < t.breakEvenPerToken / 100, `${t.perToken} B/token at ${len}`);
+    if (exponent > 12) close(t.recomputeS / lab.kvTiers(len / 2).recomputeS, 2);
+  }
+  // Both fetch and recompute scale with tokens, so the break-even is a size per token, not a context length.
+  close(lab.kvTiers(4096).breakEvenPerToken, lab.kvTiers(2 ** 20).breakEvenPerToken);
+  close(lab.kvTiers(4096).breakEvenPerToken, 2 * GB200.active / GB200.pflops * GB200.host);
+  assert.equal(GB200.host, 512e9 / 2, 'Grace LPDDR5X is shared by the superchip’s two GPUs');
+});
+
+test('TP/EP sharding traffic is zero unsharded and grows with group size and batch', () => {
+  const none = lab.shardComm(8, 1, 1);
+  assert.equal(none.tpBytes, 0); assert.equal(none.epBytes, 0); assert.equal(none.stepsPerS, Infinity);
+  let prev = 0;
+  for (const tp of [2, 4, 8]) { const c = lab.shardComm(8, tp, 1); assert.ok(c.tpBytes > prev); assert.equal(c.epBytes, 0); prev = c.tpBytes; }
+  prev = 0;
+  for (const ep of [2, 8, 32, 64]) { const c = lab.shardComm(8, 1, ep); assert.ok(c.epBytes > prev); assert.equal(c.tpBytes, 0); prev = c.epBytes; }
+  const one = lab.shardComm(1, 8, 64), many = lab.shardComm(64, 8, 64);
+  close(many.tpBytes / one.tpBytes, 64); close(many.epBytes / one.epBytes, 64);
+  assert.ok(many.stepsPerS < one.stepsPerS && Number.isFinite(many.stepsPerS));
+  // EP traffic per layer matches roofline()'s decode NVLink bytes, so the two read-outs agree.
+  close(lab.shardComm(16, 1, 32).epBytes, lab.GB200.layers * lab.roofline(4096, 16, 32).decode.nvBytes);
+});
+
 test('lab and bridge stay below 68 KB with workload and timing explanations; Swiss stays independent', () => {
   const size = ['micro-labs.js', 'obs-file-bridge.js'].reduce((sum, f) =>
     sum + statSync(path.join(root, 'shared', f)).size, 0);

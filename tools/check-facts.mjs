@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { drift, readLock } from './narration-lock.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -142,6 +143,13 @@ const pastes = spawnSync('git', ['ls-files', '--', 'public'], { cwd: ROOT, encod
 const pasteFiles = pastes.status === 0 ? pastes.stdout.split('\n').filter((f) => /(^|\/)Paste_/.test(f)) : [];
 check('git ls-files is available for the paste check', pastes.status === 0, (pastes.stderr || '').trim());
 check('no tracked Paste_* dumps under public/', pasteFiles.length === 0, pasteFiles.join(', '));
+
+// Phase 7.6: spoken text stays pinned to its recording, so an un-recorded script or caption edit fails here.
+const narrationDrift = drift();
+check('narration lock matches every recording (node tools/narration-lock.mjs)', narrationDrift.length === 0, narrationDrift.slice(0, 6).join('; '));
+const lockIds = new Set(readLock().clips.map((c) => `${c.track}/${c.id}`));
+const pending = Object.entries(readLock().pendingRerecord || {}).flatMap(([track, ids]) => ids.map((id) => `${track}/${id}`));
+check('pending re-record ids name real clips', pending.every((id) => lockIds.has(id)), pending.filter((id) => !lockIds.has(id)).join(', '));
 
 // Every inline script parses.
 const tmp = mkdtempSync(join(tmpdir(), 'check-facts-'));

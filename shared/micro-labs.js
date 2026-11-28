@@ -109,12 +109,30 @@
     const nvlinkCeiling = remote ? Math.min(peak, 1.5 * m / remote * nvUni) / 1e15 : null;
     return {ridge, ep: epGroup, peakPflops: peak / 1e15, nvlinkCeiling, prefill: pt(prompt * batch), decode: pt(batch)};
   }
+  // GB200 figures for the residency and sharding read-outs (NVIDIA GB200 NVL72 spec and multi-node tuning guide).
+  // Grace's LPDDR5X (512 GB/s) is shared by the superchip's two GPUs over one 900 GB/s NVLink-C2C, so a GPU
+  // fetching while its sibling does gets 256 GB/s. Recompute uses the roofline's assumed 5 PF/s and V4-Pro's
+  // 49B active parameters, linear FLOPs only (attention excluded), so it is a lower bound on recompute time.
+  const GB200 = {hbm: 8e12, host: 256e9, nvlink: 900e9, pflops: 5e15, active: 49e9, layers: 61};
+  function kvTiers(len) {
+    const bytes = kvFootprints(len).v4 * GB200.layers, recomputeS = 2 * GB200.active * len / GB200.pflops;
+    return {bytes, perToken: bytes / len, hbmS: bytes / GB200.hbm, hostS: bytes / GB200.host, recomputeS,
+      breakEvenPerToken: 2 * GB200.active / GB200.pflops * GB200.host};
+  }
+  // NVLink bytes per GPU per decode step, all 61 layers: two BF16 ring all-reduces per layer for tensor
+  // parallelism (attention output, shared expert) and top-6 BF16 dispatch + combine for expert parallelism.
+  function shardComm(batch, tp = 1, ep = 1) {
+    const d = 7168, k = 6, L = GB200.layers;
+    const tpBytes = L * 2 * (2 * (tp - 1) / tp) * batch * d * 2, epBytes = L * batch * k * d * 4 * (ep > 1 ? (ep - 1) / ep : 0);
+    const s = (tpBytes + epBytes) / GB200.nvlink;
+    return {tpBytes, epBytes, tpUs: tpBytes / GB200.nvlink * 1e6, epUs: epBytes / GB200.nvlink * 1e6, stepsPerS: s ? 1 / s : Infinity};
+  }
   const stopLabs = {3: ['bpe'], 4: ['bpe'], 11: ['kl'], 14: ['attention', 'rope'], 15: ['kv'],
     16: ['mix'], 17: ['moe'], 23: ['pd'], 24: ['roof'], 25: ['roof'], 26: ['stream'], 30: ['cache']};
   // Observatory cards. Each concept's components (concept-map.js `obs`) carry its Break lab.
   const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'],
     'IN-5': ['pd'], 'IN-6': ['pd'], 'IN-7': ['pd'], 'IN-9': ['stream'], 'IN-10': ['stream'], 'IN-11': ['cache'], 'IN-12': ['cache', 'pd']};
-  const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope, kvFootprints, maxContext,
+  const core = {tokenize, pieces, pieceLabel, streamPrefix, attention, rope, kvFootprints, kvTiers, shardComm, GB200, maxContext,
     routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs, components};
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
@@ -338,6 +356,12 @@
     draw();
   }
 
+  const secs = s => s < 1e-3 ? (s * 1e6).toFixed(0) + ' µs' : s < 1 ? (s * 1e3).toFixed(1) + ' ms' : s.toFixed(1) + ' s';
+  function residency(len) {
+    const t = kvTiers(len);
+    return '\nWhole request, ' + GB200.layers + ' layers: ' + (t.bytes / 1e9).toFixed(2) + ' GB · HBM3e read ' + secs(t.hbmS) + ' · Grace fetch ' + secs(t.hostS) + ' · recompute ≥ ' + secs(t.recomputeS) +
+      '\nFetching wins while KV stays under ' + (t.breakEvenPerToken / 1e6).toFixed(1) + ' MB/token; V4 is ' + (t.perToken / 1e3).toFixed(1) + ' KB/token here';
+  }
   function kvLab(box) {
     const ctl = slider(box, 'Context length', 12, 20, 16, update, n => fmt(2 ** n) + ' tokens');
     const fig = graphic(box, '0 0 296 92', 'Log-scaled KV cache footprint per sequence across MHA, GQA, MLA, and V4 hybrid');
@@ -355,6 +379,8 @@
       const tr = el('tr'), td = el('td'); tr.append(el('th', name), td); body.append(tr); return td;
     });
     table.append(body); box.append(table, info);
+    const src = el('a', 'NVIDIA GB200 NVL72 specifications'); src.href = 'https://www.nvidia.com/en-us/data-center/gb200-nvl72/';
+    const tiers = el('p', 'Where the cache lives: HBM3e is 8 TB/s per GPU. Grace’s LPDDR5X (512 GB/s) serves the superchip’s two GPUs over one 900 GB/s NVLink-C2C link, so 256 GB/s each. Recompute re-prefills at the roofline’s assumed 5 PF/s with 49B active parameters, attention excluded, so it is a lower bound. ', 'ml-note'); tiers.append(src); box.append(tiers);
     note(box, 'Illustrative average layer, MiB/sequence (log₂ bar scale). MHA/GQA: 128/8 KV heads, width 128, BF16. MLA toy baseline: 768 B/token, excluding metadata. The hybrid curve keeps 128 local tokens and fits the reported 1M ratio; it is not a V4 memory simulator.');
     function update() {
       const len = 2 ** ctl.value, v = kvFootprints(len);
@@ -367,8 +393,8 @@
         setValue(bars[i].val, (mib >= 100 ? Math.round(mib) : mib) + ' MiB');
         setValue(cells[i], fmt(+(bytes / 1048576).toFixed(2)) + ' MiB');
       });
-      info.textContent = v.flopRatio ? 'Reported at 1M · 10% KV cache · 27% single-token FP8-equivalent FLOPs vs V3.2' :
-        'Estimated V4 cache · ' + (100 * v.v4 / v.mla).toFixed(1) + '% of MLA. Move to 1M for the published FLOP comparison.';
+      info.textContent = (v.flopRatio ? 'Reported at 1M · 10% KV cache · 27% single-token FP8-equivalent FLOPs vs V3.2' :
+        'Estimated V4 cache · ' + (100 * v.v4 / v.mla).toFixed(1) + '% of MLA. Move to 1M for the published FLOP comparison.') + residency(len);
     }
     update();
   }
@@ -576,6 +602,10 @@
     const length = slider(box, 'Prompt length', 10, 17, 12, update, n => fmt(2 ** n) + ' tokens');
     const batch = slider(box, 'Batch size per GPU', 0, 10, 0, update, n => fmt(2 ** n));
     const epExp = slider(box, 'EP All-to-All group', 0, 6, 0, update, n => n === 0 ? '1 GPU (dense)' : fmt(2 ** n) + ' GPUs');
+    let tp = 1;
+    const tpRow = setA(el('div', undefined, 'ml-presets'), {role: 'group', 'aria-label': 'Tensor-parallel group'});
+    for (const n of [1, 4, 8]) { const b = btn('TP ' + n, undefined, n === tp); b.dataset.tp = String(n); b.onclick = () => { tp = n; update(); }; tpRow.append(b); }
+    box.append(tpRow);
     const fig = graphic(box, '0 0 306 150', '3-bound Blackwell roofline: compute, HBM3e bandwidth, and NVLink EP All-to-All');
     const x = i => Math.max(40, Math.min(276, 40 + Math.log2(Math.max(1, i)) * 18.5));
     const y = pf => Math.max(12, Math.min(110, 108 - (Math.log2(Math.max(.008, pf)) + 7) * 7.8));
@@ -588,6 +618,7 @@
     for (const [tx, ty, l] of [[2, 15, 'PF/s'], [44, 140, '1'], [138, 140, 'FLOP/byte →'], [245, 140, '4096'], [2, y(10) + 3, '10'], [1, y(.01) + 3, '.01']]) svg('text', {x: tx, y: ty}, fig, l);
     const prefill = svg('circle', {r: 5, class: 'ml-sel', 'data-live': ''}, fig), decode = svg('rect', {width: 8, height: 8, class: 'ml-sel ml-square', 'data-live': ''}, fig), info = el('div', '', 'ml-readout');
     box.append(info);
+    note(box, 'Sharding read-out: per decode step across 61 layers, TP adds two BF16 ring all-reduces per layer (attention output and shared expert, assumed) and EP the top-6 BF16 dispatch + combine, at 900 GB/s per direction. Bandwidth only: every collective also pays microseconds of launch latency, which dominates at small batch.');
     note(box, 'GB200: dense NVFP4 10 PFLOP/s, HBM3e 8 TB/s, NVLink 5 900 GB/s unidirectional (1.8 TB/s bidirectional) per GPU. EP All-to-All ceiling is an illustrative top-6 BF16 dispatch/combine model.');
     note(box, '1 GPU models a 7,168² GEMM. EP models top-6 SwiGLU experts (width 3,072), balanced work per GPU and 384/EP resident experts; each active expert’s FP4 weights are read once. BF16 inputs/outputs cross HBM; NVLink bytes count one direction across dispatch and combine. Ideal bounds omit metadata, intermediate traffic, imbalance and overlap.');
     const source = el('a', 'DeepSeek-V4 report'); source.href = 'https://arxiv.org/html/2606.19348v1#S1';
@@ -606,6 +637,10 @@
       } else { setA(nvLine, {opacity: '0'}); setA(nvLbl, {opacity: '0'}); }
       info.textContent = (r.ep === 1 ? 'Dense GEMM' : 'EP SwiGLU · assumed 5 PF/s compute') + ' · per GPU\n● Prefill ' + r.prefill.intensity.toFixed(1) + ' FLOP/B · ' + r.prefill.pflops.toFixed(2) + ' PF/s · ' + r.prefill.bound +
         '\n■ Decode ' + r.decode.intensity.toFixed(1) + ' FLOP/B · ' + r.decode.pflops.toFixed(2) + ' PF/s · ' + r.decode.bound;
+      const c = shardComm(2 ** batch.value, tp, r.ep);
+      tpRow.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.tp) === tp)));
+      info.textContent += '\nNVLink per decode step (61 layers): TP ' + tp + ' all-reduce ' + c.tpUs.toFixed(1) + ' µs + EP ' + r.ep + ' All-to-All ' + c.epUs.toFixed(1) + ' µs' +
+        (c.stepsPerS === Infinity ? ' · no NVLink traffic' : ' · bandwidth caps decode at ' + fmt(Math.round(c.stepsPerS)) + ' steps/s');
     }
     update();
   }

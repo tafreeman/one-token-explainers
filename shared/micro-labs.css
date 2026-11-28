@@ -131,3 +131,5 @@ html.rm svg text.is-changed { fill: var(--ml-orange-ink); stroke: var(--ml-orang
 .ml-real select option { color: #16181b; background: #fff }
 .ml-real > .ml-presets { margin: .15rem 0 .55rem }
 .micro-lab .ml-prov { margin-top: .55rem; padding-left: .55rem; border-left: 2px solid var(--ml-line) }
+/* Source links inside notes take the note's own (contrast-checked) colour, underlined, not the page's link blue. */
+.micro-lab .ml-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px }
