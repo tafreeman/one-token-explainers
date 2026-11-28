@@ -2,33 +2,39 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync, statSync} = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
+// The pages load shared/bpe-merges.js just before micro-labs.js; do the same so the BPE lab uses DeepSeek's merges.
+globalThis.DeepSeekBPE = require('../shared/bpe-merges.js');
 const lab = require('../shared/micro-labs.js');
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, a + ' != ' + b);
 const root = path.resolve(__dirname, '..');
 
 test('BPE consumes every byte once, preserves unknown scripts and reuses stable IDs', () => {
-  for (const text of ['', ' The café 🚀', '你好 東京', ' a  a', '👩🏿‍💻', 'e\u0301', ' a\n\t"']) {
+  for (const text of ['', ' The café 🚀', '你好 東京', ' a  a', '👩🏿‍💻', 'é', ' a\n\t"']) {
     const {ids} = lab.tokenize(text);
     assert.deepEqual(ids.flatMap(id => lab.pieces[id]), [...new TextEncoder().encode(text)]);
     assert.deepEqual(lab.tokenize(text).ids, ids);
   }
   const sample = lab.tokenize(' The The');
-  assert.equal(sample.ids.length, 2);
-  assert.equal(sample.ids[0], sample.ids[1]);
+  assert.deepEqual(sample.ids, [455, 455], 'DeepSeek-V4 ID of " The", the same both times');
   assert.equal(lab.pieceLabel(lab.pieces[sample.ids[0]]), '␠The');
-  assert.ok(sample.merges.every(m => m.count === 2));
+  assert.ok(sample.merges.length && sample.merges.every(m => m.count === 2));
 });
 
-test('teaching BPE agrees with an independent lowest-rank pair search', () => {
-  // Rank is creation order. Added words merge two multi-byte pieces (' ' + 'the'), so read the rules
-  // rather than assuming every merge appends one byte.
-  const rank = new Map(lab.rules.map(r => [r.left + ',' + r.right, r.id]));
+test('DeepSeek BPE agrees with an independent lowest-rank pair search inside each pre-split chunk', () => {
+  // Rank is table order and merge i makes ID firstMergeId + i. Real merges join multi-byte pieces
+  // (' P' + 'ar'), so read the rules rather than assuming every merge appends one byte.
+  const {firstMergeId} = lab.bpeTable;
+  const rank = new Map(lab.rules.map((r, i) => [r.left + ',' + r.right, i]));
   lab.rules.forEach((r, i) => {
-    assert.equal(r.id, 256 + i);
+    assert.equal(r.id, firstMergeId + i);
     assert.deepEqual(lab.pieces[r.id], [...lab.pieces[r.left], ...lab.pieces[r.right]]);
   });
-  function reference(text) {
-    const ids = [...new TextEncoder().encode(text)];
+  const byteId = new Map();
+  lab.pieces.forEach((p, id) => { if (p && p.length === 1) byteId.set(p[0], id); });
+  assert.equal(byteId.size, 256);
+  function reference(chunk) {
+    const ids = [...new TextEncoder().encode(chunk)].map(b => byteId.get(b));
     for (;;) {
       let at = -1, best = Infinity;
       for (let i = 0; i < ids.length - 1; i++) {
@@ -36,27 +42,46 @@ test('teaching BPE agrees with an independent lowest-rank pair search', () => {
         if (candidate < best) {best = candidate; at = i;}
       }
       if (at < 0) return ids;
-      ids.splice(at, 2, best);
+      ids.splice(at, 2, firstMergeId + best);
     }
   }
   const samples = [' The', 'The', ' café!', ' café', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'x', '  ',
-    ' weather', ' learns', 'walking', ' is', 'What', '?'];
+    ' weather', ' learns', 'walking', ' is', 'What', '?', '42', '\n'];
   for (const a of samples) for (const b of samples) {
-    assert.deepEqual(lab.tokenize(a + b).ids, reference(a + b), a + b);
+    const {ids, chunks} = lab.tokenize(a + b);
+    assert.equal(chunks.join(''), a + b, 'chunks rebuild the text');
+    assert.deepEqual(ids, chunks.flatMap(reference), a + b);
   }
 });
 
-test('typed everyday text merges into whole words, rare words into subwords, and lesson IDs stay put', () => {
+test('typed text gets DeepSeek’s real pieces and IDs; rarer words split further than the full model', () => {
   const words = s => lab.tokenize(s).ids.map(id => lab.pieceLabel(lab.pieces[id]));
   assert.deepEqual(words('The weather is nice today'), ['The', '␠weather', '␠is', '␠nice', '␠today']);
   assert.deepEqual(words('What is the weather in Paris?'), ['What', '␠is', '␠the', '␠weather', '␠in', '␠Paris', '?']);
   assert.deepEqual(words(' learns'), ['␠learn', 's']);
-  assert.ok(words('walking').includes('ing'), 'unknown word keeps a learned suffix');
-  // A name the word list lacks splits into a few learned chunks, not one piece per byte (it used to be 8).
-  assert.deepEqual(words('is in Montreal'), ['is', '␠in', '␠M', 'on', 't', 're', 'al']);
-  // The original lesson words keep their pre-expansion pieces.
+  assert.ok(words('walking').includes('ing'), 'a word outside the kept merges keeps a learned suffix');
+  // The full tokenizer makes " Montreal" one token (44210); its merge is past the kept slice, so it splits.
+  assert.deepEqual(words('is in Montreal'), ['is', '␠in', '␠Mont', 're', 'al']);
+  // The pre-tokenizer cuts digits into groups of up to three before any merge.
+  assert.deepEqual(lab.tokenize('12345').chunks, ['123', '45']);
+  // The lesson's sentence keeps its whole-word pieces, with DeepSeek-V4's real IDs.
   assert.deepEqual(words('is in Paris.'), ['is', '␠in', '␠Paris', '.']);
+  assert.deepEqual(lab.tokenize('is in Paris.').ids, [278, 295, 11111, 16]);
   assert.deepEqual(words('the cat sat'), ['the', '␠cat', '␠sat']);
+  assert.deepEqual(lab.tokenize('the cat sat').ids, [1805, 7539, 3825]);
+});
+
+test('without the merge table the lab falls back to one piece per byte', () => {
+  const sandbox = {module: {exports: {}}, TextEncoder, TextDecoder};
+  vm.runInNewContext(readFileSync(path.join(root, 'shared', 'micro-labs.js'), 'utf8'), sandbox);
+  const bare = sandbox.module.exports, text = ' Paris 🚀';
+  const {ids, merges, chunks} = bare.tokenize(text);
+  assert.deepEqual([...ids], [...new TextEncoder().encode(text)], 'IDs are the byte values');
+  assert.equal(merges.length, 0);
+  assert.deepEqual([...chunks], [text]);
+  assert.equal(bare.rules.length, 0);
+  assert.equal(bare.bpeTable, null);
+  assert.deepEqual([...bare.pieces[80]], [80]);
 });
 
 test('every SSE split preserves UTF-8 and only a complete blank line dispatches text', () => {

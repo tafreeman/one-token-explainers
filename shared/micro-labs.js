@@ -6,51 +6,55 @@
   const fmt = n => n.toLocaleString('en-US');
   const hex = b => b.toString(16).toUpperCase().padStart(2, '0');
 
-  const rules = [], pairs = new Map(), pieces = Array.from({length: 256}, (_, i) => [i]);
-  // The lesson's words come first, so their demo IDs stay fixed. Then about 200 common English words (with
-  // their leading space) and suffixes, so typed text merges into whole words or subwords instead of single
-  // bytes; anything rarer still falls back to smaller pieces, as real BPE does.
-  const common = ('the a an and or of to is it its on at as by for from with you your we they he she I my me this that these ' +
-    'what which who how why when where can could will would should do does did not no yes all some any more most many much ' +
-    'one two three new good nice great small big first last next time day today tomorrow week year people world city weather ' +
-    'rain sun sunny cold hot warm London Tokyo France model models token tokens text word words language large data train ' +
-    'training learn learning AI computer code function return question answer hello thanks please like love make made go going ' +
-    'get know think see look use used work works help tell write read run need want here there now then just very so but if ' +
-    'because about after before over under up down out into also only again').split(' ').map(w => ' ' + w);
-  const starts = 'What How Why When Where Is Can Do It This We You My Hello I A'.split(' ');
-  const suffixes = 'ing ed er ers ly tion s es ment ness able al ive ize ful less est un re'.split(' ');
-  // Like a trained BPE's earliest merges: a leading space joins every letter, then frequent English pairs and
-  // triples, so a name the list lacks (' Montreal') splits into a few chunks, not one piece per byte.
-  const letters = [...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(c => ' ' + c);
-  const pairs2 = ('th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ' +
-    'ne ea ra ce li ch ll be ma si om ur ion ent and ing her ter con res ver all ons nce men ted ers pro are ess ive was ect rea ' +
-    'com per int est sta ica ist ear ain one our rat').split(' ');
-  const lesson = [' The', 'The', ' café', ' café!', ' sat', ' cat', ' Paris', 'the', '🚀', '你好', '東京', 'is', ' in'];
-  for (const w of [...lesson, ...letters, ...pairs2, ...suffixes, ...common, ...starts]) {
-    // Added words chain the pieces the rules so far already make, so each still ends as one token.
-    const b = lesson.includes(w) ? bytesOf(w) : tokenize(w).ids; let left = b[0];
-    for (const right of b.slice(1)) {
-      const k = left + ',' + right;
-      if (!pairs.has(k)) { const id = pieces.length; pieces.push([...pieces[left], ...pieces[right]]); pairs.set(k, id); rules.push({left, right, id}); }
-      left = pairs.get(k);
+  // Byte-level BPE over DeepSeekBPE (shared/bpe-merges.js, DeepSeek's first N real merges): pre-split by its
+  // regexes, then each chunk merges its lowest-rank pair (Hugging Face semantics). No table: bytes stay apart.
+  let bpe;
+  const KEY = 131072; // pair key left * KEY + right; every DeepSeek ID is below 2^17
+  function model() {
+    if (bpe) return bpe;
+    const T = globalThis.DeepSeekBPE, pieces = [], rules = [], rank = new Map();
+    if (!T) return (bpe = {pieces: Array.from({length: 256}, (_, b) => [b]), rules, rank, byteId: [...Array(256).keys()], split: []});
+    const {base, one, two} = T.code;
+    const unpack = s => { // inverse of pack_ids in tools/extract-deepseek-merges.py
+      const d = i => (c => c - 33 - (c > 34) - (c > 92))(s.charCodeAt(i)), out = [];
+      for (let i = 0; i < s.length;) {
+        const v = d(i++);
+        out.push(v < one ? v : v < one + two ? one + (v - one) * base + d(i++) : one + two * base + ((v - one - two) * base + d(i++)) * base + d(i++));
+      }
+      return out;
+    };
+    const byteId = unpack(T.bytes), ids = unpack(T.merges);
+    byteId.forEach((id, b) => { pieces[id] = [b]; });
+    for (let r = 0; r < ids.length / 2; r++) {
+      const left = ids[2 * r], right = ids[2 * r + 1], id = T.firstMergeId + r;
+      pieces[id] = [...pieces[left], ...pieces[right]]; rank.set(left * KEY + right, r); rules.push({left, right, id});
     }
+    return (bpe = {T, pieces, rules, rank, byteId, split: T.split.map(p => new RegExp(p, T.flags))});
   }
   function pieceLabel(b) {
     try { return new TextDecoder('utf-8', {fatal: true}).decode(Uint8Array.from(b)).replaceAll(' ', '␠').replaceAll('\n', '↵').replaceAll('\t', '⇥'); }
     catch { return b.map(hex).join(' '); }
   }
+  // Split "Isolated": each match and each gap between matches is a chunk, one regex after another.
+  const chunksOf = (text, split) => split.reduce((parts, re) => parts.flatMap(p => {
+    const out = []; let at = 0;
+    for (const m of p.matchAll(re)) { if (m.index > at) out.push(p.slice(at, m.index)); if (m[0]) out.push(m[0]); at = m.index + m[0].length; }
+    if (at < p.length) out.push(p.slice(at));
+    return out;
+  }), text ? [text] : []);
   function tokenize(text) {
-    let ids = bytesOf(text); const merges = [];
-    for (const r of rules) {
-      const next = []; let count = 0;
-      for (let i = 0; i < ids.length; i++) {
-        if (ids[i] === r.left && ids[i + 1] === r.right) { next.push(r.id); i++; count++; }
-        else next.push(ids[i]);
+    const {rank, rules, byteId, split} = model(), chunks = chunksOf(text, split), ids = [], used = new Map();
+    for (const c of chunks) {
+      const w = bytesOf(c).map(b => byteId[b]);
+      for (;;) { // lowest rank first, leftmost on a tie
+        let at = -1, best = Infinity;
+        for (let i = 0; i + 1 < w.length; i++) { const r = rank.get(w[i] * KEY + w[i + 1]); if (r < best) { best = r; at = i; } }
+        if (at < 0) break;
+        w.splice(at, 2, rules[best].id); used.set(best, (used.get(best) || 0) + 1);
       }
-      if (count) merges.push({...r, count});
-      ids = next;
+      ids.push(...w);
     }
-    return {ids, merges};
+    return {ids, chunks, merges: [...used].sort((a, b) => a[0] - b[0]).map(([r, count]) => ({...rules[r], count}))};
   }
   function streamPrefix(text, cursor, buffered = true) {
     const wire = enc.encode('data: ' + JSON.stringify({text}) + '\n\n');
@@ -152,8 +156,10 @@
   // Observatory cards. Each concept's components (concept-map.js `obs`) carry its Break lab.
   const components = {'MD-2a': ['attention', 'rope'], 'MD-2b': ['kv'], 'MD-2c': ['kv'], 'MD-2d': ['attention', 'rope'], 'MD-2g': ['moe'], 'MD-2h': ['moe'],
     'IN-5': ['pd'], 'IN-6': ['pd'], 'IN-7': ['pd'], 'IN-9': ['stream'], 'IN-10': ['stream'], 'IN-11': ['cache'], 'IN-12': ['cache', 'pd']};
-  const core = {tokenize, pieces, rules, pieceLabel, streamPrefix, attention, rope, kvFootprints, kvTiers, shardComm, GB200, maxContext,
+  const core = {tokenize, pieceLabel, streamPrefix, attention, rope, kvFootprints, kvTiers, shardComm, GB200, maxContext,
     routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs, components};
+  // Non-enumerable, so spreading core into window.MicroLabs does not build the model.
+  Object.defineProperties(core, {pieces: {get: () => model().pieces}, rules: {get: () => model().rules}, bpeTable: {get: () => model().T || null}});
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
 
@@ -282,7 +288,21 @@
     box.append(row, gloss);
   }
 
+  // The 44 KB table loads when a tokenizer lab first opens; a script tag, unlike fetch(), works from file://.
+  const BPE_SRC = document.currentScript?.src.replace(/micro-labs\.js(\?.*)?$/, 'bpe-merges.js');
+  let bpeLoad;
+  const loadBpe = () => (bpeLoad ||= new Promise(done => {
+    const s = Object.assign(document.createElement('script'), {src: BPE_SRC});
+    s.onload = s.onerror = () => { bpe = undefined; done(); }; // rebuild, or stay on bytes if it failed
+    document.head.append(s);
+  }));
   function bpeLab(box, stream) {
+    if (globalThis.DeepSeekBPE || !BPE_SRC || bpeLoad?.done) return bpeBuild(box, stream);
+    const wait = note(box, 'Loading DeepSeek’s merge table…'), inner = el('div');
+    // Built detached, then swapped in, so change feedback does not pulse the first paint.
+    loadBpe().then(() => { bpeLoad.done = true; bpeBuild(inner, stream); wait.replaceWith(...inner.childNodes); });
+  }
+  function bpeBuild(box, stream) {
     // The tokenizer lab opens on the lesson's own sentence; the UTF-8 lab keeps the emoji and CJK examples.
     const start = stream ? ' The café 🚀' : 'is in Paris.';
     const field = el('label', 'Prompt', 'ml-field'), input = Object.assign(el('textarea'), {rows: 2, maxLength: 160, value: start});
@@ -295,9 +315,13 @@
       const b = btn(l); b.onclick = () => { input.value = v; update(); }; presets.append(b);
     }
     const result = el('div', undefined, 'ml-pieces'), tally = el('div', undefined, 'ml-readout'), steps = el('ol', undefined, 'ml-merges'), trace = el('details', undefined, 'ml-trace');
-    trace.append(el('summary', 'Show merge order'), steps);
+    const presplit = el('p', '');
+    trace.append(el('summary', 'Show merge order'), presplit, steps);
     box.append(field, presets, result, tally, trace);
-    const vocab = note(box, 'Demo vocabulary: about 200 common English words and suffixes, with IDs that differ from the main story. Rarer text splits into smaller pieces or single bytes, as real BPE does. ␠ marks a space; the label under each piece is its demo token ID.');
+    const {T, pieces} = model();
+    const vocab = note(box, T ? 'The first ' + fmt(T.mergesKept) + ' of ' + fmt(T.mergesTotal) + ' merges of ' + T.modelId.split('/')[1] +
+      '’s real tokenizer, so each piece and ID matches it. Rarer words split further than the full model would. ␠ marks a space; the number under each piece is its token ID.'
+      : 'Byte fallback: DeepSeek’s merge table did not load, so every byte stays its own piece and the number under it is the byte value.');
     vocab?.classList?.add('ml-demo-vocab');
     let cursor, wire, status, buffered = true, bufToggle;
     function decode() {
@@ -335,7 +359,8 @@
     }
     let prevIds = null;
     function update() {
-      const {ids, merges} = tokenize(input.value);
+      const {ids, merges, chunks} = tokenize(input.value);
+      presplit.textContent = T ? 'Pre-split first; merges never cross a chunk: ' + chunks.map(c => pieceLabel(bytesOf(c))).join(' | ') : '';
       const spans = ids.map(id => { const p = el('span', pieceLabel(pieces[id])); p.append(el('small', String(id))); return p; });
       result.replaceChildren(...spans);
       if (prevIds) flashAll(spans.filter((_, i) => prevIds[i] !== ids[i])); // only the pieces that changed pulse
