@@ -6,10 +6,8 @@
   const fmt = n => n.toLocaleString('en-US');
   const hex = b => b.toString(16).toUpperCase().padStart(2, '0');
 
-  // Byte-level BPE. With shared/bpe-merges.js loaded (DeepSeekBPE: the first N merges of DeepSeek's real
-  // tokenizer), text is split by its pre-tokenizer regexes, then each chunk merges its lowest-rank pair until
-  // none is left (Hugging Face semantics), so pieces and IDs are DeepSeek's own. Without it, bytes stay apart.
-  // Built on first use, so pages that never open the lab skip the work.
+  // Byte-level BPE over DeepSeekBPE (shared/bpe-merges.js, DeepSeek's first N real merges): pre-split by its
+  // regexes, then each chunk merges its lowest-rank pair (Hugging Face semantics). No table: bytes stay apart.
   let bpe;
   const KEY = 131072; // pair key left * KEY + right; every DeepSeek ID is below 2^17
   function model() {
@@ -37,7 +35,7 @@
     try { return new TextDecoder('utf-8', {fatal: true}).decode(Uint8Array.from(b)).replaceAll(' ', '␠').replaceAll('\n', '↵').replaceAll('\t', '⇥'); }
     catch { return b.map(hex).join(' '); }
   }
-  // Split "Isolated": every regex match and every gap between matches becomes its own chunk, one regex at a time.
+  // Split "Isolated": each match and each gap between matches is a chunk, one regex after another.
   const chunksOf = (text, split) => split.reduce((parts, re) => parts.flatMap(p => {
     const out = []; let at = 0;
     for (const m of p.matchAll(re)) { if (m.index > at) out.push(p.slice(at, m.index)); if (m[0]) out.push(m[0]); at = m.index + m[0].length; }
@@ -48,7 +46,7 @@
     const {rank, rules, byteId, split} = model(), chunks = chunksOf(text, split), ids = [], used = new Map();
     for (const c of chunks) {
       const w = bytesOf(c).map(b => byteId[b]);
-      for (;;) { // merge the lowest-rank adjacent pair (leftmost on a tie) until no kept merge applies
+      for (;;) { // lowest rank first, leftmost on a tie
         let at = -1, best = Infinity;
         for (let i = 0; i + 1 < w.length; i++) { const r = rank.get(w[i] * KEY + w[i + 1]); if (r < best) { best = r; at = i; } }
         if (at < 0) break;
@@ -160,7 +158,7 @@
     'IN-5': ['pd'], 'IN-6': ['pd'], 'IN-7': ['pd'], 'IN-9': ['stream'], 'IN-10': ['stream'], 'IN-11': ['cache'], 'IN-12': ['cache', 'pd']};
   const core = {tokenize, pieceLabel, streamPrefix, attention, rope, kvFootprints, kvTiers, shardComm, GB200, maxContext,
     routeExperts, moeCapacity, prefixCache, PREFIX_TOKENS, pdSchedule, roofline, storyStops: stopLabs, tourStops: stopLabs, components};
-  // Non-enumerable getters, so spreading core into window.MicroLabs does not build the model at load.
+  // Non-enumerable, so spreading core into window.MicroLabs does not build the model.
   Object.defineProperties(core, {pieces: {get: () => model().pieces}, rules: {get: () => model().rules}, bpeTable: {get: () => model().T || null}});
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
@@ -290,7 +288,21 @@
     box.append(row, gloss);
   }
 
+  // The 44 KB table loads when a tokenizer lab first opens; a script tag, unlike fetch(), works from file://.
+  const BPE_SRC = document.currentScript?.src.replace(/micro-labs\.js(\?.*)?$/, 'bpe-merges.js');
+  let bpeLoad;
+  const loadBpe = () => (bpeLoad ||= new Promise(done => {
+    const s = Object.assign(document.createElement('script'), {src: BPE_SRC});
+    s.onload = s.onerror = () => { bpe = undefined; done(); }; // rebuild, or stay on bytes if it failed
+    document.head.append(s);
+  }));
   function bpeLab(box, stream) {
+    if (globalThis.DeepSeekBPE || !BPE_SRC || bpeLoad?.done) return bpeBuild(box, stream);
+    const wait = note(box, 'Loading DeepSeek’s merge table…'), inner = el('div');
+    // Built detached, then swapped in, so change feedback does not pulse the first paint.
+    loadBpe().then(() => { bpeLoad.done = true; bpeBuild(inner, stream); wait.replaceWith(...inner.childNodes); });
+  }
+  function bpeBuild(box, stream) {
     // The tokenizer lab opens on the lesson's own sentence; the UTF-8 lab keeps the emoji and CJK examples.
     const start = stream ? ' The café 🚀' : 'is in Paris.';
     const field = el('label', 'Prompt', 'ml-field'), input = Object.assign(el('textarea'), {rows: 2, maxLength: 160, value: start});

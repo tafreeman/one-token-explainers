@@ -70,14 +70,15 @@ test('expert IDs are valid and distinct; shares sum to 1 within 1e-3; mass and e
   }));
 });
 
-test('every page with the labs loads the traces, then the BPE merges, just before micro-labs.js; Swiss loads none', () => {
+test('every page with the labs loads the traces just before micro-labs.js; Swiss loads neither', () => {
   const root = path.join(__dirname, '..');
-  const dir = '(?:\\.{1,2}\\/shared\\/)?';
-  const order = new RegExp(['real-traces', 'bpe-merges', 'micro-labs'].map(f => `<script src="${dir}${f}\\.js"><\\/script>`).join(''));
   for (const page of ['index.html', 'journey-tour/index.html', 'end-to-end-beamline/index.html', 'one-token/index.html', 'shared/obs-core.html']) {
     const html = readFileSync(path.join(root, page), 'utf8');
-    assert.match(html, order, page);
+    assert.match(html, /<script src="(?:\.{1,2}\/shared\/)?real-traces\.js"><\/script><script src="(?:\.{1,2}\/shared\/)?micro-labs\.js"><\/script>/, page);
+    // The BPE merge table is not a page script: micro-labs.js loads it the first time a tokenizer lab opens.
+    assert.doesNotMatch(html, /bpe-merges/, page);
   }
+  assert.match(readFileSync(path.join(root, 'shared', 'micro-labs.js'), 'utf8'), /'bpe-merges\.js'/);
   assert.doesNotMatch(readFileSync(path.join(root, 'end-to-end-swiss/index.html'), 'utf8'), /real-traces|bpe-merges|micro-labs/);
 });
 
